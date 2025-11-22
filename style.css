@@ -187,28 +187,30 @@ h4 {
 
 .mobile-nav {
     position: fixed;
-    top: 70px;
+    top: 70px; /* Adjust based on your Navbar height */
     left: 0;
     width: 100%;
-    background: white;
-    padding: 20px;
-    display: none;
+    background: #ffffff; /* Force Solid White Background */
+    padding: 20px 0;
+    display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 20px;
-    box-shadow: 0 5px 10px rgba(0, 0, 0, 0.1);
-    z-index: 999;
+    gap: 25px;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.1); /* Shadow to separate from content */
+    z-index: 998; /* Below Navbar (1000) but above content */
+    transform: translateY(-150%); /* Hidden by default (slide up) */
+    transition: transform 0.3s ease-in-out;
 }
 
 .mobile-nav.active {
-    display: flex;
+    transform: translateY(0); /* Slide down when active */
 }
 
-.mobile-nav a {
-    text-decoration: none;
-    color: var(--text-dark);
-    font-size: 1.2rem;
-    font-weight: 600;
+/* Ensure Navbar stays on top */
+.navbar {
+    z-index: 1001; 
+    position: sticky;
+    top: 0;
 }
 
 /* --- 4. HERO SECTION (Updated) --- */
@@ -970,11 +972,47 @@ h4 {
 }
 
 /* --- CART FOOTER --- */
+/* --- CART FIXES --- */
 .cart-footer {
-    padding: 25px;
-    background: white;
+    padding: 20px;
+    background: #ffffff; /* Ensure footer is white */
     border-top: 1px solid #eee;
-    box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 -5px 20px rgba(0,0,0,0.05);
+    flex-shrink: 0; /* Prevents footer from shrinking */
+}
+
+/* Fix Input Fields in Cart */
+#cust-phone, #cust-address, #promo-code {
+    background-color: #ffffff !important; /* Force White */
+    border: 1px solid #ccc !important;
+    color: #333 !important;
+    border-radius: 8px;
+}
+
+/* Add breathing room between sections */
+#customer-details-inputs {
+    margin-top: 15px;
+    margin-bottom: 15px;
+    padding-top: 15px;
+    border-top: 1px dashed #eee;
+}
+
+.coupon-section {
+    margin-bottom: 15px;
+}
+
+/* Ensure the sidebar scrolls correctly */
+.cart-sidebar {
+    display: flex;
+    flex-direction: column;
+    height: 100%; /* Full height */
+    max-height: 100vh; /* No overflow */
+}
+
+.cart-items-container {
+    flex-grow: 1; /* Takes available space */
+    overflow-y: auto; /* Scroll only items, not the footer */
+    padding-bottom: 10px;
 }
 
 .total-row {
