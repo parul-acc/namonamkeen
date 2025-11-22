@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Ops | Namo Namkeen</title>
+    <link rel="icon" href="logo.jpg" type="image/jpeg">
+    <link rel="manifest" href="admin-manifest.json">
+    <meta name="theme-color" content="#2c1810">
+
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+    <style>
+        :root {
+            --primary: #e85d04;
+            --dark: #2c1810;
+            --light: #f8f9fa;
+            --white: #ffffff;
+            --green: #27ae60;
+            --sidebar-w: 260px;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: var(--light);
+            margin: 0;
+            display: flex;
+            min-height: 100vh;
+            color: #333;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: var(--sidebar-w);
+            background: var(--dark);
+            color: white;
+            position: fixed;
+            height: 100%;
+            left: 0;
+            top: 0;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .brand {
+            padding: 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .nav-links {
+            list-style: none;
+            padding: 20px 0;
+            margin: 0;
+            flex-grow: 1;
+        }
+
+        .nav-links li a {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 15px 25px;
+            color: #ccc;
+            text-decoration: none;
+            transition: 0.2s;
+        }
+
+        .nav-links li a.active {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border-left: 4px solid var(--primary);
+        }
+
+        /* Main Content */
+        .main-content {
+            margin-left: var(--sidebar-w);
+            width: calc(100% - var(--sidebar-w));
+            padding: 25px;
+        }
+
+        /* Target Bar */
+        .target-container {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 25px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+        }
+
+        .target-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .progress-track {
+            width: 100%;
+            height: 12px;
+            background: #eee;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #e74c3c, #f1c40f, #27ae60);
+            width: 0%;
+            transition: width 1s ease;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+            border-left: 4px solid var(--primary);
+        }
+
+        .stat-card h1 {
+            margin: 5px 0 0;
+            font-size: 1.8rem;
+            color: var(--dark);
+        }
+
+        .stat-card h3 {
+            margin: 0;
+            font-size: 0.85rem;
+            color: #777;
+            text-transform: uppercase;
+        }
+
+        /* Table */
+        .table-card {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 900px;
+        }
+
+        th {
+            background: #f1f2f6;
+            padding: 15px;
+            text-align: left;
+            font-size: 0.85rem;
+            color: #555;
+            border-bottom: 2px solid #e1e4e8;
+        }
+
+        td {
+            padding: 15px;
+            border-bottom: 1px solid #f1f2f6;
+            font-size: 0.9rem;
+            vertical-align: middle;
+        }
+
+        /* Badges & Icons */
+        .vip-badge {
+            background: #f1c40f;
+            color: #2c1810;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: bold;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            margin-left: 5px;
+        }
+
+        .status-select {
+            padding: 6px;
+            border-radius: 6px;
+            border: 1px solid #ddd;
+            font-size: 0.8rem;
+            cursor: pointer;
+        }
+
+        /* Buttons */
+        .btn-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: 0.2s;
+            margin-right: 5px;
+        }
+
+        .btn-wa {
+            background: #25D366;
+            color: white;
+        }
+
+        /* Send to Customer */
+        .btn-view {
+            background: #ecf0f1;
+            color: #333;
+        }
+
+        .btn-icon:hover {
+            transform: scale(1.1);
+        }
+
+        /* Login & Modals */
+        #login-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--dark);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            z-index: 2000;
+        }
+
+        @media (max-width: 900px) {
+            .sidebar {
+                display: none;
+            }
+
+            /* Simple mobile hide for now */
+            .main-content {
+                margin: 0;
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <audio id="order-sound" src="https://www.soundjay.com/buttons/sounds/button-3.mp3"></audio>
+
+    <div class="user-info" style="display:flex; align-items:center; gap:10px;">
+        <button id="btn-install-app" onclick="installApp()"
+            style="display:none; background:#27ae60; color:white; border:none; padding:8px 12px; border-radius:5px; font-weight:bold; cursor:pointer;">
+            <i class="fas fa-download"></i> App
+        </button>
+
+        <span id="admin-name" style="font-weight:600; display:none;">Admin</span>
+        <button class="logout-btn" onclick="logout()"><i class="fas fa-power-off"></i></button>
+    </div>
+
+    <nav class="sidebar">
+        <div class="brand"><img src="logo.jpg" width="35" style="border-radius:50%;">
+            <h3>Operations</h3>
+        </div>
+        <ul class="nav-links">
+            <li><a href="#" class="active"><i class="fas fa-clipboard-list"></i> Orders</a></li>
+            <li><a href="#" onclick="alert('Coming Soon')"><i class="fas fa-motorcycle"></i> Drivers</a></li>
+        </ul>
+        <div style="padding:20px; margin-top:auto;">
+            <a href="index.html" target="_blank"
+                style="color:rgba(255,255,255,0.5); text-decoration:none; font-size:0.9rem;">View Live Site</a>
+        </div>
+    </nav>
+
+    <div class="main-content">
+
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+            <h2 style="margin:0; color:var(--dark);">Order Management</h2>
+            <button onclick="logout()"
+                style="background:#ffebee; color:#c0392b; border:none; padding:8px 15px; border-radius:5px; cursor:pointer; font-weight:600;">Logout</button>
+        </div>
+
+        <div class="target-container">
+            <div class="target-header">
+                <span>Today's Revenue: <span id="today-revenue-val">₹0</span></span>
+                <span style="color:#777;">Goal: ₹5,000</span>
+            </div>
+            <div class="progress-track">
+                <div id="target-bar" class="progress-fill"></div>
+            </div>
+            <small id="target-msg" style="display:block; margin-top:5px; color:#777;">Keep pushing! 🚀</small>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card" style="border-left-color:#2980b9;">
+                <h3>Pending</h3>
+                <h1 id="count-pending">0</h1>
+            </div>
+            <div class="stat-card" style="border-left-color:#e67e22;">
+                <h3>Packing</h3>
+                <h1 id="count-packed">0</h1>
+            </div>
+            <div class="stat-card" style="border-left-color:#27ae60;">
+                <h3>Delivered</h3>
+                <h1 id="count-delivered">0</h1>
+            </div>
+        </div>
+
+        <div class="table-card">
+            <div style="padding:15px; border-bottom:1px solid #eee;">
+                <input type="text" id="searchBox" onkeyup="renderTable()" placeholder="Search Order #, Name, Phone..."
+                    style="padding:8px; width:100%; max-width:300px; border:1px solid #ddd; border-radius:5px;">
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Customer</th>
+                        <th>Order</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="orders-body"></tbody>
+            </table>
+        </div>
+
+    </div>
+
+    <div id="order-modal"
+        style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:2000; align-items:center; justify-content:center;">
+        <div style="background:white; width:500px; max-width:90%; padding:25px; border-radius:10px; position:relative;">
+            <button onclick="document.getElementById('order-modal').style.display='none'"
+                style="position:absolute; right:15px; top:10px; border:none; background:none; font-size:1.5rem; cursor:pointer;">&times;</button>
+            <div id="modal-content"></div>
+        </div>
+    </div>
+
+    <script>
+        // --- 1. CONFIGURATION (Paste Keys) ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyB-Ep3yEAzFBlqOVGOxhjbmjwlSH0Xx5qU",
+            authDomain: "namo-namkeen-app.firebaseapp.com",
+            projectId: "namo-namkeen-app",
+            storageBucket: "namo-namkeen-app.firebasestorage.app",
+            messagingSenderId: "154786466552",
+            appId: "1:154786466552:web:9be55b7b599806f536490d",
+            measurementId: "G-8HJJ8YW1YH"
+        };
+        const ADMIN_EMAILS = ["parul19.accenture@gmail.com"];
+
+
+        const DAILY_GOAL = 5000;
+
+        // Init
+        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+        let allOrders = [];
+        let userOrderCounts = {}; // To track VIPs
+
+        // Auth
+        auth.onAuthStateChanged(user => {
+            if (user && ADMIN_EMAILS.includes(user.email)) {
+                document.getElementById('login-overlay').style.display = 'none';
+                loadData();
+            } else if (user) { alert("Access Denied"); auth.signOut(); }
+        });
+
+        function adminLogin() { auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()); }
+        function logout() { auth.signOut().then(() => location.reload()); }
+
+        // Load Data
+        function loadData() {
+            db.collection("orders").orderBy("timestamp", "desc").onSnapshot(snap => {
+                allOrders = [];
+                userOrderCounts = {}; // Reset counts
+                let todayRev = 0;
+                const today = new Date().setHours(0, 0, 0, 0);
+
+                snap.forEach(doc => {
+                    const d = doc.data(); d.id = doc.id; d.jsDate = d.timestamp ? d.timestamp.toDate() : new Date();
+                    allOrders.push(d);
+
+                    // Calculate Stats
+                    if (d.jsDate.setHours(0, 0, 0, 0) === today) todayRev += d.total;
+
+                    // Count orders per user for VIP logic
+                    if (d.userId) {
+                        userOrderCounts[d.userId] = (userOrderCounts[d.userId] || 0) + 1;
+                    }
+                });
+
+                updateStats(todayRev);
+                renderTable();
+            });
+        }
+
+        function updateStats(todayRev) {
+            // Target Bar
+            const percent = Math.min((todayRev / DAILY_GOAL) * 100, 100);
+            document.getElementById('target-bar').style.width = percent + '%';
+            document.getElementById('today-revenue-val').innerText = '₹' + todayRev.toLocaleString();
+
+            if (percent >= 100) document.getElementById('target-msg').innerText = "🎉 Goal Achieved! Outstanding!";
+            else document.getElementById('target-msg').innerText = `Reach ₹${DAILY_GOAL.toLocaleString()} to hit daily goal.`;
+
+            // Count Cards
+            document.getElementById('count-pending').innerText = allOrders.filter(o => !o.status || o.status === 'Pending').length;
+            document.getElementById('count-packed').innerText = allOrders.filter(o => o.status === 'Packed').length;
+            document.getElementById('count-delivered').innerText = allOrders.filter(o => o.status === 'Delivered').length;
+        }
+
+        function renderTable() {
+            const search = document.getElementById('searchBox').value.toLowerCase();
+            const tbody = document.getElementById('orders-body');
+            tbody.innerHTML = '';
+
+            const filtered = allOrders.filter(o =>
+                (o.userName || "").toLowerCase().includes(search) ||
+                (o.userPhone || "").includes(search) ||
+                o.id.toLowerCase().includes(search)
+            );
+
+            filtered.forEach(o => {
+                const dateStr = o.jsDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+                const status = o.status || 'Pending';
+                const isVIP = userOrderCounts[o.userId] > 3; // VIP if > 3 orders
+
+                // Generate Driver Options
+
+
+                const row = `
+                    <tr>
+                        <td>${dateStr}<br><small>#${o.id.slice(0, 5)}</small></td>
+                        <td>
+                            <strong>${o.userName}</strong>
+                            ${isVIP ? '<span class="vip-badge"><i class="fas fa-crown"></i> VIP</span>' : ''}
+                            <br><small>${o.userPhone || ''}</small>
+                        </td>
+                        <td>${o.items.length} Items<br><strong>₹${o.total}</strong></td>
+                        <td>
+                            <select class="status-select" onchange="updateStatus('${o.id}', this.value)">
+                                <option ${status === 'Pending' ? 'selected' : ''}>Pending</option>
+                                <option ${status === 'Packed' ? 'selected' : ''}>Packed</option>
+                                <option ${status === 'Delivered' ? 'selected' : ''}>Delivered</option>
+                                <option ${status === 'Cancelled' ? 'selected' : ''}>Cancelled</option>
+                            </select>
+                        </td>
+                       
+                        <td>
+                            <button class="icon-btn btn-view" onclick='viewOrder("${o.id}")'><i class="fas fa-eye"></i></button>
+                            <button class="icon-btn btn-wa" onclick="waCust('${o.userPhone}', '${o.userName}', '${status}')"><i class="fab fa-whatsapp"></i></button>
+                        </td>
+                    </tr>
+                `;
+                tbody.innerHTML += row;
+            });
+        }
+
+        // --- ACTIONS ---
+        function updateStatus(id, val) {
+            db.collection("orders").doc(id).update({ status: val });
+        }
+
+        function waCust(phone, name, status) {
+            if (!phone) return alert("No phone number.");
+            const msg = `Hello ${name}, your order is currently: ${status}.`;
+            window.open(`https://wa.me/91${phone.replace(/\D/g, '')}?text=${encodeURIComponent(msg)}`, '_blank');
+        }
+
+        function viewOrder(id) {
+            const o = allOrders.find(x => x.id === id);
+            const html = `
+                <h3>Order #${o.id}</h3>
+                <p><strong>Customer:</strong> ${o.userName} (${o.userPhone})</p>
+                <p><strong>Address:</strong> ${o.userAddress}</p>
+                <hr>
+                ${o.items.map(i => `<div>${i.name} x ${i.qty} - ₹${i.price * i.qty}</div>`).join('')}
+                <hr>
+                <h3 style="text-align:right">Total: ₹${o.total}</h3>
+            `;
+            document.getElementById('modal-content').innerHTML = html;
+            document.getElementById('order-modal').style.display = 'flex';
+        }
+
+        // --- ADMIN PWA INSTALLATION LOGIC ---
+        let deferredPrompt;
+        const installBtn = document.getElementById('btn-install-app');
+
+        // 1. Listen for the 'Add to Home Screen' event
+        window.addEventListener('beforeinstallprompt', (e) => {
+            // Prevent Chrome 67 and earlier from automatically showing the prompt
+            e.preventDefault();
+            // Stash the event so it can be triggered later.
+            deferredPrompt = e;
+            // Show the install button
+            installBtn.style.display = 'inline-flex';
+            console.log("Install Prompt Captured");
+        });
+
+        // 2. Install Function
+        function installApp() {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                deferredPrompt.userChoice.then((choiceResult) => {
+                    if (choiceResult.outcome === 'accepted') {
+                        console.log('User accepted the A2HS prompt');
+                        installBtn.style.display = 'none';
+                    }
+                    deferredPrompt = null;
+                });
+            } else {
+                // Fallback for iOS or if prompt missed
+                alert("To install on iPhone: Tap 'Share' -> 'Add to Home Screen'.");
+            }
+        }
+
+        // 3. Register Admin Service Worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('admin-sw.js').then(reg => {
+                    console.log('Admin SW registered');
+                });
+            });
+        }
+
+        // 4. Request Notification Permission (For Order Alerts)
+        // Trigger this on the first click anywhere to bypass browser block
+        document.body.addEventListener('click', () => {
+            if (Notification.permission !== "granted") {
+                Notification.requestPermission();
+            }
+        }, { once: true });
+
+        // 5. Send Notification Function (Called by loadOrders)
+        function sendSystemNotification(customerName, amount) {
+            if (document.hidden && Notification.permission === "granted") {
+                new Notification("💰 New Order: ₹" + amount, {
+                    body: "Customer: " + customerName,
+                    icon: "logo.jpg",
+                    vibrate: [200, 100, 200]
+                });
+            }
+        }
+    </script>
+</body>
+
+</html>

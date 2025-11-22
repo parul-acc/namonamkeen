@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /admin.html
+Disallow: /invoice-modal
+
+Sitemap: https://namonamkeen-app.netlify.app/sitemap.xml

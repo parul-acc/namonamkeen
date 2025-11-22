@@ -1,3 +1,7 @@
+// YOUR UPI ID (Replace this!)
+const SHOP_UPI_ID = "8103276050@ybl"; // e.g., namonamkeen@sbi
+const SHOP_NAME = "Parul Gangwal";
+
 // --- 1. CONFIGURATION ---
 const RAW_SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRTzLvn_dqN55WIaUHU8ytqM2Y2gXTZA4_29iYAdkh_uDmT4EgplKxJ4JimuoQJ5GugKxCq2v87cQGp/pub?output=csv';
 const SHEET_URL = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(RAW_SHEET_URL)}&t=${Date.now()}`;
@@ -5,13 +9,13 @@ const SHEET_URL = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(
 // --- FIREBASE CONFIG (KEEP YOUR KEYS) ---
 // Note: Ensure you have your correct keys here from previous steps
 const firebaseConfig = {
-  apiKey: "AIzaSyB-Ep3yEAzFBlqOVGOxhjbmjwlSH0Xx5qU",
-  authDomain: "namo-namkeen-app.firebaseapp.com",
-  projectId: "namo-namkeen-app",
-  storageBucket: "namo-namkeen-app.firebasestorage.app",
-  messagingSenderId: "154786466552",
-  appId: "1:154786466552:web:9be55b7b599806f536490d",
-  measurementId: "G-8HJJ8YW1YH"
+    apiKey: "AIzaSyB-Ep3yEAzFBlqOVGOxhjbmjwlSH0Xx5qU",
+    authDomain: "namo-namkeen-app.firebaseapp.com",
+    projectId: "namo-namkeen-app",
+    storageBucket: "namo-namkeen-app.firebasestorage.app",
+    messagingSenderId: "154786466552",
+    appId: "1:154786466552:web:9be55b7b599806f536490d",
+    measurementId: "G-8HJJ8YW1YH"
 };
 
 if (typeof firebase !== 'undefined') {
@@ -25,10 +29,10 @@ if (typeof firebase !== 'undefined') {
 // --- 2. STATE VARIABLES ---
 let products = [];
 let cart = [];
-let currentUser = null;      
-let currentLang = 'en';      
-let currentCategory = 'all'; 
-let searchQuery = '';        
+let currentUser = null;
+let currentLang = 'en';
+let currentCategory = 'all';
+let searchQuery = '';
 let selectedHamperItems = [];
 let globalAnnouncement = null;
 let pastOrders = []; // NEW: Store fetched orders here
@@ -36,9 +40,9 @@ let pastOrders = []; // NEW: Store fetched orders here
 // --- 3. INITIALIZATION ---
 document.addEventListener('DOMContentLoaded', () => {
     const grid = document.getElementById('menu-grid');
-    if(grid) {
-        grid.innerHTML = ''; 
-        for(let i=0; i<4; i++) {
+    if (grid) {
+        grid.innerHTML = '';
+        for (let i = 0; i < 4; i++) {
             grid.innerHTML += `<div class="skeleton-card"><div class="skeleton skeleton-img"></div><div class="skeleton-info"><div class="skeleton skeleton-text"></div><div class="skeleton skeleton-text-sm"></div><div class="skeleton skeleton-btn"></div></div></div>`;
         }
     }
@@ -47,44 +51,58 @@ document.addEventListener('DOMContentLoaded', () => {
     checkStoreStatus();
     if (typeof auth !== 'undefined') {
         auth.onAuthStateChanged(user => {
-            if (user) { currentUser = user; updateUserUI(true); } 
+            if (user) { currentUser = user; updateUserUI(true); }
             else { currentUser = null; updateUserUI(false); }
         });
     }
 });
 
 // --- 4. DATA FETCHING ---
+// --- ROBUST DATA FETCHING (With Fallback) ---
 async function fetchProductsFromSheet() {
-    try {
-        const response = await fetch(SHEET_URL);
-        const data = await response.text();
-        const allData = csvToJSON(data);
-        
-        // 1. Announcement Logic
-        // Loose check (==) handles string '999' vs number 999
-        globalAnnouncement = allData.find(p => p.id == 999);
-        
-        // Debugging Log: Check your console to see what the code sees!
-        if(globalAnnouncement) {
-            console.log("Announcement Data:", globalAnnouncement);
-            updateAnnouncementUI();
-        } else {
-            console.log("No Announcement Found (ID 999 missing)");
+    const RAW_SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRTzLvn_dqN55WIaUHU8ytqM2Y2gXTZA4_29iYAdkh_uDmT4EgplKxJ4JimuoQJ5GugKxCq2v87cQGp/pub?output=csv';
+
+    // Strategy: Try Proxy 1, if fails, try Proxy 2
+    const proxies = [
+        `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(RAW_SHEET_URL)}&t=${Date.now()}`,
+        `https://corsproxy.io/?${encodeURIComponent(RAW_SHEET_URL)}`
+    ];
+
+    let csvData = null;
+
+    for (const url of proxies) {
+        try {
+            console.log("Trying to fetch from:", url);
+            const response = await fetch(url);
+            if (response.ok) {
+                csvData = await response.text();
+                break; // Success! Stop trying.
+            }
+        } catch (err) {
+            console.warn("Proxy failed, trying next...", err);
         }
-
-        // 2. Filter Products
-        products = allData.filter(p => p.id && p.name && p.id != 999); 
-
-        console.log("Menu Loaded:", products);
-        renderMenu();
-        renderHamperOptions();
-
-    } catch (error) {
-        console.error("Error loading menu:", error);
-        const grid = document.getElementById('menu-grid');
-        if(grid) grid.innerHTML = '<p style="text-align:center; width:100%;">Menu loading... (If this takes long, refresh)</p>';
-        setTimeout(() => renderMenu(), 2000);
     }
+
+    if (!csvData) {
+        console.error("All proxies failed.");
+        const grid = document.getElementById('menu-grid');
+        if (grid) grid.innerHTML = '<p style="text-align:center; padding:20px; color:red;">Menu could not be loaded. Please refresh.</p>';
+        return;
+    }
+
+    // Success - Process Data
+    const allData = csvToJSON(csvData);
+
+    // 1. Announcement
+    globalAnnouncement = allData.find(p => p.id == 999);
+    if (globalAnnouncement) updateAnnouncementUI();
+
+    // 2. Filter Products
+    products = allData.filter(p => p.id && p.name && p.id != 999);
+
+    console.log("Menu Loaded:", products);
+    renderMenu();
+    renderHamperOptions();
 }
 
 // --- ROBUST CSV PARSER ---
@@ -96,7 +114,7 @@ function csvToJSON(csvText) {
 
     for (let i = 1; i < lines.length; i++) {
         if (!lines[i].trim()) continue;
-        
+
         const obj = {};
         // Regex to handle commas inside quotes
         const currentline = lines[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
@@ -104,15 +122,15 @@ function csvToJSON(csvText) {
         headers.forEach((header, j) => {
             // remove quotes and TRIM whitespace/newlines aggressively
             let val = currentline[j] ? currentline[j].replace(/^"|"$/g, '').trim() : '';
-            
+
             if (header === 'id') val = parseInt(val);
             if (header === 'price') val = parseInt(val) || 0;
-            
+
             // Boolean Logic: Check specifically for the string "TRUE"
             if (header === 'bestseller' || header === 'in_stock') {
                 val = (val.toUpperCase() === 'TRUE');
             }
-            
+
             if (header === 'tags') val = val ? val.split('|') : [];
             obj[header] = val;
         });
@@ -133,19 +151,19 @@ function updateAnnouncementUI() {
             const msg = currentLang === 'en' ? globalAnnouncement.name : (globalAnnouncement.nameHi || globalAnnouncement.name);
             textElem.innerText = msg;
             bar.style.display = 'block';
-        } else { 
+        } else {
             console.log("Announcement hidden by user preference (sessionStorage)");
-            bar.style.display = 'none'; 
+            bar.style.display = 'none';
         }
-    } else { 
+    } else {
         console.log("Announcement hidden: in_stock is FALSE");
-        bar.style.display = 'none'; 
+        bar.style.display = 'none';
     }
 }
 
 function closeAnnouncement() {
     const bar = document.getElementById('announcement-bar');
-    if(bar) {
+    if (bar) {
         bar.style.display = 'none';
         sessionStorage.setItem('announcementClosed', 'true');
     }
@@ -154,8 +172,8 @@ function closeAnnouncement() {
 // --- RENDER MENU (With Lazy Loading) ---
 function renderMenu() {
     const grid = document.getElementById('menu-grid');
-    if(!grid) return;
-    grid.innerHTML = ''; 
+    if (!grid) return;
+    grid.innerHTML = '';
 
     const filtered = products.filter(p => {
         const pName = p.name ? p.name.toString().toLowerCase() : '';
@@ -166,7 +184,7 @@ function renderMenu() {
         return matchesCategory && matchesSearch;
     });
 
-    if(filtered.length === 0) {
+    if (filtered.length === 0) {
         grid.innerHTML = '<p style="text-align:center; width:100%; grid-column:1/-1;">No snacks found!</p>';
         return;
     }
@@ -179,10 +197,10 @@ function renderMenu() {
         const ribbonHTML = product.bestseller ? `<div class="ribbon">${ribbonText}</div>` : '';
 
         let tagsHTML = '<div class="badge-container">';
-        if(product.tags) {
-            if(product.tags.includes('jain')) tagsHTML += '<span class="diet-badge badge-jain">Jain</span>';
-            if(product.tags.includes('upwas')) tagsHTML += '<span class="diet-badge badge-upwas">Upwas</span>';
-            if(product.tags.includes('vegan')) tagsHTML += '<span class="diet-badge badge-vegan">Vegan</span>';
+        if (product.tags) {
+            if (product.tags.includes('jain')) tagsHTML += '<span class="diet-badge badge-jain">Jain</span>';
+            if (product.tags.includes('upwas')) tagsHTML += '<span class="diet-badge badge-upwas">Upwas</span>';
+            if (product.tags.includes('vegan')) tagsHTML += '<span class="diet-badge badge-vegan">Vegan</span>';
         }
         tagsHTML += '</div>';
 
@@ -242,103 +260,152 @@ function googleLogin() {
 }
 function logout() { auth.signOut().then(() => window.location.reload()); }
 function saveUserToDB(user) { db.collection("users").doc(user.uid).set({ name: user.displayName, email: user.email, lastLogin: new Date() }, { merge: true }); }
+// --- AUTH UI UPDATE (With Data Fetching) ---
 function updateUserUI(isLoggedIn) {
     const btn = document.getElementById('login-btn');
     const profile = document.getElementById('user-profile');
-    if (isLoggedIn) {
-        btn.style.display = 'none'; profile.style.display = 'block';
+    const loginBtnCart = document.getElementById('btn-login-checkout');
+    const orderBtnCart = document.getElementById('btn-final-checkout');
+
+    if (isLoggedIn && currentUser) {
+        // Navbar changes
+        btn.style.display = 'none';
+        profile.style.display = 'block';
         document.getElementById('user-pic').src = currentUser.photoURL;
         document.getElementById('user-name').innerText = currentUser.displayName;
-    } else { btn.style.display = 'block'; profile.style.display = 'none'; }
+
+        // Cart Button Changes (Unlock Order)
+        if (loginBtnCart) loginBtnCart.style.display = 'none';
+        if (orderBtnCart) orderBtnCart.style.display = 'flex';
+
+        // FETCH SAVED ADDRESS/PHONE
+        db.collection("users").doc(currentUser.uid).get().then((doc) => {
+            if (doc.exists) {
+                const data = doc.data();
+                if (data.phone) document.getElementById('cust-phone').value = data.phone;
+                if (data.address) document.getElementById('cust-address').value = data.address;
+            }
+        });
+
+    } else {
+        // Guest Mode
+        btn.style.display = 'block';
+        profile.style.display = 'none';
+
+        // Lock Cart
+        if (loginBtnCart) loginBtnCart.style.display = 'flex';
+        if (orderBtnCart) orderBtnCart.style.display = 'none';
+
+        // Clear Inputs
+        if (document.getElementById('cust-phone')) document.getElementById('cust-phone').value = '';
+        if (document.getElementById('cust-address')) document.getElementById('cust-address').value = '';
+    }
 }
 function toggleProfileMenu() { document.getElementById('profile-menu').classList.toggle('active'); }
-function showOrderHistory() {
-    document.getElementById('profile-menu').classList.remove('active');
-    document.getElementById('history-modal').classList.add('active');
-    const container = document.getElementById('history-content');
-    if (!currentUser) return;
-    container.innerHTML = '<div class="loading-spinner"><i class="fas fa-spinner fa-spin"></i> Loading...</div>';
-    db.collection("orders").where("userId", "==", currentUser.uid).orderBy("timestamp", "desc").get().then((querySnapshot) => {
-        container.innerHTML = '';
-        if (querySnapshot.empty) { container.innerHTML = '<p style="padding:20px;">No past orders found.</p>'; return; }
-        querySnapshot.forEach((doc) => {
-            const order = doc.data();
-            const date = order.timestamp ? order.timestamp.toDate().toDateString() : 'Date N/A';
-            let itemsHtml = ''; order.items.forEach(i => itemsHtml += `<div>${i.name} x ${i.qty}</div>`);
-            container.innerHTML += `<div class="history-card"><div class="history-date">${date}</div><div>${itemsHtml}</div><span class="history-total">Total: ₹${order.total}</span></div>`;
-        });
-    });
-}
 
 // --- ORDER HISTORY & INVOICE LOGIC ---
 
+// --- FIXED ORDER HISTORY ---
 function showOrderHistory() {
     document.getElementById('profile-menu').classList.remove('active');
     document.getElementById('history-modal').classList.add('active');
     const container = document.getElementById('history-content');
-    
+
     if (!currentUser) return;
-    container.innerHTML = '<div class="loading-spinner"><i class="fas fa-spinner fa-spin"></i> Loading...</div>';
+
+    container.innerHTML = '<div class="loading-spinner"><i class="fas fa-spinner fa-spin"></i> Loading history...</div>';
 
     db.collection("orders")
-      .where("userId", "==", currentUser.uid)
-      .orderBy("timestamp", "desc")
-      .get()
-      .then((querySnapshot) => {
-          container.innerHTML = '';
-          pastOrders = []; // Reset local storage
+        .where("userId", "==", currentUser.uid)
+        .orderBy("timestamp", "desc")
+        .get()
+        .then((querySnapshot) => {
+            container.innerHTML = '';
+            pastOrders = []; // Reset local list
 
-          if (querySnapshot.empty) {
-              container.innerHTML = '<p style="padding:20px;">No past orders found.</p>';
-              return;
-          }
-          
-          querySnapshot.forEach((doc) => {
-              const order = doc.data();
-              order.id = doc.id; // Save Firestore ID
-              pastOrders.push(order); // Save to array for invoice retrieval
+            if (querySnapshot.empty) {
+                container.innerHTML = '<p style="padding:20px; text-align:center; color:#777;">No past orders found.</p>';
+                return;
+            }
 
-              const date = order.timestamp ? order.timestamp.toDate().toDateString() : 'Date N/A';
-              
-              // Summary Text
-              const summary = `${order.items.length} items`;
+            querySnapshot.forEach((doc) => {
+                const order = doc.data();
+                order.id = doc.id;
+                pastOrders.push(order);
 
-              container.innerHTML += `
-                <div class="history-card" style="display:flex; justify-content:space-between; align-items:center;">
-                    <div>
-                        <div class="history-date">${date}</div>
-                        <div style="font-weight:bold;">${summary}</div>
-                        <span class="history-total">Total: ₹${order.total}</span>
+                // 1. DEFINE THE DATE VARIABLE HERE
+                const date = order.timestamp ? order.timestamp.toDate().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Date N/A';
+
+                // 2. Status Color Logic
+                const status = order.status || 'Pending';
+                let statusColor = '#e67e22';
+                if (status === 'Packed') statusColor = '#2980b9';
+                if (status === 'Delivered') statusColor = '#27ae60';
+                if (status === 'Cancelled') statusColor = '#c0392b';
+
+                // 3. Items List
+                let itemsHtml = '';
+                order.items.forEach(i => {
+                    itemsHtml += `<div style="font-size:0.9rem; color:#555; margin-bottom:2px;">• ${i.name} x ${i.qty}</div>`;
+                });
+
+                // 4. Generate HTML (Now 'date' is definitely defined)
+                const html = `
+                <div class="history-card" style="background:white; border:1px solid #eee; padding:15px; margin-bottom:15px; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,0.05);">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; border-bottom:1px solid #f9f9f9; padding-bottom:8px;">
+                        <span style="font-weight:600; color:#333; font-size:0.9rem;"><i class="far fa-calendar-alt"></i> ${date}</span>
+                        <span style="background:${statusColor}; color:white; padding:2px 10px; border-radius:10px; font-size:0.75rem; font-weight:bold; text-transform:uppercase;">${status}</span>
                     </div>
-                    <button onclick="openInvoice('${order.id}')" class="btn-secondary" style="padding:5px 15px; font-size:0.8rem;">
-                        <i class="fas fa-file-invoice"></i> View Bill
-                    </button>
+                    <div style="margin-bottom:12px; padding-left:5px;">${itemsHtml}</div>
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px; padding-top:10px; border-top:1px solid #eee;">
+                        <span style="font-weight:bold; color:var(--primary); font-size:1.1rem;">Total: ₹${order.total}</span>
+                        <div style="display:flex; gap:5px;">
+                            <button onclick="reorderItems('${order.id}')" style="background:var(--primary); color:white; border:none; padding:6px 15px; border-radius:20px; cursor:pointer; font-size:0.85rem; font-weight:600; display:flex; align-items:center; gap:6px;">
+                                <i class="fas fa-redo"></i> Reorder
+                            </button>
+                            <button onclick="openInvoice('${order.id}')" style="background:white; border:1px solid #ddd; color:#555; padding:6px 10px; border-radius:20px; cursor:pointer;">
+                                <i class="fas fa-file-invoice"></i>
+                            </button>
+                        </div>
+                    </div>
                 </div>`;
-          });
-      })
-      .catch((error) => {
-          console.error("History Error:", error);
-          container.innerHTML = '<p style="padding:20px; color:red;">Need Index: Check Console (F12)</p>';
-      });
+
+                container.innerHTML += html;
+            });
+        })
+        .catch((error) => {
+            console.error("History Error:", error);
+            container.innerHTML = '<p style="padding:20px; text-align:center;">Error loading history.</p>';
+        });
 }
 
 function openInvoice(orderId) {
     const order = pastOrders.find(o => o.id === orderId);
-    if(!order) return;
+    if (!order) return;
 
-    // 1. THE FIX: Add a "printing-invoice" tag to the body
-    document.body.classList.add('printing-invoice'); 
+    document.body.classList.add('printing-invoice');
 
-    // 2. Populate Data (Existing code)
+    // ... (Your existing population code for ID, Date, Name etc.) ...
     document.getElementById('inv-order-id').innerText = "#" + order.id.slice(0, 8).toUpperCase();
     document.getElementById('inv-date').innerText = order.timestamp ? order.timestamp.toDate().toLocaleDateString() : 'N/A';
     document.getElementById('inv-customer-name').innerText = order.userName || "Customer";
-    document.getElementById('inv-customer-email').innerText = order.userEmail || currentUser.email || ""; // Added userEmail fallback
+    document.getElementById('inv-customer-email').innerText = order.userEmail || currentUser.email || "";
     document.getElementById('inv-grand-total').innerText = "₹" + order.total;
+
+    // --- NEW: GENERATE DYNAMIC QR CODE ---
+    const qrImg = document.getElementById('inv-qr-img');
+    if (qrImg) {
+        // UPI Link Format: upi://pay?pa=UPI_ID&pn=NAME&am=AMOUNT&tn=NOTE
+        const upiString = `upi://pay?pa=${SHOP_UPI_ID}&pn=${SHOP_NAME}&am=${order.total}&tn=Order_${order.id.slice(0, 5)}`;
+
+        // Use a free API to generate the QR image
+        qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(upiString)}`;
+    }
+    // -------------------------------------
 
     const tbody = document.getElementById('inv-items-body');
     tbody.innerHTML = '';
-    
+
     order.items.forEach(item => {
         const itemTotal = item.price * item.qty;
         tbody.innerHTML += `
@@ -403,93 +470,175 @@ function updateCartUI() {
         });
     }
 }
-// --- CHECKOUT (Async: Saves to DB -> Then Opens WhatsApp) ---
+
+// --- CHECKOUT: SAVE -> SHOW MODAL ---
 async function checkoutWhatsApp() {
-    if (cart.length === 0) {
-        alert("Please add items to your cart first!");
+    console.log("1. Checkout Started");
+
+    // 1. Validation
+    if (cart.length === 0) return alert("Your cart is empty!");
+    if (!currentUser) return alert("Please login to place an order.");
+
+    const phoneInput = document.getElementById('cust-phone');
+    const addrInput = document.getElementById('cust-address');
+    const phone = phoneInput ? phoneInput.value.trim() : '';
+    const address = addrInput ? addrInput.value.trim() : '';
+
+    if (phone.length < 10) {
+        alert("Please enter a valid 10-digit Mobile Number.");
+        if (phoneInput) phoneInput.focus();
+        return;
+    }
+    if (address.length < 5) {
+        alert("Please enter a full Delivery Address.");
+        if (addrInput) addrInput.focus();
         return;
     }
 
-    // 1. UI Feedback: Show "Processing" on button
-    const btn = document.querySelector('.btn-whatsapp-checkout');
-    const originalText = btn.innerHTML;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
-    btn.disabled = true;
-
-    // 2. Trigger Celebration
-    if (typeof triggerConfetti === "function") triggerConfetti();
+    // 2. UI Feedback
+    const btn = document.getElementById('btn-final-checkout');
+    const originalText = btn ? btn.innerHTML : 'Confirm & Order';
+    if (btn) {
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+        btn.disabled = true;
+    }
 
     try {
-        // 3. Calculate Total
-        let total = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+        console.log("2. Calculating Totals");
+        // Recalculate Totals (Including Shipping/Discount logic)
+        const subtotal = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+        const shipping = (subtotal >= 500) ? 0 : 40; // Match your logic
+        const discount = (typeof discountMultiplier !== 'undefined') ? discountMultiplier : 1;
+        const total = Math.round((subtotal * discount) + shipping);
+        const orderId = 'ORD-' + Date.now().toString().slice(-6);
 
-        // 4. SAVE TO DB (Wait for this to finish!)
-        if (currentUser) {
-            await db.collection("orders").add({
-                userId: currentUser.uid,
-                userName: currentUser.displayName,
-                userEmail: currentUser.email,
-                items: cart,
-                total: total,
-                timestamp: new Date() // or firebase.firestore.FieldValue.serverTimestamp()
-            });
-            console.log("Order successfully saved to database.");
-        }
+        console.log("3. Saving to Firebase...");
 
-        // 5. Generate WhatsApp Message
-        // Emojis via Code Points
-        const ICON_CART = String.fromCodePoint(0x1F6D2);     
-        const ICON_CALENDAR = String.fromCodePoint(0x1F4C5); 
-        const ICON_CLOCK = String.fromCodePoint(0x23F0);     
-        const ICON_MONEY = String.fromCodePoint(0x1F4B0);    
-        const ICON_MEMO = String.fromCodePoint(0x1F4DD);     
-        const ICON_PIN = String.fromCodePoint(0x1F4CD);      
+        // Save User Info
+        await db.collection("users").doc(currentUser.uid).set({
+            phone: phone,
+            address: address,
+            lastOrder: new Date()
+        }, { merge: true });
 
-        const now = new Date();
-        const dateStr = now.toLocaleDateString('en-IN');
-        const timeStr = now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+        // Save Order
+        await db.collection("orders").add({
+            id: orderId,
+            userId: currentUser.uid,
+            userName: currentUser.displayName,
+            userEmail: currentUser.email,
+            userPhone: phone,
+            userAddress: address,
+            items: cart,
+            subtotal: subtotal,
+            shipping: shipping,
+            total: total,
+            status: 'Pending',
+            timestamp: new Date()
+        });
+
+        console.log("4. Order Saved. Preparing Modal.");
+
+        // 5. Setup Success Modal
+        if (typeof triggerConfetti === "function") triggerConfetti();
+
+        // Generate WhatsApp Message
+        const ICON_CART = String.fromCodePoint(0x1F6D2);
+        const ICON_PIN = String.fromCodePoint(0x1F4CD);
+        const ICON_PHONE = String.fromCodePoint(0x1F4DE);
 
         let msg = `*${ICON_CART} NEW ORDER - NAMO NAMKEEN*\n`;
-        msg += `${ICON_CALENDAR} Date: ${dateStr} | ${ICON_CLOCK} Time: ${timeStr}\n`;
+        msg += `Order ID: #${orderId}\n`;
+        msg += `---------------------------------\n`;
+        msg += `*Customer Details:*\n`;
+        msg += `👤 Name: ${currentUser.displayName}\n`;
+        msg += `${ICON_PHONE} Mobile: +91 ${phone}\n`;
+        msg += `${ICON_PIN} Address: ${address}\n`;
         msg += `---------------------------------\n`;
         msg += `*Order Details:*\n`;
 
         cart.forEach((item, index) => {
-            // FIX: Calculate itemTotal inside the loop
-            const itemTotal = item.price * item.qty;
-            msg += `${index + 1}. *${item.name}*\n`;
-            msg += `    Qty: ${item.qty} x ₹${item.price} = ₹${itemTotal}\n`;
+            msg += `${index + 1}. *${item.name}* x ${item.qty}\n`;
         });
 
         msg += `---------------------------------\n`;
-        msg += `*${ICON_MONEY} GRAND TOTAL: ₹${total}*\n`;
+        msg += `Subtotal: ₹${subtotal}\n`;
+        msg += `Delivery: ${shipping === 0 ? 'FREE' : '₹' + shipping}\n`;
+        msg += `*💰 GRAND TOTAL: ₹${total}*\n`;
         msg += `---------------------------------\n`;
-        msg += `${ICON_MEMO} *Customer Note:* (Type here)\n`;
-        msg += `${ICON_PIN} *Delivery Address:* (Type here)\n\n`;
-        msg += `_Please confirm availability and send payment QR code._`;
+        msg += `_Payment QR Scanned? (Yes/No)_\n`;
 
-        // 6. Open WhatsApp (After short delay)
-        setTimeout(() => {
-            const phone = "919826698822"; 
-            window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
-            
-            // Reset Button
+        // Generate QR
+        // Replace with your actual UPI ID
+        const SHOP_UPI_ID = "8103276050@ybl";
+        const SHOP_NAME = "Namo Namkeen";
+
+        // The Magic Link: Opens GPay/PhonePe directly
+        const upiLink = `upi://pay?pa=${SHOP_UPI_ID}&pn=${encodeURIComponent(SHOP_NAME)}&am=${total}&tn=Order_${orderId}&cu=INR`;
+
+        // QR Code for scanning (Desktop users)
+        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(upiLink)}`;
+
+        // D. Update Modal DOM
+        const modal = document.getElementById('success-modal');
+        if (modal) {
+            document.getElementById('success-total-amount').innerText = "₹" + total;
+
+            // Set the Image
+            document.getElementById('success-qr-img').src = qrUrl;
+
+            // Set the Click Link (Deep Link)
+            document.getElementById('upi-pay-link').href = upiLink;
+
+            // Setup WhatsApp Button
+            const waBtn = document.getElementById('btn-send-whatsapp');
+            waBtn.onclick = function () {
+                const adminPhone = "919826698822";
+                window.open(`https://wa.me/${adminPhone}?text=${encodeURIComponent(msg)}`, '_blank');
+            };
+
+            // Show Modal with animation class
+            modal.style.display = 'flex';
+            setTimeout(() => modal.classList.add('active'), 10);
+
+            // Lock background scrolling
+            document.body.classList.add('modal-open');
+        } else {
+            console.error("CRITICAL: #success-modal not found in HTML!");
+            alert("Order Placed! Check your Order History.");
+        }
+
+        // Clear Cart
+        cart = [];
+        updateCartUI();
+        toggleCart(); // Close Sidebar
+
+        if (btn) {
             btn.innerHTML = originalText;
             btn.disabled = false;
-            
-            // Optional: Clear cart after successful order?
-            // clearCart(); 
-        }, 1000);
+        }
 
     } catch (error) {
         console.error("Order Failed:", error);
-        alert("Could not save order. Please check your internet connection.");
-        
-        // Reset Button so they can try again
-        btn.innerHTML = originalText;
-        btn.disabled = false;
+        alert("Error saving order: " + error.message);
+        if (btn) {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }
     }
 }
+
+function closeSuccessModal() {
+    const modal = document.getElementById('success-modal');
+    if (modal) {
+        modal.classList.remove('active');
+        document.body.classList.remove('modal-open'); // Unlock scroll
+        setTimeout(() => {
+            modal.style.display = 'none';
+        }, 300);
+    }
+}
+
 function renderHamperOptions() {
     const container = document.getElementById('hamper-options'); if (!container) return;
     const eligibleProducts = products.filter(p => p.price <= 100 && p.in_stock === true); container.innerHTML = '';
@@ -514,3 +663,249 @@ function triggerConfetti() { var duration = 3000; var animationEnd = Date.now() 
 window.onscroll = function () { const btn = document.getElementById("scrollTopBtn"); if (btn) btn.style.display = (document.body.scrollTop > 300 || document.documentElement.scrollTop > 300) ? "flex" : "none"; };
 function scrollToTop() { window.scrollTo({ top: 0, behavior: 'smooth' }); }
 function registerServiceWorker() { if ('serviceWorker' in navigator && window.location.protocol !== 'file:') { window.addEventListener('load', () => navigator.serviceWorker.register('sw.js')); window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); const btn = document.getElementById('install-btn'); if (btn) { btn.style.display = 'block'; btn.onclick = () => e.prompt(); } }); } }
+
+// --- TOAST NOTIFICATION SYSTEM ---
+function showToast(message, type = 'success') {
+    const container = document.getElementById('toast-container');
+
+    // Create element
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+
+    // Icon based on type
+    let icon = '';
+    if (type === 'success') icon = '<i class="fas fa-check-circle"></i>';
+    if (type === 'error') icon = '<i class="fas fa-exclamation-circle"></i>';
+    if (type === 'info') icon = '<i class="fas fa-info-circle"></i>';
+
+    toast.innerHTML = `${icon} <span>${message}</span>`;
+
+    // Add to screen
+    container.appendChild(toast);
+
+    // Remove after 3 seconds
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(20px)';
+        setTimeout(() => toast.remove(), 400);
+    }, 3000);
+}
+
+function openProductDetail(id) {
+    const p = products.find(item => item.id == id);
+    if (!p) return;
+
+    // Determine Name/Desc based on Language
+    const name = currentLang === 'en' ? p.name : (p.nameHi || p.name);
+    const desc = currentLang === 'en' ? p.desc : (p.descHi || p.desc);
+
+    const html = `
+        <img src="${p.image}" class="p-detail-img" onerror="this.src='logo.jpg'">
+        
+        <div class="p-detail-tags">
+            <div class="p-veg-mark"><i class="fas fa-circle"></i></div>
+            ${p.bestseller ? '<span style="background:#faa307; padding:2px 8px; border-radius:4px; font-size:0.8rem; font-weight:bold;">Bestseller</span>' : ''}
+        </div>
+
+        <h2 style="color:var(--primary); margin:10px 0;">${name}</h2>
+        <p class="p-detail-desc">${desc}</p>
+        <h3 style="margin-bottom:20px;">₹${p.price} / pack</h3>
+
+        <button class="btn-primary" style="width:100%; padding:15px;" onclick="addToCart(${p.id}); closeProductModal();">
+            Add to Cart
+        </button>
+    `;
+
+    document.getElementById('p-modal-body').innerHTML = html;
+    document.getElementById('product-modal').style.display = 'flex';
+}
+
+function closeProductModal() {
+    document.getElementById('product-modal').style.display = 'none';
+}
+
+// --- 1. NEW: VALIDATE AND LOGIN ---
+function validateAndLogin() {
+    const phone = document.getElementById('cust-phone').value.trim();
+    const address = document.getElementById('cust-address').value.trim();
+
+    // Strict Validation Check
+    if (phone.length !== 10 || isNaN(phone)) {
+        alert("Please enter a valid 10-digit Mobile Number BEFORE logging in.");
+        document.getElementById('cust-phone').focus();
+        document.getElementById('cust-phone').style.border = "2px solid red";
+        return;
+    }
+    if (address.length < 10) {
+        alert("Please enter your full delivery address BEFORE logging in.");
+        document.getElementById('cust-address').focus();
+        document.getElementById('cust-address').style.border = "2px solid red";
+        return;
+    }
+
+    // Reset borders
+    document.getElementById('cust-phone').style.border = "none";
+    document.getElementById('cust-address').style.border = "1px solid #ddd";
+
+    // If valid, proceed to Google Login
+    googleLogin();
+}
+
+// --- 2. UPDATED: GOOGLE LOGIN (Saves Data Immediately) ---
+function googleLogin() {
+    const provider = new firebase.auth.GoogleAuthProvider();
+    auth.signInWithPopup(provider)
+        .then((result) => {
+            // Login Success! Now capture the data they typed.
+            const phone = document.getElementById('cust-phone').value.trim();
+            const address = document.getElementById('cust-address').value.trim();
+
+            // Save immediately to their new profile
+            db.collection("users").doc(result.user.uid).set({
+                name: result.user.displayName,
+                email: result.user.email,
+                phone: phone,      // <--- Saving the input data
+                address: address,  // <--- Saving the input data
+                lastLogin: new Date()
+            }, { merge: true });
+
+            console.log("User logged in and details saved.");
+        })
+        .catch((error) => {
+            console.error("Login Failed:", error);
+            alert("Login failed: " + error.message);
+        });
+}
+
+// --- 3. NEW: COUPON UI FUNCTIONS ---
+function toggleCouponList() {
+    const list = document.getElementById('coupon-list');
+    if (list.style.display === "none") {
+        list.style.display = "block";
+    } else {
+        list.style.display = "none";
+    }
+}
+
+function useCoupon(code) {
+    document.getElementById('promo-code').value = code;
+    applyPromo(); // Auto-apply
+    toggleCouponList(); // Hide list
+}
+
+// --- 4. UPDATED: APPLY PROMO (Visual Feedback) ---
+let discountMultiplier = 1;
+
+function applyPromo() {
+    const code = document.getElementById('promo-code').value.toUpperCase().trim();
+    const msg = document.getElementById('promo-msg');
+
+    if (code === 'NAMO10') {
+        discountMultiplier = 0.90;
+        msg.style.color = 'green';
+        msg.innerHTML = "🎉 <b>NAMO10</b> Applied! 10% Off.";
+        if (typeof showToast === 'function') showToast("10% Discount Applied!", "success");
+    } else if (code === 'WELCOME20') {
+        discountMultiplier = 0.80;
+        msg.style.color = 'green';
+        msg.innerHTML = "🎉 <b>WELCOME20</b> Applied! 20% Off.";
+        if (typeof showToast === 'function') showToast("20% Discount Applied!", "success");
+    } else {
+        discountMultiplier = 1;
+        msg.style.color = 'red';
+        msg.innerHTML = "❌ Invalid or Expired Code.";
+    }
+    updateCartUI();
+}
+
+// --- REORDER LOGIC ---
+function reorderItems(orderId) {
+    const order = pastOrders.find(o => o.id === orderId);
+    if (!order) return;
+
+    let addedCount = 0;
+
+    // Loop through history items
+    order.items.forEach(historyItem => {
+        // Check if product still exists in current catalog (by ID or Name)
+        // We check 'products' array to ensure we use CURRENT price and image
+        const liveProduct = products.find(p => p.id == historyItem.id || p.name === historyItem.name);
+
+        if (liveProduct && liveProduct.in_stock) {
+            // Add to cart logic
+            const existing = cart.find(c => c.id == liveProduct.id);
+            if (existing) {
+                existing.qty += historyItem.qty;
+            } else {
+                // Push a clean copy
+                cart.push({
+                    id: liveProduct.id,
+                    name: liveProduct.name,
+                    nameHi: liveProduct.nameHi,
+                    price: liveProduct.price,
+                    image: liveProduct.image,
+                    qty: historyItem.qty
+                });
+            }
+            addedCount++;
+        }
+    });
+
+    if (addedCount > 0) {
+        updateCartUI();
+        closeHistory(); // Close history modal
+        toggleCart();   // Open cart sidebar
+        if (typeof showToast === 'function') showToast("Items added to Cart!", "success");
+    } else {
+        alert("Sorry, these items are no longer available.");
+    }
+}
+
+// --- PROFILE MANAGEMENT ---
+function openProfileModal() {
+    if (!currentUser) return;
+    document.getElementById('profile-menu').classList.remove('active');
+
+    // Pre-fill data
+    document.getElementById('edit-name').value = currentUser.displayName;
+
+    // Fetch latest from DB
+    db.collection("users").doc(currentUser.uid).get().then(doc => {
+        if (doc.exists) {
+            const data = doc.data();
+            document.getElementById('edit-phone').value = data.phone || '';
+            document.getElementById('edit-address').value = data.address || '';
+        }
+        document.getElementById('profile-modal').style.display = 'flex';
+    });
+}
+
+function closeProfileModal() {
+    document.getElementById('profile-modal').style.display = 'none';
+}
+
+function saveProfile() {
+    const phone = document.getElementById('edit-phone').value;
+    const address = document.getElementById('edit-address').value;
+
+    if (phone.length < 10 || address.length < 5) {
+        alert("Please enter valid details.");
+        return;
+    }
+
+    const btn = document.querySelector('#profile-modal .btn-primary');
+    btn.innerHTML = "Saving...";
+
+    db.collection("users").doc(currentUser.uid).set({
+        phone: phone,
+        address: address
+    }, { merge: true }).then(() => {
+        btn.innerHTML = "Save Changes";
+        closeProfileModal();
+        if (typeof showToast === 'function') showToast("Profile Updated!", "success");
+
+        // Update the Checkout inputs if they exist on screen
+        if (document.getElementById('cust-phone')) document.getElementById('cust-phone').value = phone;
+        if (document.getElementById('cust-address')) document.getElementById('cust-address').value = address;
+    });
+}
