@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Namo Namkeen | Price List</title>
+    <link rel="icon" href="logo.jpg" type="image/jpeg">
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="pricelist-body">
+
+    <div class="print-header">
+        <img src="logo.jpg" alt="Namo Logo">
+        <div class="print-details">
+            <h2>Namo Namkeen</h2>
+            <p><i class="fab fa-whatsapp"></i> Order on WhatsApp: <strong>+91 98266 98822</strong></p>
+        </div>
+    </div>
+
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="logo">
+                <img src="logo.jpg" alt="Namo Namkeen" class="logo-img">
+                <span class="logo-text">Namo Namkeen</span>
+            </a>
+            <ul class="nav-menu">
+                <li><a href="index.html" class="nav-link">Home</a></li>
+                <li><a href="index.html#menu-section" class="nav-link">Order Online</a></li>
+                <li><a href="pricelist.html" class="nav-link active">Price List</a></li>
+            </ul>
+            <div class="nav-actions">
+                <a href="index.html#menu-section" class="btn-primary small-btn">Order Now</a>
+            </div>
+        </div>
+    </nav>
+
+    <button class="fab-print" onclick="window.print()" title="Save as PDF">
+        <i class="fas fa-file-pdf"></i>
+    </button>
+
+    <section class="price-header-section">
+        <div class="container text-center">
+            <span class="section-subtitle">Rate Card</span>
+            <p class="price-note">Authentic Indore Taste | Wholesale & Retail</p>
+            
+            <div class="plist-search">
+                <i class="fas fa-search"></i>
+                <input type="text" id="priceSearch" onkeyup="filterPriceList()" placeholder="Search item (e.g. 'Sev')...">
+            </div>
+        </div>
+    </section>
+
+    <section class="section-pad price-content">
+        <div class="container">
+            
+            <div class="price-category">
+                <div class="cat-header">
+                    <h3><i class="fas fa-pepper-hot"></i> Spicy Namkeen</h3>
+                </div>
+                <div class="table-responsive">
+                    <table class="price-table">
+                        <thead>
+                            <tr>
+                                <th width="80">Item</th>
+                                <th>Product Name</th>
+                                <th>Pack Size</th>
+                                <th class="text-right">Price</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><img src="assets/images/product/red_mixture.jpg" class="t-thumb" alt="img"></td>
+                                <td class="p-name">Red Mixture</td>
+                                <td>200 gms</td>
+                                <td class="p-price">₹80</td>
+                            </tr>
+                            <tr>
+                                <td><img src="assets/images/product/Loung_Sev.jpg" class="t-thumb" alt="img"></td>
+                                <td class="p-name">Laung Sev (Spicy)</td>
+                                <td>250 gms</td>
+                                <td class="p-price">₹75</td>
+                            </tr>
+                            <tr>
+                                <td><img src="assets/images/product/peanuts.jpg" class="t-thumb" alt="img"></td>
+                                <td class="p-name">Masala Peanuts</td>
+                                <td>250 gms</td>
+                                <td class="p-price">₹100</td>
+                            </tr>
+                            <tr>
+                                <td><img src="assets/images/product/bhakarwadi.jpg" class="t-thumb" alt="img"></td>
+                                <td class="p-name">Bhakarwadi (Lahsun)</td>
+                                <td>200 gms</td>
+                                <td class="p-price">₹75</td>
+                            </tr>
+                            <tr>
+                                <td><img src="assets/images/product/Chakali.jpg" class="t-thumb" alt="img"></td>
+                                <td class="p-name">Chakali (Butter)</td>
+                                <td>250 gms</td>
+                                <td class="p-price">₹70</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="price-category">
+                <div class="cat-header">
+                    <h3><i class="fas fa-cookie-bite"></i> Sweet & Mild Mix</h3>
+                </div>
+                <div class="table-responsive">
+                    <table class="price-table">
+                        <thead>
+                            <tr>
+                                <th width="80">Item</th>
+                                <th>Product Name</th>
+                                <th>Pack Size</th>
+                                <th class="text-right">Price</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><img src="assets/images/product/KhattaMeetha.jpg" class="t-thumb" alt="img"></td>
+                                <td class="p-name">Khatta Meetha Mix</td>
+                                <td>250 gms</td>
+                                <td class="p-price">₹70</td>
+                            </tr>
+                            <tr>
+                                <td><img src="assets/images/product/mini-samosa.jpg" class="t-thumb" alt="img"></td>
+                                <td class="p-name">Mini Samosa</td>
+                                <td>200 gms</td>
+                                <td class="p-price">₹65</td>
+                            </tr>
+                            <tr>
+                                <td><img src="assets/images/product/Ratlami_Sev.jpg" class="t-thumb" alt="img"></td>
+                                <td class="p-name">Ratlami Sev</td>
+                                <td>200 gms</td>
+                                <td class="p-price">₹70</td>
+                            </tr>
+                            <tr>
+                                <td><img src="assets/images/product/Ujjani_Sev.jpg" class="t-thumb" alt="img"></td>
+                                <td class="p-name">Ujjani Sev</td>
+                                <td>200 gms</td>
+                                <td class="p-price">₹70</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="price-category">
+                <div class="cat-header">
+                    <h3><i class="fas fa-crown"></i> Premium Selection</h3>
+                </div>
+                <div class="table-responsive">
+                    <table class="price-table">
+                        <thead>
+                            <tr>
+                                <th width="80">Item</th>
+                                <th>Product Name</th>
+                                <th>Pack Size</th>
+                                <th class="text-right">Price</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><img src="assets/images/product/cookies.jpg" class="t-thumb" alt="img"></td>
+                                <td class="p-name">Cookies (Atta/Maida)</td>
+                                <td>250 gms</td>
+                                <td class="p-price">₹90</td>
+                            </tr>
+                            <tr>
+                                <td><img src="assets/images/product/gujiya.jpg" class="t-thumb" alt="img"></td>
+                                <td class="p-name">Dry Fruit Gujiya</td>
+                                <td>250 gms</td>
+                                <td class="p-price">₹140</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+    <footer class="footer">
+        <div class="container text-center">
+            <p>© 2025 Namo Namkeen. All rights reserved.</p>
+            <p style="font-size: 0.8rem; opacity: 0.7;">Prices subject to change without prior notice.</p>
+        </div>
+    </footer>
+
+    <script>
+        // Simple Script to Filter the Table
+        function filterPriceList() {
+            var input, filter, tables, tr, td, i, j, txtValue;
+            input = document.getElementById("priceSearch");
+            filter = input.value.toUpperCase();
+            tables = document.querySelectorAll(".price-table");
+            
+            tables.forEach(table => {
+                tr = table.getElementsByTagName("tr");
+                for (i = 1; i < tr.length; i++) { // Start at 1 to skip header
+                    td = tr[i].getElementsByTagName("td")[1]; // Column 1 is Name
+                    if (td) {
+                        txtValue = td.textContent || td.innerText;
+                        if (txtValue.toUpperCase().indexOf(filter) > -1) {
+                            tr[i].style.display = "";
+                        } else {
+                            tr[i].style.display = "none";
+                        }
+                    }
+                }
+            });
+        }
+    </script>
+</button>
+</body>
+</html>

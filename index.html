@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Namo Namkeen | Authentic Indian Sweets & Snacks</title>
+
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#e85d04">
+    <link rel="apple-touch-icon" href="logo.jpg">
+    <link rel="icon" href="logo.jpg" type="image/jpeg">
+    <meta property="og:title" content="Namo Namkeen | Authentic Taste of Indore">
+    <meta property="og:description"
+        content="Order fresh, homemade Sev, Mixture, and Sweets. Pick 3 packs for ₹250! Delivery in Mhow & Indore.">
+    <meta property="og:image" content="http://namonamkeen.shop/assets/images/banner.jpg">
+    <meta property="og:url" content="http://namonamkeen.shop/">
+    <meta name="twitter:card" content="summary_large_image">
+
+    <link rel="stylesheet" href="style.css">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Poppins:wght@300;400;500;600&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag() { dataLayer.push(arguments); }
+        gtag('js', new Date());
+        gtag('config', 'G-XXXXXXXXXX');
+    </script>
+</head>
+
+<body>
+
+    <div id="announcement-bar" class="announcement-bar" style="display: none;">
+        <p id="announcement-text"></p>
+        <button onclick="closeAnnouncement()">&times;</button>
+    </div>
+
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="logo">
+                <img src="logo.jpg" alt="Namo Namkeen" class="logo-img">
+                <span class="logo-text">Namo Namkeen</span>
+            </a>
+
+            <ul class="nav-menu">
+                <li><a href="#home" class="nav-link" data-en="Home" data-hi="होम">Home</a></li>
+                <li><a href="#menu-section" class="nav-link" data-en="Menu" data-hi="मेन्यू">Menu</a></li>
+                <li><a href="pricelist.html" class="nav-link" data-en="Price List" data-hi="मूल्य सूची">Price List</a>
+                </li>
+                <li class="lang-switch-li">
+                    <button id="lang-toggle" onclick="toggleLanguage()">
+                        <span class="lang-en">EN</span> / <span class="lang-hi">हिंदी</span>
+                    </button>
+                </li>
+            </ul>
+
+            <div class="nav-actions">
+                <div class="cart-trigger" onclick="toggleCart()">
+                    <i class="fas fa-shopping-bag"></i>
+                    <span id="cart-count" class="cart-count">0</span>
+                </div>
+                <div class="hamburger" onclick="toggleMobileMenu()">
+                    <span class="bar"></span><span class="bar"></span><span class="bar"></span>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="mobile-nav" id="mobile-nav">
+        <a href="#home" onclick="toggleMobileMenu()">Home</a>
+        <a href="#menu-section" onclick="toggleMobileMenu()">Menu</a>
+        <a href="pricelist.html">Price List</a>
+    </div>
+
+    <button id="install-btn" class="pwa-install-btn" style="display: none;">
+        <i class="fas fa-download"></i> Install App
+    </button>
+
+    <section id="home" class="hero">
+        <div class="hero-overlay">
+            <div class="hero-content">
+                <span class="hero-subtitle animate-up">The Royal Taste of Indore</span>
+                <h1 class="animate-up delay-1" data-en="..." data-hi="...">Crunchy. Spicy.<br>Authentic.</h1>
+                <p class="animate-up delay-2" data-en="..." data-hi="...">Handcrafted namkeen...</p>
+                <div class="hero-buttons animate-up delay-3">
+                </div>
+
+                <div class="hero-buttons">
+                    <a href="#menu-section" class="btn-primary" data-en="Order Now" data-hi="अभी आर्डर करें">Order
+                        Now</a>
+                    <button onclick="openQuiz()" class="btn-secondary">
+                        <i class="fas fa-magic"></i> <span data-en="Snack Finder" data-hi="स्नैक खोजें">Snack
+                            Finder</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="trust-badges bg-cream">
+        <div class="container badge-grid">
+            <div class="badge-item">
+                <i class="fas fa-mortar-pestle"></i>
+                <h4 data-en="Freshly Homemade" data-hi="ताज़ा घर का बना">Freshly Homemade</h4>
+            </div>
+            <div class="badge-item">
+                <i class="fas fa-leaf"></i>
+                <h4 data-en="100% Natural" data-hi="100% प्राकृतिक">100% Natural</h4>
+            </div>
+            <div class="badge-item">
+                <i class="fas fa-shipping-fast"></i>
+                <h4 data-en="Fast Delivery" data-hi="तेज़ डिलीवरी">Fast Delivery</h4>
+            </div>
+        </div>
+    </section>
+
+    <section id="menu-section" class="section-pad bg-cream">
+        <div class="container">
+            <div class="section-header text-center">
+                <span class="section-subtitle">Select Your Favorites</span>
+                <h2 data-en="Our Full Menu" data-hi="हमारा पूरा मेन्यू">Our Full Menu</h2>
+                <div class="separator"></div>
+            </div>
+
+            <div class="search-container">
+                <i class="fas fa-search"></i>
+                <input type="text" id="menu-search" placeholder="Search for Sev, Mixture, etc..."
+                    oninput="searchMenu()">
+            </div>
+
+            <div class="menu-filters">
+                <button class="filter-btn active" onclick="filterMenu('all')">All</button>
+                <button class="filter-btn" onclick="filterMenu('spicy')">Spicy</button>
+                <button class="filter-btn" onclick="filterMenu('sweet')">Sweet/Mix</button>
+                <button class="filter-btn" onclick="filterMenu('premium')">Premium</button>
+            </div>
+
+            <div id="menu-grid" class="product-grid">
+            </div>
+        </div>
+    </section>
+
+    <section id="hamper-section" class="section-pad" style="background: #fff8e1; border-top: 5px solid var(--primary);">
+        <div class="container text-center">
+            <span class="section-subtitle">Perfect for Gifting</span>
+            <h2 data-en="Make Your Own Hamper" data-hi="अपना गिफ्ट बॉक्स बनाएं">Make Your Own Hamper</h2>
+            <p data-en="Pick any 3 packs for just ₹250!" data-hi="कोई भी 3 पैक चुनें मात्र ₹250 में!">Pick any 3 packs
+                for just <strong>₹250</strong>!</p>
+            <div class="separator"></div>
+
+            <div class="hamper-builder">
+                <div class="hamper-grid" id="hamper-options"></div>
+                <div class="hamper-action">
+                    <div class="selected-count">Selected: <span id="hamper-count">0</span>/3</div>
+                    <button id="add-hamper-btn" class="btn-primary disabled" onclick="addHamperToCart()">
+                        Add Box to Cart - ₹250
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="testimonials" class="section-pad bg-cream">
+        <div class="container">
+            <div class="section-header text-center">
+                <span class="section-subtitle">Customer Love</span>
+                <h2>See What They Say</h2>
+                <div class="separator"></div>
+            </div>
+            <div class="test-grid video-grid">
+                <div class="video-card">
+                    <div class="video-wrapper" onclick="playVideo(this)">
+                        <video poster="assets/images/thumb1.png" src="assets/videos/video1.mp4" playsinline
+                            preload="none"></video>
+                        <div class="play-overlay"><i class="fas fa-play"></i></div>
+                    </div>
+                    <div class="video-caption">
+                        <div class="stars">★★★★★</div>
+                        <h4>Priyanka</h4>
+                        <p class="test-location">Palasia, Indore</p>
+                    </div>
+                </div>
+                <div class="video-card">
+                    <div class="video-wrapper" onclick="playVideo(this)">
+                        <video poster="assets/images/thumb3.png" src="assets/videos/video3.mp4" playsinline
+                            preload="none"></video>
+                        <div class="play-overlay"><i class="fas fa-play"></i></div>
+                    </div>
+                    <div class="video-caption">
+                        <div class="stars">★★★★★</div>
+                        <h4>Aagam Patni</h4>
+                        <p class="test-location">Jain Colony, Sanawad</p>
+                    </div>
+                </div>
+                <div class="video-card">
+                    <div class="video-wrapper" onclick="playVideo(this)">
+                        <video poster="assets/images/thumb2.png" src="assets/videos/video2.mp4" playsinline
+                            preload="none"></video>
+                        <div class="play-overlay"><i class="fas fa-play"></i></div>
+                    </div>
+                    <div class="video-caption">
+                        <div class="stars">★★★★★</div>
+                        <h4>Vali Yuktie</h4>
+                        <p class="test-location">Vijay Nagar, Indore</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <div class="cart-overlay" onclick="toggleCart()"></div>
+    <div class="cart-sidebar" id="cart-sidebar">
+        <div class="cart-header">
+            <h3 data-en="Your Order" data-hi="आपका आर्डर">Your Order</h3>
+            <div class="cart-header-actions">
+                <button id="clear-cart-btn" class="clear-btn" onclick="clearCart()" style="display: none;">
+                    <i class="fas fa-trash-alt"></i> Clear
+                </button>
+                <button class="close-cart" onclick="toggleCart()"><i class="fas fa-times"></i></button>
+            </div>
+        </div>
+        <div id="cart-items" class="cart-items-container"></div>
+        <div class="cart-footer">
+            <div class="total-row">
+                <span data-en="Total Estimate:" data-hi="कुल अनुमान:">Total Estimate:</span>
+                <span id="cart-total">₹0</span>
+            </div>
+            <button class="btn-whatsapp-checkout" onclick="checkoutWhatsApp()">
+                <i class="fab fa-whatsapp"></i> <span data-en="Order via WhatsApp"
+                    data-hi="व्हाट्सएप पर ऑर्डर करें">Order via WhatsApp</span>
+            </button>
+        </div>
+    </div>
+
+    <div id="quiz-modal" class="quiz-overlay">
+        <div class="quiz-container">
+            <button class="close-quiz" onclick="closeQuiz()">&times;</button>
+            <div id="quiz-content"></div>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <div class="container footer-content">
+            <div class="footer-section">
+                <h3>Namo Namkeen</h3>
+                <p>Bringing the authentic taste of homemade snacks to your doorstep.</p>
+            </div>
+            <div class="footer-section">
+                <h4>Contacts</h4>
+                <p><i class="fas fa-user-tie"></i> <span><strong>Umang Jain</strong><br><a href="tel:919826698822"
+                            class="footer-link">+91 98266 98822</a></span></p>
+            </div>
+            <div class="footer-section">
+                <h4>Visit Us</h4>
+                <p><i class="fas fa-map-marker-alt"></i> <span>131, Keshav Park,<br>Mhow (M.P.) - 453441</span></p>
+            </div>
+        </div>
+        <div class="footer-bottom text-center">
+            <p>Designed by Parul Gangwal</p>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+    <button id="scrollTopBtn" onclick="scrollToTop()" title="Go to top">
+    <i class="fas fa-arrow-up"></i>
+</button>
+</body>
+
+</html>
