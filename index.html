@@ -284,7 +284,7 @@
                 <div
                     style="display:flex; align-items:center; border:1px solid #ddd; border-radius:8px; padding:0 10px; margin-bottom:10px; background:white;">
                     <span style="color:#555; font-weight:bold;">+91</span>
-                    <input type="tel" id="cust-phone" placeholder="98765 43210" maxlength="10"
+                    <input type="tel" id="cust-phone" maxlength="10"
                         style="border:none; outline:none; padding:10px; width:100%; font-size:1rem;">
                 </div>
 
@@ -332,13 +332,6 @@
 
             <button onclick="saveProfile()" class="btn-primary" style="width:100%; margin-top:20px; padding:12px;">Save
                 Changes</button>
-        </div>
-    </div>
-
-    <div id="quiz-modal" class="quiz-overlay">
-        <div class="quiz-container">
-            <button class="close-quiz" onclick="closeQuiz()">&times;</button>
-            <div id="quiz-content"></div>
         </div>
     </div>
 
@@ -528,6 +521,23 @@
     </button>
     <div id="toast-container"></div>
 
+    <div id="quiz-modal" class="quiz-overlay">
+        <div class="quiz-container">
+            <button class="close-quiz" onclick="closeQuiz()">&times;</button>
+            <div id="quiz-content">
+            </div>
+        </div>
+    </div>
+
+      <!-- PRODUCT DETAIL MODAL -->
+    <div id="product-modal" class="modal-overlay">
+        <div class="modal-content p-detail-content">
+            <button class="close-modal" onclick="closeProductModal()">&times;</button>
+            <div id="p-modal-body">
+                <!-- Injected via JS -->
+            </div>
+        </div>
+    </div>
     <script src="script.js"></script>
 
 </body>

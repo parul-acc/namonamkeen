@@ -9,13 +9,13 @@ const SHEET_URL = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(
 // --- FIREBASE CONFIG (KEEP YOUR KEYS) ---
 // Note: Ensure you have your correct keys here from previous steps
 const firebaseConfig = {
-  apiKey: "AIzaSyB-Ep3yEAzFBlqOVGOxhjbmjwlSH0Xx5qU",
-  authDomain: "namo-namkeen-app.firebaseapp.com",
-  projectId: "namo-namkeen-app",
-  storageBucket: "namo-namkeen-app.firebasestorage.app",
-  messagingSenderId: "154786466552",
-  appId: "1:154786466552:web:9be55b7b599806f536490d",
-  measurementId: "G-8HJJ8YW1YH"
+    apiKey: "AIzaSyB-Ep3yEAzFBlqOVGOxhjbmjwlSH0Xx5qU",
+    authDomain: "namo-namkeen-app.firebaseapp.com",
+    projectId: "namo-namkeen-app",
+    storageBucket: "namo-namkeen-app.firebasestorage.app",
+    messagingSenderId: "154786466552",
+    appId: "1:154786466552:web:9be55b7b599806f536490d",
+    measurementId: "G-8HJJ8YW1YH"
 };
 
 if (typeof firebase !== 'undefined') {
@@ -29,10 +29,10 @@ if (typeof firebase !== 'undefined') {
 // --- 2. STATE VARIABLES ---
 let products = [];
 let cart = [];
-let currentUser = null;      
-let currentLang = 'en';      
-let currentCategory = 'all'; 
-let searchQuery = '';        
+let currentUser = null;
+let currentLang = 'en';
+let currentCategory = 'all';
+let searchQuery = '';
 let selectedHamperItems = [];
 let globalAnnouncement = null;
 let pastOrders = []; // NEW: Store fetched orders here
@@ -40,9 +40,9 @@ let pastOrders = []; // NEW: Store fetched orders here
 // --- 3. INITIALIZATION ---
 document.addEventListener('DOMContentLoaded', () => {
     const grid = document.getElementById('menu-grid');
-    if(grid) {
-        grid.innerHTML = ''; 
-        for(let i=0; i<4; i++) {
+    if (grid) {
+        grid.innerHTML = '';
+        for (let i = 0; i < 4; i++) {
             grid.innerHTML += `<div class="skeleton-card"><div class="skeleton skeleton-img"></div><div class="skeleton-info"><div class="skeleton skeleton-text"></div><div class="skeleton skeleton-text-sm"></div><div class="skeleton skeleton-btn"></div></div></div>`;
         }
     }
@@ -51,7 +51,7 @@ document.addEventListener('DOMContentLoaded', () => {
     checkStoreStatus();
     if (typeof auth !== 'undefined') {
         auth.onAuthStateChanged(user => {
-            if (user) { currentUser = user; updateUserUI(true); } 
+            if (user) { currentUser = user; updateUserUI(true); }
             else { currentUser = null; updateUserUI(false); }
         });
     }
@@ -61,7 +61,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // --- ROBUST DATA FETCHING (With Fallback) ---
 async function fetchProductsFromSheet() {
     const RAW_SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRTzLvn_dqN55WIaUHU8ytqM2Y2gXTZA4_29iYAdkh_uDmT4EgplKxJ4JimuoQJ5GugKxCq2v87cQGp/pub?output=csv';
-    
+
     // Strategy: Try Proxy 1, if fails, try Proxy 2
     const proxies = [
         `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(RAW_SHEET_URL)}&t=${Date.now()}`,
@@ -86,13 +86,13 @@ async function fetchProductsFromSheet() {
     if (!csvData) {
         console.error("All proxies failed.");
         const grid = document.getElementById('menu-grid');
-        if(grid) grid.innerHTML = '<p style="text-align:center; padding:20px; color:red;">Menu could not be loaded. Please refresh.</p>';
+        if (grid) grid.innerHTML = '<p style="text-align:center; padding:20px; color:red;">Menu could not be loaded. Please refresh.</p>';
         return;
     }
 
     // Success - Process Data
     const allData = csvToJSON(csvData);
-    
+
     // 1. Announcement
     globalAnnouncement = allData.find(p => p.id == 999);
     if (globalAnnouncement) updateAnnouncementUI();
@@ -114,7 +114,7 @@ function csvToJSON(csvText) {
 
     for (let i = 1; i < lines.length; i++) {
         if (!lines[i].trim()) continue;
-        
+
         const obj = {};
         // Regex to handle commas inside quotes
         const currentline = lines[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
@@ -122,15 +122,15 @@ function csvToJSON(csvText) {
         headers.forEach((header, j) => {
             // remove quotes and TRIM whitespace/newlines aggressively
             let val = currentline[j] ? currentline[j].replace(/^"|"$/g, '').trim() : '';
-            
+
             if (header === 'id') val = parseInt(val);
             if (header === 'price') val = parseInt(val) || 0;
-            
+
             // Boolean Logic: Check specifically for the string "TRUE"
             if (header === 'bestseller' || header === 'in_stock') {
                 val = (val.toUpperCase() === 'TRUE');
             }
-            
+
             if (header === 'tags') val = val ? val.split('|') : [];
             obj[header] = val;
         });
@@ -151,25 +151,26 @@ function updateAnnouncementUI() {
             const msg = currentLang === 'en' ? globalAnnouncement.name : (globalAnnouncement.nameHi || globalAnnouncement.name);
             textElem.innerText = msg;
             bar.style.display = 'block';
-        } else { 
+        } else {
             console.log("Announcement hidden by user preference (sessionStorage)");
-            bar.style.display = 'none'; 
+            bar.style.display = 'none';
         }
-    } else { 
+    } else {
         console.log("Announcement hidden: in_stock is FALSE");
-        bar.style.display = 'none'; 
+        bar.style.display = 'none';
     }
 }
 
 function closeAnnouncement() {
     const bar = document.getElementById('announcement-bar');
-    if(bar) {
+    if (bar) {
         bar.style.display = 'none';
         sessionStorage.setItem('announcementClosed', 'true');
     }
 }
 
 // --- RENDER MENU (With Lazy Loading) ---
+// --- RENDER MENU ---
 function renderMenu() {
     const grid = document.getElementById('menu-grid');
     if(!grid) return;
@@ -206,7 +207,9 @@ function renderMenu() {
 
         let soldOutClass = '';
         let soldOutOverlay = '';
-        let onClickAction = `onclick="addToCart(${product.id})"`;
+        // We update this to open the modal on click as well
+        let onClickAction = `onclick="openProductDetail(${product.id})"`; 
+        
         if (product.in_stock === false) {
             soldOutClass = 'sold-out';
             soldOutOverlay = '<div class="sold-out-overlay"><div class="sold-out-badge">SOLD OUT</div></div>';
@@ -216,14 +219,15 @@ function renderMenu() {
 
         const card = document.createElement('div');
         card.className = `product-card ${soldOutClass}`;
+        // Added onclick to the card itself, but we stop propagation on the button
+        card.setAttribute('onclick', `openProductDetail(${product.id})`); 
+        
         card.innerHTML = `
             ${ribbonHTML}
             ${soldOutOverlay}
             <img src="${product.image}" 
-                 loading="lazy" 
-                 width="100%" height="200" 
-                 alt="${displayName}" 
-                 class="product-img" 
+                 loading="lazy" width="100%" height="200" 
+                 alt="${displayName}" class="product-img" 
                  onerror="this.src='logo.jpg'">
             <div class="product-info">
                 ${tagsHTML}
@@ -231,12 +235,87 @@ function renderMenu() {
                 <p class="product-desc">${displayDesc}</p>
                 <div class="price-row">
                     <span class="price">₹${product.price}</span>
-                    <button class="share-btn" onclick="shareProduct('${displayName}', '${product.image}')" style="background:none; border:none; color:var(--primary); cursor:pointer; margin-right:10px; font-size:1.2rem;"><i class="fas fa-share-alt"></i></button>
-                    <button class="add-btn" ${onClickAction}>${product.in_stock ? '<i class="fas fa-plus"></i>' : ''} ${btnText}</button>
+                    
+                    <!-- Prevent card click when clicking share -->
+                    <button class="share-btn" onclick="event.stopPropagation(); shareProduct('${displayName}', '${product.image}')" style="background:none; border:none; color:var(--primary); cursor:pointer; margin-right:10px; font-size:1.2rem;">
+                        <i class="fas fa-share-alt"></i>
+                    </button>
+                    
+                    <!-- Prevent card click when clicking add -->
+                    <button class="add-btn" onclick="event.stopPropagation(); ${product.in_stock ? `addToCart(${product.id})` : ''}">
+                        ${product.in_stock ? '<i class="fas fa-plus"></i>' : ''} ${btnText}
+                    </button>
                 </div>
             </div>`;
         grid.appendChild(card);
     });
+}
+
+// --- OPEN PRODUCT DETAIL MODAL ---
+function openProductDetail(id) {
+    const p = products.find(item => item.id == id);
+    if(!p) return;
+
+    const name = currentLang === 'en' ? p.name : (p.nameHi || p.name);
+    const desc = currentLang === 'en' ? p.desc : (p.descHi || p.desc);
+
+    // Related Items Logic
+    const related = products
+        .filter(item => item.category === p.category && item.id !== p.id && item.in_stock)
+        .slice(0, 3);
+
+    let relatedHtml = '';
+    if (related.length > 0) {
+        relatedHtml = `<div class="related-section"><div class="related-title">You May Also Like</div><div class="related-grid">`;
+        related.forEach(r => {
+            const rName = currentLang === 'en' ? r.name : (r.nameHi || r.name);
+            relatedHtml += `
+                <div class="related-card" onclick="openProductDetail('${r.id}')">
+                    <img src="${r.image}" onerror="this.src='logo.jpg'">
+                    <h5>${rName}</h5>
+                    <span>₹${r.price}</span>
+                </div>`;
+        });
+        relatedHtml += `</div></div>`;
+    }
+
+    const html = `
+        <img src="${p.image}" class="p-detail-img" onerror="this.src='logo.jpg'">
+        <div class="p-detail-tags">
+            ${p.tags && p.tags.includes('jain') ? '<div class="p-veg-mark" title="Jain Available"><i class="fas fa-leaf"></i></div>' : ''}
+            ${p.bestseller ? '<span style="background:#faa307; padding:2px 8px; border-radius:4px; font-size:0.8rem; font-weight:bold;">Bestseller</span>' : ''}
+        </div>
+        <h2 style="color:var(--primary); margin:10px 0;">${name}</h2>
+        <p class="p-detail-desc">${desc}</p>
+        <h3 style="margin-bottom:20px;">₹${p.price} / pack</h3>
+
+        <button class="btn-primary" style="width:100%; padding:15px;" onclick="addToCart(${p.id}); closeProductModal();">
+            Add to Cart - ₹${p.price}
+        </button>
+        
+        ${relatedHtml}
+    `;
+
+    const modalBody = document.getElementById('p-modal-body');
+    const modal = document.getElementById('product-modal');
+    
+    if(modalBody && modal) {
+        modalBody.innerHTML = html;
+        modal.style.display = 'flex';
+        setTimeout(() => modal.classList.add('active'), 10); // Trigger CSS transition
+    } else {
+        console.warn("Product Modal container missing in HTML");
+    }
+}
+
+function closeProductModal() {
+    const modal = document.getElementById('product-modal');
+    if(modal) {
+        modal.classList.remove('active');
+        setTimeout(() => {
+            modal.style.display = 'none';
+        }, 300);
+    }
 }
 
 // --- UTILS & LOGIC ---
@@ -275,8 +354,8 @@ function updateUserUI(isLoggedIn) {
         document.getElementById('user-name').innerText = currentUser.displayName;
 
         // Cart Button Changes (Unlock Order)
-        if(loginBtnCart) loginBtnCart.style.display = 'none';
-        if(orderBtnCart) orderBtnCart.style.display = 'flex';
+        if (loginBtnCart) loginBtnCart.style.display = 'none';
+        if (orderBtnCart) orderBtnCart.style.display = 'flex';
 
         // FETCH SAVED ADDRESS/PHONE
         db.collection("users").doc(currentUser.uid).get().then((doc) => {
@@ -291,14 +370,14 @@ function updateUserUI(isLoggedIn) {
         // Guest Mode
         btn.style.display = 'block';
         profile.style.display = 'none';
-        
+
         // Lock Cart
-        if(loginBtnCart) loginBtnCart.style.display = 'flex';
-        if(orderBtnCart) orderBtnCart.style.display = 'none';
-        
+        if (loginBtnCart) loginBtnCart.style.display = 'flex';
+        if (orderBtnCart) orderBtnCart.style.display = 'none';
+
         // Clear Inputs
-        if(document.getElementById('cust-phone')) document.getElementById('cust-phone').value = '';
-        if(document.getElementById('cust-address')) document.getElementById('cust-address').value = '';
+        if (document.getElementById('cust-phone')) document.getElementById('cust-phone').value = '';
+        if (document.getElementById('cust-address')) document.getElementById('cust-address').value = '';
     }
 }
 function toggleProfileMenu() { document.getElementById('profile-menu').classList.toggle('active'); }
@@ -310,47 +389,47 @@ function showOrderHistory() {
     document.getElementById('profile-menu').classList.remove('active');
     document.getElementById('history-modal').classList.add('active');
     const container = document.getElementById('history-content');
-    
+
     if (!currentUser) return;
 
     container.innerHTML = '<div class="loading-spinner"><i class="fas fa-spinner fa-spin"></i> Loading history...</div>';
 
     db.collection("orders")
-      .where("userId", "==", currentUser.uid)
-      .orderBy("timestamp", "desc")
-      .get()
-      .then((querySnapshot) => {
-          container.innerHTML = '';
-          pastOrders = []; // Reset local list
+        .where("userId", "==", currentUser.uid)
+        .orderBy("timestamp", "desc")
+        .get()
+        .then((querySnapshot) => {
+            container.innerHTML = '';
+            pastOrders = []; // Reset local list
 
-          if (querySnapshot.empty) {
-              container.innerHTML = '<p style="padding:20px; text-align:center; color:#777;">No past orders found.</p>';
-              return;
-          }
-          
-          querySnapshot.forEach((doc) => {
-              const order = doc.data();
-              order.id = doc.id; 
-              pastOrders.push(order); 
+            if (querySnapshot.empty) {
+                container.innerHTML = '<p style="padding:20px; text-align:center; color:#777;">No past orders found.</p>';
+                return;
+            }
 
-              // 1. DEFINE THE DATE VARIABLE HERE
-              const date = order.timestamp ? order.timestamp.toDate().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Date N/A';
-              
-              // 2. Status Color Logic
-              const status = order.status || 'Pending';
-              let statusColor = '#e67e22'; 
-              if(status === 'Packed') statusColor = '#2980b9';
-              if(status === 'Delivered') statusColor = '#27ae60';
-              if(status === 'Cancelled') statusColor = '#c0392b';
+            querySnapshot.forEach((doc) => {
+                const order = doc.data();
+                order.id = doc.id;
+                pastOrders.push(order);
 
-              // 3. Items List
-              let itemsHtml = '';
-              order.items.forEach(i => {
-                  itemsHtml += `<div style="font-size:0.9rem; color:#555; margin-bottom:2px;">• ${i.name} x ${i.qty}</div>`;
-              });
+                // 1. DEFINE THE DATE VARIABLE HERE
+                const date = order.timestamp ? order.timestamp.toDate().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Date N/A';
 
-              // 4. Generate HTML (Now 'date' is definitely defined)
-              const html = `
+                // 2. Status Color Logic
+                const status = order.status || 'Pending';
+                let statusColor = '#e67e22';
+                if (status === 'Packed') statusColor = '#2980b9';
+                if (status === 'Delivered') statusColor = '#27ae60';
+                if (status === 'Cancelled') statusColor = '#c0392b';
+
+                // 3. Items List
+                let itemsHtml = '';
+                order.items.forEach(i => {
+                    itemsHtml += `<div style="font-size:0.9rem; color:#555; margin-bottom:2px;">• ${i.name} x ${i.qty}</div>`;
+                });
+
+                // 4. Generate HTML (Now 'date' is definitely defined)
+                const html = `
                 <div class="history-card" style="background:white; border:1px solid #eee; padding:15px; margin-bottom:15px; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,0.05);">
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; border-bottom:1px solid #f9f9f9; padding-bottom:8px;">
                         <span style="font-weight:600; color:#333; font-size:0.9rem;"><i class="far fa-calendar-alt"></i> ${date}</span>
@@ -369,21 +448,21 @@ function showOrderHistory() {
                         </div>
                     </div>
                 </div>`;
-                
-              container.innerHTML += html;
-          });
-      })
-      .catch((error) => {
-          console.error("History Error:", error);
-          container.innerHTML = '<p style="padding:20px; text-align:center;">Error loading history.</p>';
-      });
+
+                container.innerHTML += html;
+            });
+        })
+        .catch((error) => {
+            console.error("History Error:", error);
+            container.innerHTML = '<p style="padding:20px; text-align:center;">Error loading history.</p>';
+        });
 }
 
 function openInvoice(orderId) {
     const order = pastOrders.find(o => o.id === orderId);
-    if(!order) return;
+    if (!order) return;
 
-    document.body.classList.add('printing-invoice'); 
+    document.body.classList.add('printing-invoice');
 
     // ... (Your existing population code for ID, Date, Name etc.) ...
     document.getElementById('inv-order-id').innerText = "#" + order.id.slice(0, 8).toUpperCase();
@@ -394,10 +473,10 @@ function openInvoice(orderId) {
 
     // --- NEW: GENERATE DYNAMIC QR CODE ---
     const qrImg = document.getElementById('inv-qr-img');
-    if(qrImg) {
+    if (qrImg) {
         // UPI Link Format: upi://pay?pa=UPI_ID&pn=NAME&am=AMOUNT&tn=NOTE
-        const upiString = `upi://pay?pa=${SHOP_UPI_ID}&pn=${SHOP_NAME}&am=${order.total}&tn=Order_${order.id.slice(0,5)}`;
-        
+        const upiString = `upi://pay?pa=${SHOP_UPI_ID}&pn=${SHOP_NAME}&am=${order.total}&tn=Order_${order.id.slice(0, 5)}`;
+
         // Use a free API to generate the QR image
         qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(upiString)}`;
     }
@@ -405,7 +484,7 @@ function openInvoice(orderId) {
 
     const tbody = document.getElementById('inv-items-body');
     tbody.innerHTML = '';
-    
+
     order.items.forEach(item => {
         const itemTotal = item.price * item.qty;
         tbody.innerHTML += `
@@ -486,19 +565,19 @@ async function checkoutWhatsApp() {
 
     if (phone.length < 10) {
         alert("Please enter a valid 10-digit Mobile Number.");
-        if(phoneInput) phoneInput.focus();
+        if (phoneInput) phoneInput.focus();
         return;
     }
     if (address.length < 5) {
         alert("Please enter a full Delivery Address.");
-        if(addrInput) addrInput.focus();
+        if (addrInput) addrInput.focus();
         return;
     }
 
     // 2. UI Feedback
     const btn = document.getElementById('btn-final-checkout');
     const originalText = btn ? btn.innerHTML : 'Confirm & Order';
-    if(btn) {
+    if (btn) {
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
         btn.disabled = true;
     }
@@ -513,7 +592,7 @@ async function checkoutWhatsApp() {
         const orderId = 'ORD-' + Date.now().toString().slice(-6);
 
         console.log("3. Saving to Firebase...");
-        
+
         // Save User Info
         await db.collection("users").doc(currentUser.uid).set({
             phone: phone,
@@ -543,8 +622,8 @@ async function checkoutWhatsApp() {
         if (typeof triggerConfetti === "function") triggerConfetti();
 
         // Generate WhatsApp Message
-        const ICON_CART = String.fromCodePoint(0x1F6D2);     
-        const ICON_PIN = String.fromCodePoint(0x1F4CD);      
+        const ICON_CART = String.fromCodePoint(0x1F6D2);
+        const ICON_PIN = String.fromCodePoint(0x1F4CD);
         const ICON_PHONE = String.fromCodePoint(0x1F4DE);
 
         let msg = `*${ICON_CART} NEW ORDER - NAMO NAMKEEN*\n`;
@@ -563,47 +642,47 @@ async function checkoutWhatsApp() {
 
         msg += `---------------------------------\n`;
         msg += `Subtotal: ₹${subtotal}\n`;
-        msg += `Delivery: ${shipping === 0 ? 'FREE' : '₹'+shipping}\n`;
+        msg += `Delivery: ${shipping === 0 ? 'FREE' : '₹' + shipping}\n`;
         msg += `*💰 GRAND TOTAL: ₹${total}*\n`;
         msg += `---------------------------------\n`;
-        msg += `_Payment QR Scanned? (Yes/No)_\n`; 
+        msg += `_Payment QR Scanned? (Yes/No)_\n`;
 
         // Generate QR
         // Replace with your actual UPI ID
-        const SHOP_UPI_ID = "8103276050@ybl"; 
+        const SHOP_UPI_ID = "8103276050@ybl";
         const SHOP_NAME = "Namo Namkeen";
-        
+
         // The Magic Link: Opens GPay/PhonePe directly
         const upiLink = `upi://pay?pa=${SHOP_UPI_ID}&pn=${encodeURIComponent(SHOP_NAME)}&am=${total}&tn=Order_${orderId}&cu=INR`;
-        
+
         // QR Code for scanning (Desktop users)
         const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(upiLink)}`;
 
         // D. Update Modal DOM
         const modal = document.getElementById('success-modal');
-        if(modal) {
+        if (modal) {
             document.getElementById('success-total-amount').innerText = "₹" + total;
-            
+
             // Set the Image
             document.getElementById('success-qr-img').src = qrUrl;
-            
+
             // Set the Click Link (Deep Link)
             document.getElementById('upi-pay-link').href = upiLink;
-            
+
             // Setup WhatsApp Button
             const waBtn = document.getElementById('btn-send-whatsapp');
-            waBtn.onclick = function() {
-                const adminPhone = "919826698822"; 
+            waBtn.onclick = function () {
+                const adminPhone = "919826698822";
                 window.open(`https://wa.me/${adminPhone}?text=${encodeURIComponent(msg)}`, '_blank');
             };
 
             // Show Modal with animation class
             modal.style.display = 'flex';
             setTimeout(() => modal.classList.add('active'), 10);
-            
+
             // Lock background scrolling
             document.body.classList.add('modal-open');
-        }else {
+        } else {
             console.error("CRITICAL: #success-modal not found in HTML!");
             alert("Order Placed! Check your Order History.");
         }
@@ -613,7 +692,7 @@ async function checkoutWhatsApp() {
         updateCartUI();
         toggleCart(); // Close Sidebar
 
-        if(btn) {
+        if (btn) {
             btn.innerHTML = originalText;
             btn.disabled = false;
         }
@@ -621,7 +700,7 @@ async function checkoutWhatsApp() {
     } catch (error) {
         console.error("Order Failed:", error);
         alert("Error saving order: " + error.message);
-        if(btn) {
+        if (btn) {
             btn.innerHTML = originalText;
             btn.disabled = false;
         }
@@ -630,7 +709,7 @@ async function checkoutWhatsApp() {
 
 function closeSuccessModal() {
     const modal = document.getElementById('success-modal');
-    if(modal) {
+    if (modal) {
         modal.classList.remove('active');
         document.body.classList.remove('modal-open'); // Unlock scroll
         setTimeout(() => {
@@ -653,16 +732,110 @@ function checkStoreStatus() { const now = new Date(); const hour = now.getHours(
 function toggleMobileMenu() {
     const nav = document.getElementById('mobile-nav');
     if(nav) {
-        // This works for both the old display method and new transform method
-        nav.classList.toggle('active'); 
+        nav.classList.toggle('active');
+        
+        // Optional: Toggle hamburger icon animation
+        const hamburger = document.querySelector('.hamburger');
+        if(hamburger) hamburger.classList.toggle('toggle');
     }
 }
 function toggleCart() { document.getElementById('cart-sidebar').classList.toggle('active'); document.querySelector('.cart-overlay').classList.toggle('active'); }
 function playVideo(wrapper) { const video = wrapper.querySelector('video'); if (video.paused) { wrapper.classList.add('playing'); video.play(); } else { video.pause(); } }
-function openQuiz() { document.getElementById('quiz-modal').style.display = 'flex'; startQuiz(); }
-function closeQuiz() { document.getElementById('quiz-modal').style.display = 'none'; }
-function startQuiz() { document.getElementById('quiz-content').innerHTML = `<div class="quiz-question"><h3>Spicy or Sweet?</h3><div class="quiz-options"><button class="quiz-btn" onclick="quizStep2('spicy')">Spicy</button><button class="quiz-btn" onclick="quizStep2('sweet')">Sweet</button></div></div>`; }
-function quizStep2(pref) { document.getElementById('quiz-content').innerHTML = pref === 'spicy' ? `<h3>Sev or Nuts?</h3><div class="quiz-options"><button class="quiz-btn" onclick="showResult(1)">Sev</button><button class="quiz-btn" onclick="showResult(3)">Nuts</button></div>` : `<h3>Fried or Dry?</h3><div class="quiz-options"><button class="quiz-btn" onclick="showResult(7)">Fried</button><button class="quiz-btn" onclick="showResult(11)">Dry</button></div>`; }
+// --- SNACK FINDER (QUIZ) LOGIC ---
+
+function openQuiz() {
+    // Safety check: Ensure products are loaded first
+    if (!products || products.length === 0) {
+        alert("Please wait for the menu to load first!");
+        return;
+    }
+    document.getElementById('quiz-modal').style.display = 'flex';
+    startQuiz();
+}
+
+function closeQuiz() {
+    document.getElementById('quiz-modal').style.display = 'none';
+}
+
+function startQuiz() {
+    const content = document.getElementById('quiz-content');
+    content.innerHTML = `
+        <div class="quiz-question">
+            <h3>What are you craving? 😋</h3>
+            <div class="quiz-options">
+                <button class="quiz-btn" onclick="quizStep2('spicy')">
+                    <i class="fas fa-pepper-hot"></i> Spicy
+                </button>
+                <button class="quiz-btn" onclick="quizStep2('sweet')">
+                    <i class="fas fa-cookie-bite"></i> Sweet / Mild
+                </button>
+            </div>
+        </div>
+    `;
+}
+
+function quizStep2(preference) {
+    const content = document.getElementById('quiz-content');
+
+    if (preference === 'spicy') {
+        content.innerHTML = `
+            <div class="quiz-question">
+                <h3>Something Crunchy or Nutty?</h3>
+                <div class="quiz-options">
+                    <button class="quiz-btn" onclick="showResult(1)">
+                        <i class="fas fa-align-justify"></i> Sev 
+                    </button>
+                    <button class="quiz-btn" onclick="showResult(3)">
+                        <i class="fas fa-seedling"></i> Peanuts
+                    </button>
+                </div>
+            </div>
+        `;
+    } else {
+        content.innerHTML = `
+            <div class="quiz-question">
+                <h3>Fried Snack or Dry Fruit?</h3>
+                <div class="quiz-options">
+                    <button class="quiz-btn" onclick="showResult(7)">
+                        <i class="fas fa-utensils"></i> Fried Snack
+                    </button>
+                    <button class="quiz-btn" onclick="showResult(11)">
+                        <i class="fas fa-leaf"></i> Premium Sweet
+                    </button>
+                </div>
+            </div>
+        `;
+    }
+}
+
+function showResult(id) {
+    // Find product safely (using loose equality for string/number mismatch)
+    const p = products.find(p => p.id == id);
+
+    if (!p) {
+        console.error("Product ID not found:", id);
+        document.getElementById('quiz-content').innerHTML = '<p>Oops! Recommendation not found.</p>';
+        return;
+    }
+
+    // Determine Name based on current language
+    const name = currentLang === 'en' ? p.name : (p.nameHi || p.name);
+
+    document.getElementById('quiz-content').innerHTML = `
+        <div class="quiz-result">
+            <h3 style="margin-bottom:10px;">We Recommend:</h3>
+            <img src="${p.image}" class="result-img" onerror="this.src='logo.jpg'">
+            <h2 style="color:var(--dark); margin:5px 0;">${name}</h2>
+            <p style="color:#777; margin-bottom:20px;">${p.desc || 'Authentic Taste'}</p>
+            
+            <button class="btn-primary" style="width:100%; padding:12px;" onclick="addToCart(${p.id}); closeQuiz();">
+                Add to Cart - ₹${p.price}
+            </button>
+            <br>
+            <button onclick="startQuiz()" style="background:none; border:none; color:#999; margin-top:10px; cursor:pointer; text-decoration:underline;">Start Over</button>
+        </div>
+    `;
+}
 function showResult(id) { const p = products.find(p => p.id == id); if (p) { document.getElementById('quiz-content').innerHTML = `<h3>Try This!</h3><img src="${p.image}" class="result-img"><p>${p.name}</p><button class="btn-primary" onclick="addToCart(${p.id}); closeQuiz();">Add - ₹${p.price}</button>`; } }
 function shareProduct(name, image) { if (navigator.share) { navigator.share({ title: 'Namo Namkeen', text: `Check out this delicious ${name}!`, url: window.location.href }); } else { alert("Link copied!"); } }
 function triggerConfetti() { var duration = 3000; var animationEnd = Date.now() + duration; var defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 3000 }; var interval = setInterval(function () { var timeLeft = animationEnd - Date.now(); if (timeLeft <= 0) return clearInterval(interval); var particleCount = 50 * (timeLeft / duration); confetti(Object.assign({}, defaults, { particleCount, origin: { x: Math.random(), y: Math.random() - 0.2 } })); }, 250); }
@@ -673,19 +846,19 @@ function registerServiceWorker() { if ('serviceWorker' in navigator && window.lo
 // --- TOAST NOTIFICATION SYSTEM ---
 function showToast(message, type = 'success') {
     const container = document.getElementById('toast-container');
-    
+
     // Create element
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
-    
+
     // Icon based on type
     let icon = '';
-    if(type === 'success') icon = '<i class="fas fa-check-circle"></i>';
-    if(type === 'error') icon = '<i class="fas fa-exclamation-circle"></i>';
-    if(type === 'info') icon = '<i class="fas fa-info-circle"></i>';
+    if (type === 'success') icon = '<i class="fas fa-check-circle"></i>';
+    if (type === 'error') icon = '<i class="fas fa-exclamation-circle"></i>';
+    if (type === 'info') icon = '<i class="fas fa-info-circle"></i>';
 
     toast.innerHTML = `${icon} <span>${message}</span>`;
-    
+
     // Add to screen
     container.appendChild(toast);
 
@@ -699,7 +872,7 @@ function showToast(message, type = 'success') {
 
 function openProductDetail(id) {
     const p = products.find(item => item.id == id);
-    if(!p) return;
+    if (!p) return;
 
     // Determine Name/Desc based on Language
     const name = currentLang === 'en' ? p.name : (p.nameHi || p.name);
@@ -722,12 +895,29 @@ function openProductDetail(id) {
         </button>
     `;
 
-    document.getElementById('p-modal-body').innerHTML = html;
-    document.getElementById('product-modal').style.display = 'flex';
+    const modalBody = document.getElementById('p-modal-body');
+    const modal = document.getElementById('product-modal');
+    
+    if(modalBody && modal) {
+        modalBody.innerHTML = html;
+        modal.style.display = 'flex';
+        // Trigger reflow to ensure transition plays
+        void modal.offsetWidth; 
+        modal.classList.add('active'); 
+    } else {
+        console.warn("Product Modal container missing in HTML");
+    }
+
 }
 
 function closeProductModal() {
-    document.getElementById('product-modal').style.display = 'none';
+    const modal = document.getElementById('product-modal');
+    if(modal) {
+        modal.classList.remove('active');
+        setTimeout(() => {
+            modal.style.display = 'none';
+        }, 300);
+    }
 }
 
 // --- 1. NEW: VALIDATE AND LOGIN ---
@@ -800,22 +990,22 @@ function useCoupon(code) {
 }
 
 // --- 4. UPDATED: APPLY PROMO (Visual Feedback) ---
-let discountMultiplier = 1; 
+let discountMultiplier = 1;
 
 function applyPromo() {
     const code = document.getElementById('promo-code').value.toUpperCase().trim();
     const msg = document.getElementById('promo-msg');
-    
+
     if (code === 'NAMO10') {
-        discountMultiplier = 0.90; 
+        discountMultiplier = 0.90;
         msg.style.color = 'green';
         msg.innerHTML = "🎉 <b>NAMO10</b> Applied! 10% Off.";
-        if(typeof showToast === 'function') showToast("10% Discount Applied!", "success");
+        if (typeof showToast === 'function') showToast("10% Discount Applied!", "success");
     } else if (code === 'WELCOME20') {
-        discountMultiplier = 0.80; 
+        discountMultiplier = 0.80;
         msg.style.color = 'green';
         msg.innerHTML = "🎉 <b>WELCOME20</b> Applied! 20% Off.";
-        if(typeof showToast === 'function') showToast("20% Discount Applied!", "success");
+        if (typeof showToast === 'function') showToast("20% Discount Applied!", "success");
     } else {
         discountMultiplier = 1;
         msg.style.color = 'red';
@@ -827,7 +1017,7 @@ function applyPromo() {
 // --- REORDER LOGIC ---
 function reorderItems(orderId) {
     const order = pastOrders.find(o => o.id === orderId);
-    if(!order) return;
+    if (!order) return;
 
     let addedCount = 0;
 
@@ -837,10 +1027,10 @@ function reorderItems(orderId) {
         // We check 'products' array to ensure we use CURRENT price and image
         const liveProduct = products.find(p => p.id == historyItem.id || p.name === historyItem.name);
 
-        if(liveProduct && liveProduct.in_stock) {
+        if (liveProduct && liveProduct.in_stock) {
             // Add to cart logic
             const existing = cart.find(c => c.id == liveProduct.id);
-            if(existing) {
+            if (existing) {
                 existing.qty += historyItem.qty;
             } else {
                 // Push a clean copy
@@ -857,11 +1047,11 @@ function reorderItems(orderId) {
         }
     });
 
-    if(addedCount > 0) {
+    if (addedCount > 0) {
         updateCartUI();
         closeHistory(); // Close history modal
         toggleCart();   // Open cart sidebar
-        if(typeof showToast === 'function') showToast("Items added to Cart!", "success");
+        if (typeof showToast === 'function') showToast("Items added to Cart!", "success");
     } else {
         alert("Sorry, these items are no longer available.");
     }
@@ -869,15 +1059,15 @@ function reorderItems(orderId) {
 
 // --- PROFILE MANAGEMENT ---
 function openProfileModal() {
-    if(!currentUser) return;
+    if (!currentUser) return;
     document.getElementById('profile-menu').classList.remove('active');
-    
+
     // Pre-fill data
     document.getElementById('edit-name').value = currentUser.displayName;
-    
+
     // Fetch latest from DB
     db.collection("users").doc(currentUser.uid).get().then(doc => {
-        if(doc.exists) {
+        if (doc.exists) {
             const data = doc.data();
             document.getElementById('edit-phone').value = data.phone || '';
             document.getElementById('edit-address').value = data.address || '';
@@ -894,7 +1084,7 @@ function saveProfile() {
     const phone = document.getElementById('edit-phone').value;
     const address = document.getElementById('edit-address').value;
 
-    if(phone.length < 10 || address.length < 5) {
+    if (phone.length < 10 || address.length < 3) {
         alert("Please enter valid details.");
         return;
     }
@@ -908,10 +1098,58 @@ function saveProfile() {
     }, { merge: true }).then(() => {
         btn.innerHTML = "Save Changes";
         closeProfileModal();
-        if(typeof showToast === 'function') showToast("Profile Updated!", "success");
-        
+        if (typeof showToast === 'function') showToast("Profile Updated!", "success");
+
         // Update the Checkout inputs if they exist on screen
-        if(document.getElementById('cust-phone')) document.getElementById('cust-phone').value = phone;
-        if(document.getElementById('cust-address')) document.getElementById('cust-address').value = address;
+        if (document.getElementById('cust-phone')) document.getElementById('cust-phone').value = phone;
+        if (document.getElementById('cust-address')) document.getElementById('cust-address').value = address;
     });
+}
+
+function openProductDetail(id) {
+    const p = products.find(item => item.id == id);
+    if(!p) return;
+
+    const name = currentLang === 'en' ? p.name : (p.nameHi || p.name);
+    const desc = currentLang === 'en' ? p.desc : (p.descHi || p.desc);
+
+    // --- NEW: FIND RELATED ITEMS ---
+    // Filter items in same category, excluding current item, take top 3
+    const related = products
+        .filter(item => item.category === p.category && item.id !== p.id && item.in_stock)
+        .slice(0, 3);
+
+    let relatedHtml = '';
+    
+
+    const html = `
+        <img src="${p.image}" class="p-detail-img" onerror="this.src='logo.jpg'">
+        <div class="p-detail-tags">
+            ${p.tags && p.tags.includes('jain') ? '<div class="p-veg-mark" title="Jain Available"><i class="fas fa-leaf"></i></div>' : ''}
+            ${p.bestseller ? '<span style="background:#faa307; padding:2px 8px; border-radius:4px; font-size:0.8rem; font-weight:bold;">Bestseller</span>' : ''}
+        </div>
+        <h2 style="color:var(--primary); margin:10px 0;">${name}</h2>
+        <p class="p-detail-desc">${desc}</p>
+        <h3 style="margin-bottom:20px;">₹${p.price} / pack</h3>
+
+        <button class="btn-primary" style="width:100%; padding:15px;" onclick="addToCart(${p.id}); closeProductModal();">
+            Add to Cart - ₹${p.price}
+        </button>
+        
+        ${relatedHtml} <!-- Inject Recommendations -->
+    `;
+
+    const modalBody = document.getElementById('p-modal-body');
+    if(modalBody) {
+        modalBody.innerHTML = html;
+        document.getElementById('product-modal').style.display = 'flex';
+    } else {
+        // Fallback if modal doesn't exist in index.html yet
+        console.warn("Product Modal container missing in HTML");
+    }
+}
+
+function closeProductModal() {
+    const modal = document.getElementById('product-modal');
+    if(modal) modal.style.display = 'none';
 }
