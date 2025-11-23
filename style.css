@@ -1168,3 +1168,128 @@ h4 {
         font-size: 0.9rem;
     }
 }
+
+/* --- USER PROFILE (Navbar) --- */
+#user-profile {
+    position: relative;
+    display: flex;
+    align-items: center;
+    margin-right: 15px;
+}
+
+#user-pic {
+    width: 40px;        /* Fixes the huge image size */
+    height: 40px;
+    border-radius: 50%; /* Makes it a circle */
+    object-fit: cover;
+    cursor: pointer;
+    border: 2px solid var(--primary);
+    transition: transform 0.2s;
+}
+
+#user-pic:hover {
+    transform: scale(1.1);
+}
+
+/* The Dropdown Menu */
+.profile-dropdown {
+    display: none;      /* Hidden by default */
+    position: absolute;
+    top: 55px;          /* Pushes it below the navbar */
+    right: 0;           /* Aligns to the right edge */
+    background: white;
+    width: 200px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+    border-radius: 10px;
+    padding: 10px 0;
+    z-index: 2000;
+    border: 1px solid #eee;
+    text-align: left;
+}
+
+/* Show when active */
+.profile-dropdown.active {
+    display: block;
+    animation: fadeIn 0.2s ease;
+}
+
+/* Dropdown Items */
+.profile-dropdown p {
+    margin: 0;
+    padding: 10px 15px;
+    font-weight: bold;
+    color: var(--text-dark);
+    background: #f9f9f9;
+    border-bottom: 1px solid #eee;
+    font-size: 0.95rem;
+}
+
+.profile-dropdown button {
+    width: 100%;
+    background: none;
+    border: none;
+    padding: 12px 15px;
+    text-align: left;
+    cursor: pointer;
+    font-size: 0.9rem;
+    color: #555;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: 0.2s;
+}
+
+.profile-dropdown button:hover {
+    background-color: #fff3e0; /* Light orange hover */
+    color: var(--primary);
+}
+
+.profile-dropdown hr {
+    margin: 5px 0;
+    border: none;
+    border-top: 1px solid #eee;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* --- QUIZ RESULT STYLING --- */
+.quiz-result {
+    text-align: center;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.result-img {
+    width: 180px;           /* Fixed width */
+    height: 180px;          /* Fixed height */
+    border-radius: 50%;     /* Makes it a circle */
+    object-fit: cover;      /* Crops image nicely inside circle */
+    margin: 20px auto;
+    border: 4px solid #fff3e0;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    display: block;
+}
+
+.quiz-result h2 {
+    color: var(--primary);
+    font-size: 1.5rem;
+    margin-bottom: 5px;
+}
+
+.quiz-result h3 {
+    font-size: 1rem;
+    color: #2ecc71;         /* Green color for 'Try This' */
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.quiz-result p {
+    color: #777;
+    font-size: 0.9rem;
+    margin-bottom: 20px;
+}

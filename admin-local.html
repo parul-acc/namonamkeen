@@ -910,8 +910,7 @@
                 let total = 0, inStock = 0, outStock = 0;
                 state.inventory.data = [];
                 snap.forEach(doc => {
-                    const p = doc.data();
-                    p.docId = doc.id;
+                    const p = doc.data(); p.docId = doc.id;
                     total++; p.in_stock ? inStock++ : outStock++;
                     state.inventory.data.push(p);
                 });
@@ -926,7 +925,7 @@
             items.forEach(p => {
                 const vs = p.variants ? p.variants.map(v => `${v.weight}: ₹${v.price}`).join(' ') : '₹' + p.price;
                 const rowClass = !p.in_stock ? 'row-out-stock' : '';
-                tbody.innerHTML += `<tr class="${rowClass}"><td><img src="${p.image}" width="40" height="40" style="border-radius:5px;"></td><td><strong>${p.name}</strong><br><small>${p.category}</small></td><td><small>${vs}</small></td><td><span class="stock-tag ${p.in_stock ? 'stock-in' : 'stock-out'}" onclick="toggleStock('${p.docId}',${!p.in_stock})">${p.in_stock ? 'In Stock' : 'Out'}</span></td><td><button class="icon-btn" style="background:#3498db" onclick="editProduct('${p.docId}')"><i class="fas fa-edit"></i></button><button class="icon-btn" style="background:#e74c3c" onclick="delProduct('${p.docId}')"><i class="fas fa-trash"></i></button></td></tr>`;
+                tbody.innerHTML += `<tr class="${rowClass}"><td><img src="${p.image}" width="40" height="40" style="border-radius:5px; object-fit:cover;"></td><td><strong>${p.name}</strong><br><small>${p.category}</small></td><td><small>${vs}</small></td><td><span class="stock-tag ${p.in_stock ? 'stock-in' : 'stock-out'}" onclick="toggleStock('${p.docId}',${!p.in_stock})">${p.in_stock ? 'In Stock' : 'Out'}</span></td><td><button class="icon-btn" style="background:#3498db" onclick="editProduct('${p.docId}')"><i class="fas fa-edit"></i></button><button class="icon-btn" style="background:#e74c3c" onclick="delProduct('${p.docId}')"><i class="fas fa-trash"></i></button></td></tr>`;
             });
         }
 
@@ -976,17 +975,37 @@
             downloadCSV(csv, "namo_orders.csv");
         }
 
-        // --- 4. CUSTOMERS ---
+        // --- 4. CUSTOMERS (FIXED ROBUST RENDER) ---
         function loadCustomers() {
             db.collection("users").limit(200).get().then(snap => {
                 let count = 0, today = 0;
                 state.customers.data = [];
                 snap.forEach(doc => {
                     const u = doc.data(); count++;
-                    const last = u.lastLogin ? new Date(u.lastLogin.seconds * 1000) : null;
-                    if (last && last.setHours(0, 0, 0, 0) === new Date().setHours(0, 0, 0, 0)) today++;
+
+                    // Safely handle date
+                    let last = null;
+                    if (u.lastLogin) {
+                        // If it's a Firestore Timestamp (object with seconds)
+                        if (u.lastLogin.seconds) {
+                            last = new Date(u.lastLogin.seconds * 1000);
+                        }
+                        // If it's already a Date object or string
+                        else {
+                            last = new Date(u.lastLogin);
+                        }
+                    }
+
+                    if (last && !isNaN(last.getTime())) {
+                        if (last.setHours(0, 0, 0, 0) === new Date().setHours(0, 0, 0, 0)) today++;
+                        u.displayDate = last.toLocaleDateString();
+                    } else {
+                        u.displayDate = '-';
+                    }
+
                     state.customers.data.push(u);
                 });
+
                 document.getElementById('cust-total').innerText = count;
                 document.getElementById('cust-active').innerText = today;
                 renderTable('customers');
@@ -995,14 +1014,19 @@
 
         function renderCustomerRows(tbody, items) {
             items.forEach(u => {
-                const last = u.lastLogin ? new Date(u.lastLogin.seconds * 1000).toLocaleDateString() : '-';
-                tbody.innerHTML += `<tr><td><strong>${u.name}</strong><br><small>${u.email}</small></td><td>${u.phone}</td><td>${u.address ? u.address.substring(0, 15) + '...' : '-'}</td><td>${last}</td><td><button class="icon-btn" style="background:#25D366" onclick="window.open('https://wa.me/91${u.phone}')"><i class="fab fa-whatsapp"></i></button></td></tr>`;
+                tbody.innerHTML += `<tr>
+                    <td><strong>${u.name || 'Guest'}</strong><br><small>${u.email || ''}</small></td>
+                    <td>${u.phone || '-'}</td>
+                    <td>${u.address ? u.address.substring(0, 15) + '...' : '-'}</td>
+                    <td>${u.displayDate}</td>
+                    <td>${u.phone ? `<button class="icon-btn" style="background:#25D366" onclick="window.open('https://wa.me/91${u.phone.replace(/\D/g, '')}')"><i class="fab fa-whatsapp"></i></button>` : '-'}</td>
+                </tr>`;
             });
         }
 
         function filterCustomers() {
             const q = document.getElementById('custSearch').value.toLowerCase();
-            state.customers.filteredData = state.customers.data.filter(u => u.name.toLowerCase().includes(q) || (u.phone && u.phone.includes(q)));
+            state.customers.filteredData = state.customers.data.filter(u => (u.name || '').toLowerCase().includes(q) || (u.phone || '').includes(q));
             state.customers.page = 1;
             renderTable('customers');
         }
@@ -1010,8 +1034,7 @@
         function exportCustomersToCSV() {
             let csv = "Name,Email,Phone,Address,Last Login\n";
             state.customers.data.forEach(u => {
-                const last = u.lastLogin ? new Date(u.lastLogin.seconds * 1000).toLocaleDateString() : '-';
-                csv += `"${u.name}","${u.email}","${u.phone || ''}","${u.address ? u.address.replace(/\n/g, ' ') : ''}","${last}"\n`;
+                csv += `"${u.name || ''}","${u.email || ''}","${u.phone || ''}","${u.address ? u.address.replace(/\n/g, ' ') : ''}","${u.displayDate}"\n`;
             });
             downloadCSV(csv, "namo_customers.csv");
         }
@@ -1070,33 +1093,95 @@
             document.getElementById('nav-' + v).classList.add('active');
             document.getElementById('page-title').innerText = v.charAt(0).toUpperCase() + v.slice(1);
             document.getElementById('sidebar').classList.remove('active');
+            if (v === 'orders') loadOrders();
         }
 
         function openProductModal() { document.getElementById('p-id').value = ''; document.getElementById('variant-container').innerHTML = ''; addVariantRow(); document.getElementById('product-modal').style.display = 'flex'; }
+        // --- 3. Updated: Edit Product (Loads the stock status) ---
         function editProduct(id) {
-            const p = state.inventory.data.find(x => x.docId === id);
-            document.getElementById('p-id').value = id;
-            document.getElementById('p-name').value = p.name; document.getElementById('p-nameHi').value = p.nameHi;
-            document.getElementById('p-category').value = p.category; document.getElementById('p-image').value = p.image;
-            document.getElementById('p-stock').checked = p.in_stock; document.getElementById('p-bestseller').checked = p.bestseller;
-            const vc = document.getElementById('variant-container'); vc.innerHTML = '';
-            if (p.variants) p.variants.forEach(v => addVariantRow(v.weight, v.price)); else addVariantRow('Std', p.price);
-            document.getElementById('product-modal').style.display = 'flex';
+            // Note: Use 'state.inventory.data' for local or fetch from 'db' for production
+            // This example assumes fetching from DB for safety
+            db.collection("products").doc(id).get().then(d => {
+                const p = d.data();
+                document.getElementById('p-id').value = id;
+                document.getElementById('p-name').value = p.name;
+                document.getElementById('p-nameHi').value = p.nameHi || '';
+                document.getElementById('p-category').value = p.category;
+                document.getElementById('p-image').value = p.image;
+                document.getElementById('p-stock').checked = p.in_stock;
+                document.getElementById('p-bestseller').checked = p.bestseller;
+
+                const vc = document.getElementById('variant-container');
+                vc.innerHTML = '';
+
+                if (p.variants && p.variants.length > 0) {
+                    p.variants.forEach(v => {
+                        // Handle old data that might not have 'inStock' property yet (default to true)
+                        const stockStatus = (v.inStock !== undefined) ? v.inStock : true;
+                        addVariantRow(v.weight, v.price, stockStatus);
+                    });
+                } else {
+                    addVariantRow('Standard', p.price, true);
+                }
+                document.getElementById('product-modal').style.display = 'flex';
+            });
         }
-        function addVariantRow(w = '', p = '') {
-            const d = document.createElement('div'); d.className = 'variant-row';
-            d.innerHTML = `<input class="form-control" placeholder="Size" value="${w}" style="margin:0"><input class="form-control" placeholder="Price" value="${p}" style="margin:0"><button class="remove-variant" onclick="this.parentElement.remove()">x</button>`;
+        // --- 1. Updated: Add Variant Row (Now includes Stock Checkbox) ---
+        function addVariantRow(w = '', p = '', inStock = true) {
+            const d = document.createElement('div');
+            d.className = 'variant-row';
+            d.style.display = "flex";
+            d.style.gap = "10px";
+            d.style.alignItems = "center";
+
+            // Checkbox state
+            const checked = inStock ? 'checked' : '';
+
+            d.innerHTML = `
+        <input class="form-control" placeholder="Flavor/Size (e.g. Masala)" value="${w}" style="margin:0; flex:2;">
+        <input class="form-control" type="number" placeholder="Price" value="${p}" style="margin:0; flex:1;">
+        
+        <div style="display:flex; align-items:center; gap:5px; background:#eee; padding:5px 10px; border-radius:5px;">
+            <input type="checkbox" class="var-stock" ${checked} style="width:auto; margin:0;">
+            <small>Stock</small>
+        </div>
+
+        <button class="remove-variant" onclick="this.parentElement.remove()" style="background:#ffebee; color:red; border:none; width:30px; height:30px; border-radius:50%; cursor:pointer;">&times;</button>
+    `;
             document.getElementById('variant-container').appendChild(d);
         }
+        // --- 2. Updated: Save Product (Saves the stock status) ---
         function saveProduct() {
             const id = document.getElementById('p-id').value || Date.now().toString();
-            const vs = []; document.querySelectorAll('.variant-row').forEach(r => { const i = r.querySelectorAll('input'); if (i[0].value) vs.push({ weight: i[0].value, price: parseInt(i[1].value) }) });
-            if (vs.length === 0) vs.push({ weight: 'Standard', price: 0 });
+            const vs = [];
+
+            document.querySelectorAll('.variant-row').forEach(r => {
+                const inputs = r.querySelectorAll('input');
+                const name = inputs[0].value.trim();
+                const price = parseInt(inputs[1].value);
+                const inStock = inputs[2].checked; // Get checkbox value
+
+                if (name && price) {
+                    vs.push({ weight: name, price: price, inStock: inStock });
+                }
+            });
+
+            if (vs.length === 0) vs.push({ weight: 'Standard', price: 0, inStock: true });
+
+            // Calculate base price (lowest active variant, or 0 if all OOS)
+            const activeVariants = vs.filter(v => v.inStock);
+            const basePrice = activeVariants.length > 0 ? Math.min(...activeVariants.map(v => v.price)) : (vs[0].price || 0);
+
             db.collection("products").doc(id).set({
-                id: parseInt(id), name: document.getElementById('p-name').value, nameHi: document.getElementById('p-nameHi').value,
-                category: document.getElementById('p-category').value, image: document.getElementById('p-image').value,
-                in_stock: document.getElementById('p-stock').checked, bestseller: document.getElementById('p-bestseller').checked,
-                variants: vs, price: Math.min(...vs.map(v => v.price))
+                id: parseInt(id),
+                name: document.getElementById('p-name').value,
+                nameHi: document.getElementById('p-nameHi').value,
+                category: document.getElementById('p-category').value,
+                image: document.getElementById('p-image').value,
+                in_stock: document.getElementById('p-stock').checked, // Global stock
+                bestseller: document.getElementById('p-bestseller').checked,
+                variants: vs, // Save new variant structure
+                price: basePrice
             }, { merge: true }).then(() => closeModal('product-modal'));
         }
         async function importFromSheet() {

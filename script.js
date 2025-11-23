@@ -78,17 +78,17 @@ function fetchData() {
 // --- 5. RENDER MENU ---
 function renderMenu() {
     const grid = document.getElementById('menu-grid');
-    if (!grid) return;
+    if(!grid) return;
     grid.innerHTML = '';
 
     const filtered = products.filter(p => {
-        const name = (p.name + (p.nameHi || '')).toLowerCase();
+        const name = (p.name + (p.nameHi||'')).toLowerCase();
         const matchesCat = currentCategory === 'all' || p.category === currentCategory;
         const matchesSearch = name.includes(searchQuery.toLowerCase());
         return matchesCat && matchesSearch;
     });
 
-    if (filtered.length === 0) {
+    if(filtered.length === 0) {
         grid.innerHTML = '<p style="text-align:center; grid-column:1/-1;">No products found.</p>';
         return;
     }
@@ -97,22 +97,34 @@ function renderMenu() {
         const name = currentLang === 'en' ? p.name : (p.nameHi || p.name);
         const desc = currentLang === 'en' ? p.desc : (p.descHi || p.desc);
         const ribbonHTML = p.bestseller ? `<div class="ribbon">Bestseller</div>` : '';
-
+        
         let variantHtml = '';
         let displayPrice = p.price;
+        let isAvailable = p.in_stock;
 
+        // Logic to find the first available variant to show price
         if (p.variants && p.variants.length > 0) {
-            displayPrice = p.variants[0].price;
+            const firstActive = p.variants.find(v => v.inStock !== false);
+            displayPrice = firstActive ? firstActive.price : p.variants[0].price;
+            if (!firstActive) isAvailable = false; // All variants OOS
+
             variantHtml = `<select class="variant-select" id="variant-select-${p.id}" onclick="event.stopPropagation()" onchange="updateCardPrice(${p.id}, this.value)">`;
+            
             p.variants.forEach((v, index) => {
-                variantHtml += `<option value="${index}">${v.weight}</option>`;
+                const stockStatus = (v.inStock !== false); // Default true if undefined
+                const disabledAttr = stockStatus ? '' : 'disabled';
+                const label = v.weight + (stockStatus ? '' : ' (Out of Stock)');
+                // Select first active one by default
+                const selectedAttr = (v.price === displayPrice && stockStatus) ? 'selected' : '';
+                
+                variantHtml += `<option value="${index}" ${disabledAttr} ${selectedAttr}>${label}</option>`;
             });
             variantHtml += `</select>`;
         }
 
-        let btnAction = p.in_stock ? `addToCartFromGrid(${p.id})` : '';
-        let btnText = p.in_stock ? (currentLang === 'en' ? 'Add' : 'जोड़ें') : 'Sold Out';
-        let cardClass = p.in_stock ? '' : 'sold-out';
+        let btnAction = isAvailable ? `addToCartFromGrid(${p.id})` : '';
+        let btnText = isAvailable ? (currentLang === 'en' ? 'Add' : 'जोड़ें') : 'Sold Out';
+        let cardClass = isAvailable ? '' : 'sold-out';
 
         grid.innerHTML += `
             <div class="product-card ${cardClass}" onclick="openProductDetail(${p.id})">
@@ -256,28 +268,53 @@ function findResult(keyword) {
 }
 
 // --- 9. MODAL ---
+// --- 2. UPDATED PRODUCT MODAL (Popup) ---
 function openProductDetail(id) {
     const p = products.find(x => x.id === id);
-    if (!p) return;
+    if(!p) return;
+    
+    const name = currentLang === 'en' ? p.name : (p.nameHi || p.name);
+    const desc = currentLang === 'en' ? p.desc : (p.descHi || p.desc);
+    
+    let variantHtml = '';
+    let initialPrice = p.price;
+    let isAvailable = p.in_stock;
 
-    let vHtml = '', iPrice = p.price;
     if (p.variants && p.variants.length > 0) {
-        iPrice = p.variants[0].price;
-        vHtml = `<select id="modal-variant-select" class="variant-select" onchange="updateModalPrice(this)">`;
-        p.variants.forEach((v, idx) => { vHtml += `<option value="${idx}" data-price="${v.price}">${v.weight} - ₹${v.price}</option>`; });
-        vHtml += `</select>`;
+        const firstActive = p.variants.find(v => v.inStock !== false);
+        initialPrice = firstActive ? firstActive.price : p.variants[0].price;
+        if (!firstActive) isAvailable = false;
+
+        variantHtml = `<select id="modal-variant-select" class="variant-select" onchange="updateModalPrice(this)">`;
+        p.variants.forEach((v, idx) => {
+            const stockStatus = (v.inStock !== false);
+            const disabledAttr = stockStatus ? '' : 'disabled';
+            const label = v.weight + (stockStatus ? '' : ' (Out of Stock)');
+            // Show price in dropdown for clarity
+            const optionText = `${label} - ₹${v.price}`;
+            const selectedAttr = (v.price === initialPrice && stockStatus) ? 'selected' : '';
+            
+            variantHtml += `<option value="${idx}" data-price="${v.price}" ${disabledAttr} ${selectedAttr}>${optionText}</option>`;
+        });
+        variantHtml += `</select>`;
+    }
+
+    // Button State
+    let btnHtml = `<button class="btn-primary" style="padding:10px 20px;" onclick="addToCartFromModal(${p.id})">Add to Cart</button>`;
+    if(!isAvailable) {
+        btnHtml = `<button class="btn-primary" style="padding:10px 20px; background:#999; cursor:not-allowed;" disabled>Out of Stock</button>`;
     }
 
     const html = `
         <img src="${p.image}" class="p-detail-img" onerror="this.src='logo.jpg'">
-        <h2>${p.name}</h2>
-        <p class="p-detail-desc">${p.desc || ''}</p>
-        ${vHtml}
+        <h2>${name}</h2>
+        <p class="p-detail-desc">${desc}</p>
+        ${variantHtml}
         <div style="display:flex; justify-content:space-between; align-items:center; margin-top:15px;">
-            <h3 id="modal-price-display" style="color:var(--primary); margin:0;">₹${iPrice}</h3>
-            <button class="btn-primary" style="padding:10px 20px;" onclick="addToCartFromModal(${p.id})">Add to Cart</button>
+            <h3 id="modal-price-display" style="color:var(--primary); margin:0;">₹${initialPrice}</h3>
+            ${btnHtml}
         </div>`;
-
+    
     document.getElementById('p-modal-body').innerHTML = html;
     document.getElementById('product-modal').style.display = 'flex';
 }
