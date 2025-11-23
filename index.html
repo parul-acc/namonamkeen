@@ -54,7 +54,8 @@
             <ul class="nav-menu">
                 <li><a href="#home" class="nav-link" data-en="Home" data-hi="होम">Home</a></li>
                 <li><a href="#menu-section" class="nav-link" data-en="Menu" data-hi="मेन्यू">Menu</a></li>
-                <li><a href="pricelist.html" class="nav-link" data-en="Price List" data-hi="मूल्य सूची">Price List</a></li>
+                <li><a href="pricelist.html" class="nav-link" data-en="Price List" data-hi="मूल्य सूची">Price List</a>
+                </li>
             </ul>
 
             <div class="nav-actions">
@@ -256,14 +257,7 @@
                 <p id="promo-msg" style="font-size:0.75rem; margin-top:5px; min-height:15px;"></p>
 
                 <div id="coupon-list"
-                    style="display:none; background:#f9f9f9; padding:10px; margin-top:5px; border-radius:5px; border:1px solid #eee;">
-                    <div class="coupon-item" onclick="useCoupon('NAMO10')">
-                        <strong>NAMO10</strong> - Get 10% OFF <br><small>Min order ₹200</small>
-                    </div>
-                    <div class="coupon-item" onclick="useCoupon('WELCOME20')"
-                        style="margin-top:8px; border-top:1px solid #eee; padding-top:8px;">
-                        <strong>WELCOME20</strong> - Get 20% OFF <br><small>New customers only</small>
-                    </div>
+                    style="display:none; background:#f9f9f9; padding:10px; margin-top:5px; border-radius:5px; border:1px solid #eee; max-height:150px; overflow-y:auto;">
                 </div>
             </div>
 
@@ -523,7 +517,7 @@
         </div>
     </div>
 
-      <!-- PRODUCT DETAIL MODAL -->
+    <!-- PRODUCT DETAIL MODAL -->
     <div id="product-modal" class="modal-overlay">
         <div class="modal-content p-detail-content">
             <button class="close-modal" onclick="closeProductModal()">&times;</button>

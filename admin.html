@@ -573,6 +573,7 @@
             <li><a onclick="switchView('inventory')" id="nav-inventory"><i class="fas fa-boxes"></i> Inventory</a></li>
             <li><a onclick="switchView('orders')" id="nav-orders"><i class="fas fa-shopping-bag"></i> Orders</a></li>
             <li><a onclick="switchView('customers')" id="nav-customers"><i class="fas fa-users"></i> Customers</a></li>
+            <li><a onclick="switchView('coupons')" id="nav-coupons"><i class="fas fa-ticket-alt"></i> Coupons</a></li>
             <li><a onclick="switchView('settings')" id="nav-settings"><i class="fas fa-cog"></i> Settings</a></li>
         </ul>
         <div style="margin-top:auto;">
@@ -748,6 +749,47 @@
                     <button class="page-btn" onclick="changePage('customers', -1)">Prev</button>
                     <span class="page-info" id="customers-page-info">Page 1</span>
                     <button class="page-btn" onclick="changePage('customers', 1)">Next</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="view-coupons" class="view-section">
+            <div class="card">
+                <div class="card-header">
+                    <h3>Add New Coupon</h3>
+                </div>
+                <div
+                    style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
+                    <input type="text" id="cpn-code" class="form-control" placeholder="Code (e.g. WINTER15)"
+                        style="text-transform:uppercase;">
+                    <select id="cpn-type" class="form-control">
+                        <option value="percent">Percentage (%)</option>
+                        <option value="flat">Flat Amount (₹)</option>
+                    </select>
+                    <input type="number" id="cpn-value" class="form-control" placeholder="Value (e.g. 15)">
+                    <input type="date" id="cpn-expiry" class="form-control">
+                </div>
+                <button class="btn btn-primary" onclick="saveCoupon()">Create Coupon</button>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h3>Active Coupons</h3>
+                </div>
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Code</th>
+                                <th>Discount</th>
+                                <th>Expiry</th>
+                                <th>Status</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="coupons-body">
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
@@ -1107,48 +1149,48 @@
         }
 
         function openProductModal() { document.getElementById('p-id').value = ''; document.getElementById('variant-container').innerHTML = ''; addVariantRow(); document.getElementById('product-modal').style.display = 'flex'; }
-      // --- 3. Updated: Edit Product (Loads the stock status) ---
-function editProduct(id) {
-    // Note: Use 'state.inventory.data' for local or fetch from 'db' for production
-    // This example assumes fetching from DB for safety
-    db.collection("products").doc(id).get().then(d => {
-        const p = d.data();
-        document.getElementById('p-id').value = id;
-        document.getElementById('p-name').value = p.name;
-        document.getElementById('p-nameHi').value = p.nameHi || '';
-        document.getElementById('p-category').value = p.category;
-        document.getElementById('p-image').value = p.image;
-        document.getElementById('p-stock').checked = p.in_stock;
-        document.getElementById('p-bestseller').checked = p.bestseller;
+        // --- 3. Updated: Edit Product (Loads the stock status) ---
+        function editProduct(id) {
+            // Note: Use 'state.inventory.data' for local or fetch from 'db' for production
+            // This example assumes fetching from DB for safety
+            db.collection("products").doc(id).get().then(d => {
+                const p = d.data();
+                document.getElementById('p-id').value = id;
+                document.getElementById('p-name').value = p.name;
+                document.getElementById('p-nameHi').value = p.nameHi || '';
+                document.getElementById('p-category').value = p.category;
+                document.getElementById('p-image').value = p.image;
+                document.getElementById('p-stock').checked = p.in_stock;
+                document.getElementById('p-bestseller').checked = p.bestseller;
 
-        const vc = document.getElementById('variant-container');
-        vc.innerHTML = '';
-        
-        if (p.variants && p.variants.length > 0) {
-            p.variants.forEach(v => {
-                // Handle old data that might not have 'inStock' property yet (default to true)
-                const stockStatus = (v.inStock !== undefined) ? v.inStock : true;
-                addVariantRow(v.weight, v.price, stockStatus);
+                const vc = document.getElementById('variant-container');
+                vc.innerHTML = '';
+
+                if (p.variants && p.variants.length > 0) {
+                    p.variants.forEach(v => {
+                        // Handle old data that might not have 'inStock' property yet (default to true)
+                        const stockStatus = (v.inStock !== undefined) ? v.inStock : true;
+                        addVariantRow(v.weight, v.price, stockStatus);
+                    });
+                } else {
+                    addVariantRow('Standard', p.price, true);
+                }
+                document.getElementById('product-modal').style.display = 'flex';
             });
-        } else {
-            addVariantRow('Standard', p.price, true);
         }
-        document.getElementById('product-modal').style.display = 'flex';
-    });
-}
-      // --- 1. Updated: Add Variant Row (Now includes Stock Checkbox) ---
-function addVariantRow(w='', p='', inStock=true) {
-    const d = document.createElement('div');
-    d.className = 'variant-row';
-    d.style.display = "flex"; 
-    d.style.gap = "10px";
-    d.style.alignItems = "center";
-    
-    // Checkbox state
-    const checked = inStock ? 'checked' : '';
+        // --- 1. Updated: Add Variant Row (Now includes Stock Checkbox) ---
+        function addVariantRow(w = '', p = '', inStock = true) {
+            const d = document.createElement('div');
+            d.className = 'variant-row';
+            d.style.display = "flex";
+            d.style.gap = "10px";
+            d.style.alignItems = "center";
 
-    d.innerHTML = `
-        <input class="form-control" placeholder="Flavor/Size (e.g. Masala)" value="${w}" style="margin:0; flex:2;">
+            // Checkbox state
+            const checked = inStock ? 'checked' : '';
+
+            d.innerHTML = `
+        <input class="form-control" placeholder="Variety Name (e.g. Aloo Bhujia) OR Size" value="${w}" style="margin:0; flex:2;">
         <input class="form-control" type="number" placeholder="Price" value="${p}" style="margin:0; flex:1;">
         
         <div style="display:flex; align-items:center; gap:5px; background:#eee; padding:5px 10px; border-radius:5px;">
@@ -1158,42 +1200,42 @@ function addVariantRow(w='', p='', inStock=true) {
 
         <button class="remove-variant" onclick="this.parentElement.remove()" style="background:#ffebee; color:red; border:none; width:30px; height:30px; border-radius:50%; cursor:pointer;">&times;</button>
     `;
-    document.getElementById('variant-container').appendChild(d);
-}
-        // --- 2. Updated: Save Product (Saves the stock status) ---
-function saveProduct() {
-    const id = document.getElementById('p-id').value || Date.now().toString();
-    const vs = [];
-    
-    document.querySelectorAll('.variant-row').forEach(r => {
-        const inputs = r.querySelectorAll('input');
-        const name = inputs[0].value.trim();
-        const price = parseInt(inputs[1].value);
-        const inStock = inputs[2].checked; // Get checkbox value
-
-        if (name && price) {
-            vs.push({ weight: name, price: price, inStock: inStock });
+            document.getElementById('variant-container').appendChild(d);
         }
-    });
+        // --- 2. Updated: Save Product (Saves the stock status) ---
+        function saveProduct() {
+            const id = document.getElementById('p-id').value || Date.now().toString();
+            const vs = [];
 
-    if (vs.length === 0) vs.push({ weight: 'Standard', price: 0, inStock: true });
-    
-    // Calculate base price (lowest active variant, or 0 if all OOS)
-    const activeVariants = vs.filter(v => v.inStock);
-    const basePrice = activeVariants.length > 0 ? Math.min(...activeVariants.map(v => v.price)) : (vs[0].price || 0);
+            document.querySelectorAll('.variant-row').forEach(r => {
+                const inputs = r.querySelectorAll('input');
+                const name = inputs[0].value.trim();
+                const price = parseInt(inputs[1].value);
+                const inStock = inputs[2].checked; // Get checkbox value
 
-    db.collection("products").doc(id).set({
-        id: parseInt(id),
-        name: document.getElementById('p-name').value,
-        nameHi: document.getElementById('p-nameHi').value,
-        category: document.getElementById('p-category').value,
-        image: document.getElementById('p-image').value,
-        in_stock: document.getElementById('p-stock').checked, // Global stock
-        bestseller: document.getElementById('p-bestseller').checked,
-        variants: vs, // Save new variant structure
-        price: basePrice
-    }, { merge: true }).then(() => closeModal('product-modal'));
-}
+                if (name && price) {
+                    vs.push({ weight: name, price: price, inStock: inStock });
+                }
+            });
+
+            if (vs.length === 0) vs.push({ weight: 'Standard', price: 0, inStock: true });
+
+            // Calculate base price (lowest active variant, or 0 if all OOS)
+            const activeVariants = vs.filter(v => v.inStock);
+            const basePrice = activeVariants.length > 0 ? Math.min(...activeVariants.map(v => v.price)) : (vs[0].price || 0);
+
+            db.collection("products").doc(id).set({
+                id: parseInt(id),
+                name: document.getElementById('p-name').value,
+                nameHi: document.getElementById('p-nameHi').value,
+                category: document.getElementById('p-category').value,
+                image: document.getElementById('p-image').value,
+                in_stock: document.getElementById('p-stock').checked, // Global stock
+                bestseller: document.getElementById('p-bestseller').checked,
+                variants: vs, // Save new variant structure
+                price: basePrice
+            }, { merge: true }).then(() => closeModal('product-modal'));
+        }
         async function importFromSheet() {
             if (!confirm("Overwrite?")) return;
             const u = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRznY2zlF7wuPxkTe1k22gRLVOA9AHtmgZy2LBdEs9LIU3GlO_VxmFyN446vpb9IPspRXMeiBi4Lc29/pub?output=csv";
@@ -1218,7 +1260,80 @@ function saveProduct() {
             await b.commit(); alert("Done");
         }
 
-        
+
+        // --- NEW COUPON FUNCTIONS ---
+
+        function loadCoupons() {
+            db.collection("coupons").orderBy("expiryDate", "desc").onSnapshot(snap => {
+                const tbody = document.getElementById('coupons-body');
+                tbody.innerHTML = '';
+
+                snap.forEach(doc => {
+                    const c = doc.data();
+                    const expiry = c.expiryDate.toDate();
+                    const isExpired = expiry < new Date();
+                    const statusClass = (c.isActive && !isExpired) ? 'status-active' : 'status-expired';
+                    const statusText = isExpired ? 'Expired' : (c.isActive ? 'Active' : 'Inactive');
+                    const displayValue = c.type === 'percent' ? `${c.value}%` : `₹${c.value}`;
+
+                    tbody.innerHTML += `
+                        <tr>
+                            <td><strong>${c.code}</strong></td>
+                            <td>${displayValue} OFF</td>
+                            <td>${expiry.toLocaleDateString()}</td>
+                            <td class="${statusClass}">${statusText}</td>
+                            <td>
+                                <button class="icon-btn btn-danger" onclick="deleteCoupon('${doc.id}')"><i class="fas fa-trash"></i></button>
+                                <button class="icon-btn ${c.isActive ? 'btn-blue' : 'btn-green'}" onclick="toggleCoupon('${doc.id}', ${!c.isActive})">
+                                    <i class="fas ${c.isActive ? 'fa-ban' : 'fa-check'}"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                });
+            });
+        }
+
+        function saveCoupon() {
+            const code = document.getElementById('cpn-code').value.toUpperCase().trim();
+            const type = document.getElementById('cpn-type').value;
+            const value = document.getElementById('cpn-value').value;
+            const dateStr = document.getElementById('cpn-expiry').value;
+
+            if (!code || !value || !dateStr) {
+                alert("Please fill all fields");
+                return;
+            }
+
+            // Create timestamp for end of the selected day
+            const expiryDate = new Date(dateStr);
+            expiryDate.setHours(23, 59, 59);
+
+            db.collection("coupons").add({
+                code: code,
+                type: type,
+                value: parseInt(value),
+                expiryDate: expiryDate,
+                isActive: true
+            }).then(() => {
+                alert("Coupon Created!");
+                // Clear form
+                document.getElementById('cpn-code').value = '';
+                document.getElementById('cpn-value').value = '';
+                document.getElementById('cpn-expiry').value = '';
+            }).catch(err => alert("Error: " + err.message));
+        }
+
+        function deleteCoupon(id) {
+            if (confirm("Permanently delete this coupon?")) {
+                db.collection("coupons").doc(id).delete();
+            }
+        }
+
+        function toggleCoupon(id, status) {
+            db.collection("coupons").doc(id).update({ isActive: status });
+        }
+
     </script>
 </body>
 

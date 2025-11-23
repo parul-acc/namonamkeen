@@ -25,6 +25,9 @@ let currentLang = 'en';
 let selectedHamperItems = [];
 let discountMultiplier = 1;
 
+// New Coupon State
+let activeCoupons = [];
+
 // --- 3. INITIALIZATION ---
 document.addEventListener('DOMContentLoaded', () => {
     fetchData(); // Renamed to generic fetchData
@@ -73,6 +76,22 @@ function fetchData() {
             }
         }
     }).catch(err => console.error("Settings Error:", err));
+
+    // --- [KEEP EXISTING CONFIG & VARS] ---
+let activeCoupons = []; // New variable
+    // 3. Fetch Coupons (New)
+    const now = new Date();
+    db.collection("coupons").where("isActive", "==", true).onSnapshot(snap => {
+        activeCoupons = [];
+        snap.forEach(doc => {
+            const c = doc.data();
+            // Check expiry client-side as well
+            if (c.expiryDate.toDate() > now) {
+                activeCoupons.push(c);
+            }
+        });
+        renderCouponList();
+    });
 }
 
 // --- 5. RENDER MENU ---
@@ -350,28 +369,43 @@ function updateCartUI() {
     const con = document.getElementById('cart-items');
     if (!con) return;
     con.innerHTML = '';
-    let tot = 0, cnt = 0;
+    let subtotal = 0, count = 0;
 
     if (cart.length === 0) {
         con.innerHTML = '<p style="text-align:center; padding:20px;">Cart is empty</p>';
         document.getElementById('clear-cart-btn').style.display = 'none';
+        appliedDiscount = { type: 'none', value: 0, code: null }; // Reset
+        document.getElementById('promo-code').value = '';
     } else {
         document.getElementById('clear-cart-btn').style.display = 'flex';
         cart.forEach(i => {
-            tot += i.price * i.qty;
-            cnt += i.qty;
-            con.innerHTML += `
-                <div class="cart-item">
-                    <img src="${i.image}" onerror="this.src='logo.jpg'">
-                    <div class="item-details"><h4>${i.name} <small>(${i.weight})</small></h4><p>₹${i.price} x ${i.qty}</p>
-                    <div class="item-controls"><button class="qty-btn" onclick="changeQty('${i.cartId}', -1)">-</button><span>${i.qty}</span><button class="qty-btn" onclick="changeQty('${i.cartId}', 1)">+</button></div></div>
-                    <button class="remove-btn" onclick="removeFromCart('${i.cartId}')" style="color:red; border:none; background:none; margin-left:auto;"><i class="fas fa-trash"></i></button>
-                </div>`;
+            subtotal += i.price * i.qty;
+            count += i.qty;
+            // [Keep existing cart item HTML...]
+            con.innerHTML += `<div class="cart-item">... (existing item HTML) ...</div>`;
         });
     }
-    const final = Math.round(tot * discountMultiplier);
-    document.getElementById('cart-total').innerText = '₹' + final;
-    document.getElementById('cart-count').innerText = cnt;
+
+    // CALCULATE DISCOUNT
+    let discountAmount = 0;
+    if (appliedDiscount.type === 'percent') {
+        discountAmount = Math.round(subtotal * (appliedDiscount.value / 100));
+    } else if (appliedDiscount.type === 'flat') {
+        discountAmount = appliedDiscount.value;
+    }
+
+    // Prevent negative total
+    if (discountAmount > subtotal) discountAmount = subtotal;
+    const final = subtotal - discountAmount;
+
+    // Display Logic
+    document.getElementById('cart-total').innerHTML = `
+        <div style="font-size:0.9rem; color:#666;">Subtotal: ₹${subtotal}</div>
+        ${discountAmount > 0 ? `<div style="font-size:0.9rem; color:green;">Coupon (${appliedDiscount.code}): -₹${discountAmount}</div>` : ''}
+        <div style="font-size:1.3rem; font-weight:bold; color:var(--primary); margin-top:5px;">₹${final}</div>
+    `;
+    
+    document.getElementById('cart-count').innerText = count;
 }
 
 function changeQty(id, d) {
@@ -390,6 +424,58 @@ function searchMenu() { searchQuery = document.getElementById('menu-search').val
 function toggleLanguage() { currentLang = currentLang === 'en' ? 'hi' : 'en'; renderMenu(); updateCartUI(); }
 function toggleMobileMenu() { document.getElementById('mobile-nav').classList.toggle('active'); }
 function scrollToTop() { window.scrollTo({ top: 0, behavior: 'smooth' }); }
+
+function renderCouponList() {
+    const listContainer = document.getElementById('coupon-list');
+    if (!listContainer) return;
+    listContainer.innerHTML = '';
+
+    if (activeCoupons.length === 0) {
+        listContainer.innerHTML = '<p style="font-size:0.8rem; color:#777;">No active coupons.</p>';
+        return;
+    }
+
+    activeCoupons.forEach(c => {
+        const desc = c.type === 'percent' ? `${c.value}% OFF` : `₹${c.value} OFF`;
+        listContainer.innerHTML += `
+            <div class="coupon-item" onclick="useCoupon('${c.code}')" style="padding:10px; border-bottom:1px solid #eee; cursor:pointer;">
+                <strong style="color:var(--primary)">${c.code}</strong> - ${desc}
+            </div>`;
+    });
+}
+
+function useCoupon(code) {
+    document.getElementById('promo-code').value = code;
+    applyPromo();
+    document.getElementById('coupon-list').style.display = 'none';
+}
+
+function applyPromo() {
+    const input = document.getElementById('promo-code').value.toUpperCase().trim();
+    if (!input) {
+        // If empty, remove discount
+        appliedDiscount = { type: 'none', value: 0, code: null };
+        updateCartUI();
+        return;
+    }
+
+    const coupon = activeCoupons.find(c => c.code === input);
+
+    if (coupon) {
+        appliedDiscount = {
+            code: coupon.code,
+            type: coupon.type,
+            value: coupon.value
+        };
+        document.getElementById('promo-msg').innerText = "Code Applied!";
+        document.getElementById('promo-msg').style.color = "green";
+    } else {
+        appliedDiscount = { type: 'none', value: 0, code: null };
+        document.getElementById('promo-msg').innerText = "Invalid or Expired Code";
+        document.getElementById('promo-msg').style.color = "red";
+    }
+    updateCartUI();
+}
 
 function validateAndLogin() {
     if (document.getElementById('cust-phone').value.length < 10) { alert("Enter valid phone"); return; }
@@ -450,8 +536,10 @@ async function checkoutWhatsApp() {
 }
 
 function closeSuccessModal() { document.getElementById('success-modal').style.display = 'none'; }
-function toggleCouponList() { const l = document.getElementById('coupon-list'); l.style.display = l.style.display === 'none' ? 'block' : 'none'; }
-function useCoupon(c) { document.getElementById('promo-code').value = c; applyPromo(); toggleCouponList(); }
+function toggleCouponList() { 
+    const l = document.getElementById('coupon-list'); 
+    l.style.display = l.style.display === 'none' ? 'block' : 'none'; 
+}function useCoupon(c) { document.getElementById('promo-code').value = c; applyPromo(); toggleCouponList(); }
 function applyPromo() { const c = document.getElementById('promo-code').value.toUpperCase(); if (c === 'NAMO10') { discountMultiplier = 0.9; } else { discountMultiplier = 1; alert("Invalid Code"); } updateCartUI(); }
 function openProfileModal() { document.getElementById('profile-modal').style.display = 'flex'; document.getElementById('profile-menu').classList.remove('active'); }
 function closeProfileModal() { document.getElementById('profile-modal').style.display = 'none'; }
