@@ -1,23 +1,119 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Namo Namkeen | Price List</title>
     <link rel="icon" href="logo.jpg" type="image/jpeg">
     <link rel="stylesheet" href="style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Poppins:wght@300;400;500;600&display=swap"
+        rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-</head>
-<body class="pricelist-body">
+    <style>
+        .pricelist-body {
+            background-color: #f4f4f4;
+        }
 
-    <div class="print-header">
-        <img src="logo.jpg" alt="Namo Logo">
-        <div class="print-details">
-            <h2>Namo Namkeen</h2>
-            <p><i class="fab fa-whatsapp"></i> Order on WhatsApp: <strong>+91 98266 98822</strong></p>
-        </div>
-    </div>
+        .price-header-section {
+            background: var(--white);
+            padding: 40px 0 30px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .price-category {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.08);
+            margin-bottom: 40px;
+            overflow: hidden;
+        }
+
+        .cat-header {
+            background: var(--text-dark);
+            padding: 15px 25px;
+            color: white;
+        }
+
+        .cat-header h3 {
+            margin: 0;
+            font-size: 1.3rem;
+            color: var(--secondary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .price-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+        }
+
+        .price-table td,
+        .price-table th {
+            padding: 15px 20px;
+            border-bottom: 1px solid #f5f5f5;
+            vertical-align: middle;
+        }
+
+        .text-right {
+            text-align: right;
+        }
+
+        .t-thumb {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid #eee;
+        }
+
+        .p-name {
+            font-weight: 600;
+            font-size: 1rem;
+            color: var(--text-dark);
+        }
+
+        .p-price {
+            font-family: 'Playfair Display', serif;
+            font-weight: 700;
+            color: var(--primary);
+            font-size: 1.2rem;
+            text-align: right;
+        }
+
+        /* Print styles */
+        @media print {
+
+            .navbar,
+            .nav-actions,
+            .footer,
+            .fab-print,
+            .price-header-section {
+                display: none !important;
+            }
+
+            .price-category {
+                break-inside: avoid;
+                box-shadow: none;
+                border: 1px solid #ccc;
+                margin-bottom: 20px;
+            }
+
+            body {
+                background: white;
+            }
+
+            #dynamic-content {
+                margin-top: 0;
+            }
+        }
+    </style>
+</head>
+
+<body class="pricelist-body">
 
     <nav class="navbar">
         <div class="nav-container">
@@ -27,198 +123,137 @@
             </a>
             <ul class="nav-menu">
                 <li><a href="index.html" class="nav-link">Home</a></li>
-                <li><a href="index.html#menu-section" class="nav-link">Order Online</a></li>
                 <li><a href="pricelist.html" class="nav-link active">Price List</a></li>
             </ul>
-            <div class="nav-actions">
-                <a href="index.html#menu-section" class="btn-primary small-btn">Order Now</a>
-            </div>
         </div>
     </nav>
 
-    <button class="fab-print" onclick="window.print()" title="Save as PDF">
-        <i class="fas fa-file-pdf"></i>
+    <button class="fab-print" onclick="window.print()"
+        style="position:fixed; bottom:30px; right:30px; width:60px; height:60px; background:#2c1810; color:#faa307; border-radius:50%; border:none; font-size:1.5rem; cursor:pointer; z-index:99; box-shadow: 0 4px 10px rgba(0,0,0,0.3);">
+        <i class="fas fa-print"></i>
     </button>
 
     <section class="price-header-section">
         <div class="container text-center">
-            <span class="section-subtitle">Rate Card</span>
-            <p class="price-note">Authentic Indore Taste | Wholesale & Retail</p>
-            
-            <div class="plist-search">
-                <i class="fas fa-search"></i>
-                <input type="text" id="priceSearch" onkeyup="filterPriceList()" placeholder="Search item (e.g. 'Sev')...">
-            </div>
+            <h2 style="font-family:'Playfair Display'">Our Rate Card</h2>
+            <p>Authentic Indore Taste</p>
         </div>
     </section>
 
     <section class="section-pad price-content">
-        <div class="container">
-            
-            <div class="price-category">
-                <div class="cat-header">
-                    <h3><i class="fas fa-pepper-hot"></i> Spicy Namkeen</h3>
-                </div>
-                <div class="table-responsive">
-                    <table class="price-table">
-                        <thead>
-                            <tr>
-                                <th width="80">Item</th>
-                                <th>Product Name</th>
-                                <th>Pack Size</th>
-                                <th class="text-right">Price</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td><img src="assets/images/product/red_mixture.jpg" class="t-thumb" alt="img"></td>
-                                <td class="p-name">Red Mixture</td>
-                                <td>200 gms</td>
-                                <td class="p-price">₹80</td>
-                            </tr>
-                            <tr>
-                                <td><img src="assets/images/product/Loung_Sev.jpg" class="t-thumb" alt="img"></td>
-                                <td class="p-name">Laung Sev (Spicy)</td>
-                                <td>250 gms</td>
-                                <td class="p-price">₹75</td>
-                            </tr>
-                            <tr>
-                                <td><img src="assets/images/product/peanuts.jpg" class="t-thumb" alt="img"></td>
-                                <td class="p-name">Masala Peanuts</td>
-                                <td>250 gms</td>
-                                <td class="p-price">₹100</td>
-                            </tr>
-                            <tr>
-                                <td><img src="assets/images/product/bhakarwadi.jpg" class="t-thumb" alt="img"></td>
-                                <td class="p-name">Bhakarwadi (Lahsun)</td>
-                                <td>200 gms</td>
-                                <td class="p-price">₹75</td>
-                            </tr>
-                            <tr>
-                                <td><img src="assets/images/product/Chakali.jpg" class="t-thumb" alt="img"></td>
-                                <td class="p-name">Chakali (Butter)</td>
-                                <td>250 gms</td>
-                                <td class="p-price">₹70</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <div class="price-category">
-                <div class="cat-header">
-                    <h3><i class="fas fa-cookie-bite"></i> Sweet & Mild Mix</h3>
-                </div>
-                <div class="table-responsive">
-                    <table class="price-table">
-                        <thead>
-                            <tr>
-                                <th width="80">Item</th>
-                                <th>Product Name</th>
-                                <th>Pack Size</th>
-                                <th class="text-right">Price</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td><img src="assets/images/product/KhattaMeetha.jpg" class="t-thumb" alt="img"></td>
-                                <td class="p-name">Khatta Meetha Mix</td>
-                                <td>250 gms</td>
-                                <td class="p-price">₹70</td>
-                            </tr>
-                            <tr>
-                                <td><img src="assets/images/product/mini-samosa.jpg" class="t-thumb" alt="img"></td>
-                                <td class="p-name">Mini Samosa</td>
-                                <td>200 gms</td>
-                                <td class="p-price">₹65</td>
-                            </tr>
-                            <tr>
-                                <td><img src="assets/images/product/Ratlami_Sev.jpg" class="t-thumb" alt="img"></td>
-                                <td class="p-name">Ratlami Sev</td>
-                                <td>200 gms</td>
-                                <td class="p-price">₹70</td>
-                            </tr>
-                            <tr>
-                                <td><img src="assets/images/product/Ujjani_Sev.jpg" class="t-thumb" alt="img"></td>
-                                <td class="p-name">Ujjani Sev</td>
-                                <td>200 gms</td>
-                                <td class="p-price">₹70</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <div class="price-category">
-                <div class="cat-header">
-                    <h3><i class="fas fa-crown"></i> Premium Selection</h3>
-                </div>
-                <div class="table-responsive">
-                    <table class="price-table">
-                        <thead>
-                            <tr>
-                                <th width="80">Item</th>
-                                <th>Product Name</th>
-                                <th>Pack Size</th>
-                                <th class="text-right">Price</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td><img src="assets/images/product/cookies.jpg" class="t-thumb" alt="img"></td>
-                                <td class="p-name">Cookies (Atta/Maida)</td>
-                                <td>250 gms</td>
-                                <td class="p-price">₹90</td>
-                            </tr>
-                            <tr>
-                                <td><img src="assets/images/product/gujiya.jpg" class="t-thumb" alt="img"></td>
-                                <td class="p-name">Dry Fruit Gujiya</td>
-                                <td>250 gms</td>
-                                <td class="p-price">₹140</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
+        <div class="container" id="dynamic-content">
+            <p style="text-align:center; padding:50px; color:#777;">Loading Menu...</p>
         </div>
     </section>
 
-     <footer class="footer">
+    <footer class="footer">
         <div class="container text-center">
-            <p>&copy; 2025 Namo Namkeen. All rights reserved.</p>
-            <p>Designed by Parul Gangwal</p>
-            <p style="font-size: 0.8rem;">
-                <a href="privacy.html" style="color:#bbb; text-decoration:none; margin:0 5px;">Privacy Policy</a> | 
-                <a href="terms.html" style="color:#bbb; text-decoration:none; margin:0 5px;">Terms of Use</a>
-            </p>
+            <p>© 2025 Namo Namkeen. All rights reserved.</p>
         </div>
     </footer>
 
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
     <script>
-        // Simple Script to Filter the Table
-        function filterPriceList() {
-            var input, filter, tables, tr, td, i, j, txtValue;
-            input = document.getElementById("priceSearch");
-            filter = input.value.toUpperCase();
-            tables = document.querySelectorAll(".price-table");
-            
-            tables.forEach(table => {
-                tr = table.getElementsByTagName("tr");
-                for (i = 1; i < tr.length; i++) { // Start at 1 to skip header
-                    td = tr[i].getElementsByTagName("td")[1]; // Column 1 is Name
-                    if (td) {
-                        txtValue = td.textContent || td.innerText;
-                        if (txtValue.toUpperCase().indexOf(filter) > -1) {
-                            tr[i].style.display = "";
-                        } else {
-                            tr[i].style.display = "none";
-                        }
-                    }
-                }
+        const firebaseConfig = {
+            apiKey: "AIzaSyB-Ep3yEAzFBlqOVGOxhjbmjwlSH0Xx5qU",
+            authDomain: "namo-namkeen-app.firebaseapp.com",
+            projectId: "namo-namkeen-app",
+            storageBucket: "namo-namkeen-app.firebasestorage.app",
+            messagingSenderId: "154786466552",
+            appId: "1:154786466552:web:9be55b7b599806f536490d",
+            measurementId: "G-8HJJ8YW1YH"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // Fetch and Render
+        db.collection("products").get().then(snap => {
+            const products = [];
+            snap.forEach(doc => products.push(doc.data()));
+
+            // Define Categories
+            const categories = {
+                'spicy': { title: 'Spicy Namkeen', icon: 'fa-pepper-hot', items: [] },
+                'sweet': { title: 'Sweet & Mild', icon: 'fa-cookie-bite', items: [] },
+                'premium': { title: 'Premium Selection', icon: 'fa-crown', items: [] },
+                'other': { title: 'Other Snacks', icon: 'fa-utensils', items: [] }
+            };
+
+            // Sort products into categories
+            products.forEach(p => {
+                if (p.id === 999) return; // Skip announcement
+                const cat = categories[p.category] ? p.category : 'other';
+                categories[cat].items.push(p);
             });
-        }
+
+            const container = document.getElementById('dynamic-content');
+            container.innerHTML = ''; // CLEAR PREVIOUS CONTENT
+
+            // Generate HTML
+            for (const key in categories) {
+                const section = categories[key];
+                if (section.items.length === 0) continue;
+
+                // Sort items by name
+                section.items.sort((a, b) => a.name.localeCompare(b.name));
+
+                let rows = '';
+                section.items.forEach(p => {
+                    // Handle Variants
+                    let sizeInfo = '';
+                    let priceInfo = '';
+
+                    if (p.variants && p.variants.length > 0) {
+                        // Multi-size
+                        sizeInfo = p.variants.map(v => v.weight).join('<br>');
+                        priceInfo = p.variants.map(v => `₹${v.price}`).join('<br>');
+                    } else {
+                        // Single Size
+                        sizeInfo = 'Standard';
+                        priceInfo = `₹${p.price}`;
+                    }
+
+                    rows += `
+                        <tr>
+                            <td width="80"><img src="${p.image}" class="t-thumb" onerror="this.src='logo.jpg'"></td>
+                            <td>
+                                <div class="p-name">${p.name}</div>
+                                <small style="color:#777">${p.nameHi || ''}</small>
+                            </td>
+                            <td style="color:#555; font-size:0.9rem;">${sizeInfo}</td>
+                            <td class="p-price">${priceInfo}</td>
+                        </tr>
+                    `;
+                });
+
+                const sectionHtml = `
+                    <div class="price-category">
+                        <div class="cat-header">
+                            <h3><i class="fas ${section.icon}"></i> ${section.title}</h3>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="price-table">
+                                <thead>
+                                    <tr>
+                                        <th>Item</th>
+                                        <th>Product Name</th>
+                                        <th>Pack Size</th>
+                                        <th class="text-right">Price</th>
+                                    </tr>
+                                </thead>
+                                <tbody>${rows}</tbody>
+                            </table>
+                        </div>
+                    </div>
+                `;
+                container.innerHTML += sectionHtml;
+            }
+        }).catch(error => {
+            console.error("Error loading menu:", error);
+            document.getElementById('dynamic-content').innerHTML = '<p style="text-align:center; color:red;">Failed to load menu.</p>';
+        });
     </script>
-</button>
 </body>
+
 </html>

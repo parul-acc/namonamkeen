@@ -1,15 +1,11 @@
 /* --- 1. VARIABLES & RESET --- */
 :root {
     --primary: #e85d04;
-    /* Deep Orange */
     --primary-dark: #c34600;
     --secondary: #faa307;
-    /* Gold */
     --text-dark: #2c1810;
-    /* Dark Brown */
     --text-muted: #6c584c;
     --cream-bg: #fffaf0;
-    /* Cream Background */
     --white: #ffffff;
     --shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
 }
@@ -45,7 +41,7 @@ h4 {
 }
 
 .section-pad {
-    padding: 80px 0;
+    padding: 40px 0;
 }
 
 .bg-cream {
@@ -57,7 +53,7 @@ h4 {
 }
 
 .section-header {
-    margin-bottom: 50px;
+    margin-bottom: 25px;
 }
 
 .section-subtitle {
@@ -74,7 +70,7 @@ h4 {
     width: 60px;
     height: 3px;
     background: var(--primary);
-    margin: 15px auto 0;
+    margin: 10px auto 0; /* Reduced top margin */
 }
 
 /* --- 3. NAVBAR --- */
@@ -83,7 +79,7 @@ h4 {
     padding: 15px 0;
     position: sticky;
     top: 0;
-    z-index: 1000;
+    z-index: 1001;
     box-shadow: 0 2px 15px rgba(0, 0, 0, 0.05);
 }
 
@@ -141,14 +137,8 @@ h4 {
     gap: 15px;
 }
 
-.logo-text {
-    font-size: 1.2rem;
-    /* Make logo text slightly smaller on mobile */
-}
-
 .btn-primary.small-btn {
     padding: 5px 10px;
-    /* Make login button smaller */
     font-size: 0.8rem;
 }
 
@@ -196,15 +186,34 @@ h4 {
     transition: 0.3s;
 }
 
-/* FIXED MOBILE NAV */
+/* Language Toggle Button */
+#lang-toggle {
+    background: white;
+    border: 1px solid var(--primary);
+    color: var(--primary);
+    padding: 5px 15px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.9rem;
+    transition: 0.3s;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
+#lang-toggle:hover {
+    background: var(--primary);
+    color: white;
+}
+
+/* MOBILE NAV */
 .mobile-nav {
     position: fixed;
     top: 70px;
-    /* Positioned right below the 70px navbar */
     left: 0;
     width: 100%;
     background: #ffffff;
-    /* Solid white background */
     padding: 30px 0;
     display: flex;
     flex-direction: column;
@@ -212,15 +221,12 @@ h4 {
     gap: 25px;
     box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
     z-index: 9999;
-    /* HIGH Z-INDEX to sit above everything */
     transform: translateY(-150%);
-    /* Start hidden above */
     transition: transform 0.3s ease-in-out;
 }
 
 .mobile-nav.active {
     transform: translateY(0);
-    /* Slide down into view */
 }
 
 .mobile-nav a {
@@ -230,64 +236,14 @@ h4 {
     font-weight: 600;
 }
 
-/* Ensure Navbar stays on top of content but below modals */
-.navbar {
-    z-index: 1001; 
-    position: sticky;
-    top: 0;
-    background: white;
-}
-
-/* ... existing styles ... */
-
-/* --- PRODUCT DETAIL MODAL --- */
-.modal-overlay { 
-    position: fixed; 
-    top: 0; 
-    left: 0; 
-    width: 100%; 
-    height: 100%; 
-    background: rgba(0,0,0,0.7); /* Slightly darker for better focus */
-    z-index: 10002; /* HIGHER THAN NAVBAR (1001) and MOBILE NAV (9999) */
-    opacity: 0; 
-    visibility: hidden; 
-    transition: 0.3s; 
-    backdrop-filter: blur(3px); 
-    display: flex; 
-    justify-content: center; 
-    align-items: center;
-}
-
-.modal-overlay.active, .modal-overlay[style*="display: flex"] { 
-    opacity: 1; 
-    visibility: visible; 
-}
-
-.modal-content {
-    background: white;
-    width: 500px;
-    max-width: 90%;
-    padding: 30px;
-    border-radius: 15px;
-    box-shadow: 0 20px 50px rgba(0,0,0,0.3);
-    position: relative;
-    animation: popIn 0.3s ease;
-    max-height: 90vh;
-    overflow-y: auto;
-    margin-top: 0; /* Ensure no top margin pushing it down */
-}
-
-
-/* --- 4. HERO SECTION (Optimized for Screen Space) --- */
+/* --- 4. HERO SECTION --- */
 .hero {
-    /* Takes 70% of screen height so Badges are visible below */
     min-height: 70vh;
     width: 100%;
     background: url('assets/images/banner.jpg') no-repeat center center/cover;
     position: relative;
     display: flex;
     align-items: center;
-    /* Vertically center content */
 }
 
 .hero-overlay {
@@ -302,7 +258,6 @@ h4 {
     justify-content: center;
     align-items: center;
     padding-top: 60px;
-    /* Space for Navbar */
 }
 
 .hero-content {
@@ -345,7 +300,6 @@ h4 {
     flex-wrap: wrap;
 }
 
-/* Fixed Button Styling */
 .btn-primary {
     background: var(--primary);
     color: white;
@@ -383,11 +337,10 @@ h4 {
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
 }
 
-/* --- 5. TRUST BADGES (Updated) --- */
+/* --- 5. TRUST BADGES --- */
 .trust-badges {
     padding: 30px 0;
     background: #fff8e1;
-    /* Light cream to stand out from hero */
     border-bottom: 1px solid #eee;
 }
 
@@ -412,80 +365,12 @@ h4 {
     color: var(--text-dark);
 }
 
-/* --- MOBILE RESPONSIVENESS --- */
-@media (max-width: 768px) {
-
-    /* Hero Mobile Adjustments */
-    .hero {
-        min-height: 55vh;
-        /* Even shorter on mobile to show badges */
-    }
-
-    .hero h1 {
-        font-size: 2.2rem;
-        /* Compact title */
-        margin-bottom: 10px;
-    }
-
-    .hero p {
-        font-size: 0.9rem;
-        margin-bottom: 20px;
-        line-height: 1.4;
-    }
-
-    .hero-buttons {
-        gap: 10px;
-    }
-
-    .btn-primary,
-    .btn-secondary {
-        padding: 10px 20px;
-        /* Smaller buttons */
-        font-size: 0.9rem;
-        width: auto;
-        /* Do not force full width, let them sit side-by-side */
-    }
-
-    /* Trust Badges Mobile Fix (Single Row) */
-    .trust-badges {
-        padding: 15px 0;
-    }
-
-    .badge-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr 1fr;
-        /* Force 3 columns */
-        gap: 5px;
-        padding: 0 5px;
-    }
-
-    .badge-item {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: start;
-    }
-
-    .badge-item i {
-        font-size: 1.5rem;
-        /* Smaller icon */
-        margin-bottom: 5px;
-    }
-
-    .badge-item h4 {
-        font-size: 0.7rem;
-        /* Smaller text */
-        line-height: 1.2;
-        font-weight: 600;
-    }
-}
-
 /* --- 6. MENU & FILTERS --- */
 .menu-filters {
     display: flex;
     justify-content: center;
-    gap: 15px;
-    margin-bottom: 40px;
+    gap: 10px; /* Reduced gap between buttons */
+    margin-bottom: 25px; /* Reduced from 40px */
     flex-wrap: wrap;
 }
 
@@ -596,92 +481,27 @@ h4 {
     background: var(--primary);
 }
 
-/* --- STOCK STATUS STYLES --- */
-.product-card.sold-out {
-    opacity: 0.7;
-    filter: grayscale(100%);
-    pointer-events: none;
-    /* Disable clicking */
-}
-
-.product-card.sold-out .add-btn {
-    background-color: #999;
-    content: "Sold Out";
-}
-
-/* Overlay for sold out */
-.sold-out-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
+/* VARIANT SELECTOR */
+.variant-select {
     width: 100%;
-    height: 100%;
-    background: rgba(255, 255, 255, 0.6);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 10;
-}
-
-.sold-out-badge {
-    background: #e74c3c;
-    color: white;
-    padding: 10px 20px;
-    font-weight: bold;
-    transform: rotate(-10deg);
+    padding: 8px;
+    margin-bottom: 10px;
+    border: 1px solid #ddd;
     border-radius: 5px;
-    font-size: 1.2rem;
-    border: 2px solid white;
+    background-color: #f9f9f9;
+    font-size: 0.9rem;
+    cursor: pointer;
 }
 
-/* --- DIETARY BADGES --- */
-.badge-container {
-    display: flex;
-    gap: 5px;
-    margin-bottom: 8px;
-    flex-wrap: wrap;
-}
-
-.diet-badge {
-    font-size: 0.7rem;
-    padding: 2px 8px;
-    border-radius: 4px;
-    font-weight: 600;
-    text-transform: uppercase;
-}
-
-.badge-jain {
-    background-color: #e8f5e9;
-    color: #2e7d32;
-    border: 1px solid #c8e6c9;
-}
-
-.badge-upwas {
-    background-color: #fff3e0;
-    color: #e65100;
-    border: 1px solid #ffe0b2;
-}
-
-.badge-vegan {
-    background-color: #f3e5f5;
-    color: #7b1fa2;
-    border: 1px solid #e1bee7;
-}
-
-/* --- LOADING STATE --- */
-.loading-spinner {
-    grid-column: 1 / -1;
-    text-align: center;
-    padding: 50px;
-    font-size: 1.5rem;
-    color: var(--primary);
-    font-family: 'Poppins', sans-serif;
+.variant-select:focus {
+    border-color: var(--primary);
+    outline: none;
 }
 
 /* --- SEARCH BAR --- */
 .search-container {
     max-width: 600px;
-    margin: 0 auto 30px;
+    margin: 0 auto 20px; /* Reduced from 30px */
     position: relative;
 }
 
@@ -705,24 +525,6 @@ h4 {
     top: 50%;
     transform: translateY(-50%);
     color: #aaa;
-}
-
-/* --- LANGUAGE TOGGLE --- */
-#lang-toggle {
-    background: white;
-    border: 1px solid var(--primary);
-    color: var(--primary);
-    padding: 5px 15px;
-    border-radius: 20px;
-    cursor: pointer;
-    font-weight: 600;
-    font-size: 0.9rem;
-    transition: 0.3s;
-}
-
-#lang-toggle:hover {
-    background: var(--primary);
-    color: white;
 }
 
 /* --- HAMPER BUILDER --- */
@@ -805,65 +607,7 @@ h4 {
     pointer-events: none;
 }
 
-/* --- INSTAGRAM FEED --- */
-.insta-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 10px;
-    margin-top: 30px;
-}
-
-.insta-item {
-    position: relative;
-    display: block;
-    overflow: hidden;
-    border-radius: 10px;
-    aspect-ratio: 1 / 1;
-}
-
-.insta-item img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    transition: transform 0.3s;
-}
-
-.insta-item:hover img {
-    transform: scale(1.1);
-}
-
-/* --- PWA INSTALL BUTTON --- */
-.pwa-install-btn {
-    position: fixed;
-    bottom: 20px;
-    left: 20px;
-    z-index: 999;
-    background: var(--text-dark);
-    color: white;
-    border: none;
-    padding: 10px 20px;
-    border-radius: 50px;
-    font-weight: bold;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-    cursor: pointer;
-    animation: float 3s ease-in-out infinite;
-}
-
-@keyframes float {
-    0% {
-        transform: translateY(0px);
-    }
-
-    50% {
-        transform: translateY(-5px);
-    }
-
-    100% {
-        transform: translateY(0px);
-    }
-}
-
-/* --- CART SIDEBAR (Checkout) --- */
+/* --- CART SIDEBAR --- */
 .cart-overlay {
     position: fixed;
     top: 0;
@@ -876,7 +620,6 @@ h4 {
     visibility: hidden;
     transition: 0.3s;
     backdrop-filter: blur(4px);
-    /* Blurs background for premium feel */
 }
 
 .cart-overlay.active {
@@ -894,7 +637,6 @@ h4 {
     background: #ffffff;
     z-index: 2001;
     transition: cubic-bezier(0.4, 0, 0.2, 1) 0.4s;
-    /* Smooth slide effect */
     display: flex;
     flex-direction: column;
     box-shadow: -10px 0 30px rgba(0, 0, 0, 0.15);
@@ -904,7 +646,6 @@ h4 {
     right: 0;
 }
 
-/* --- CART HEADER --- */
 .cart-header {
     padding: 20px;
     background: #fff;
@@ -927,7 +668,6 @@ h4 {
     gap: 10px;
 }
 
-/* Styled Clear Button */
 .clear-btn {
     background: #ffebee;
     color: #d32f2f;
@@ -943,12 +683,6 @@ h4 {
     gap: 5px;
 }
 
-.clear-btn:hover {
-    background: #d32f2f;
-    color: white;
-}
-
-/* Styled Close (Cross) Button */
 .close-cart {
     background: transparent;
     border: none;
@@ -964,14 +698,6 @@ h4 {
     transition: 0.3s;
 }
 
-.close-cart:hover {
-    background: #f5f5f5;
-    color: var(--primary);
-    transform: rotate(90deg);
-    /* Nice rotation effect */
-}
-
-/* --- CART BODY --- */
 .cart-items-container {
     flex-grow: 1;
     overflow-y: auto;
@@ -1029,63 +755,12 @@ h4 {
     justify-content: center;
 }
 
-.qty-btn:hover {
-    background: var(--primary);
-    color: white;
-    border-color: var(--primary);
-}
-
-/* --- CART FOOTER --- */
-/* --- CART FIXES --- */
 .cart-footer {
     padding: 20px;
     background: #ffffff;
-    /* Ensure footer is white */
     border-top: 1px solid #eee;
     box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.05);
     flex-shrink: 0;
-    /* Prevents footer from shrinking */
-}
-
-/* Fix Input Fields in Cart */
-#cust-phone,
-#cust-address,
-#promo-code {
-    background-color: #ffffff !important;
-    /* Force White */
-    border: 1px solid #ccc !important;
-    color: #333 !important;
-    border-radius: 8px;
-}
-
-/* Add breathing room between sections */
-#customer-details-inputs {
-    margin-top: 15px;
-    margin-bottom: 15px;
-    padding-top: 15px;
-    border-top: 1px dashed #eee;
-}
-
-.coupon-section {
-    margin-bottom: 15px;
-}
-
-/* Ensure the sidebar scrolls correctly */
-.cart-sidebar {
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-    /* Full height */
-    max-height: 100vh;
-    /* No overflow */
-}
-
-.cart-items-container {
-    flex-grow: 1;
-    /* Takes available space */
-    overflow-y: auto;
-    /* Scroll only items, not the footer */
-    padding-bottom: 10px;
 }
 
 .total-row {
@@ -1102,7 +777,6 @@ h4 {
     font-size: 1.3rem;
 }
 
-/* Checkout Button */
 .btn-whatsapp-checkout {
     width: 100%;
     background: linear-gradient(45deg, #25D366, #128C7E);
@@ -1121,29 +795,110 @@ h4 {
     transition: 0.3s;
 }
 
-.btn-whatsapp-checkout:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(37, 211, 102, 0.4);
+/* --- COUPON STYLES --- */
+.coupon-section {
+    margin-bottom: 15px;
+    border-bottom: 1px dashed #ddd;
+    padding-bottom: 10px;
 }
 
-/* --- FIXED SNACK FINDER (QUIZ) --- */
+.coupon-item {
+    cursor: pointer;
+    border: 1px dashed var(--primary);
+    padding: 8px;
+    border-radius: 5px;
+    background: white;
+    transition: 0.2s;
+    margin-top: 5px;
+}
+
+.coupon-item:hover {
+    background: #fff3e0;
+}
+
+.coupon-item strong {
+    color: var(--primary);
+}
+
+/* --- MODALS (Standard & Quiz) --- */
+.modal-overlay,
 .quiz-overlay {
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.8);
-    /* Darker background for focus */
-    z-index: 6000;
-    /* Highest priority */
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 5000;
     display: none;
-    /* Hidden by default */
     justify-content: center;
     align-items: center;
-    backdrop-filter: blur(5px);
+    backdrop-filter: blur(4px);
 }
 
+.modal-overlay[style*="display: flex"],
+.quiz-overlay[style*="display: flex"] {
+    display: flex !important;
+}
+
+.modal-content {
+    background: white;
+    width: 500px;
+    max-width: 90%;
+    padding: 30px;
+    border-radius: 15px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+    position: relative;
+    animation: popIn 0.3s ease;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+@keyframes popIn {
+    from {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* Clean Close Button */
+.close-modal {
+    position: absolute;
+    top: 15px;
+    right: 20px;
+    font-size: 2rem;
+    cursor: pointer;
+    background: none;
+    border: none;
+    color: #888;
+    line-height: 1;
+}
+
+.close-modal:hover {
+    color: var(--primary);
+}
+
+.p-detail-img {
+    width: 100%;
+    max-height: 250px;
+    object-fit: cover;
+    border-radius: 10px;
+    margin-bottom: 15px;
+}
+
+.p-detail-desc {
+    color: #666;
+    font-size: 0.95rem;
+    line-height: 1.6;
+    margin-bottom: 20px;
+}
+
+/* --- QUIZ SPECIFIC --- */
 .quiz-container {
     background: white;
     width: 90%;
@@ -1153,39 +908,19 @@ h4 {
     text-align: center;
     position: relative;
     box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
-    animation: quizPop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    /* Bouncy pop */
-}
-
-@keyframes quizPop {
-    from {
-        transform: scale(0.8);
-        opacity: 0;
-    }
-
-    to {
-        transform: scale(1);
-        opacity: 1;
-    }
-}
-
-.quiz-question h3 {
-    color: var(--primary);
-    font-size: 1.5rem;
-    margin-bottom: 25px;
-    font-family: 'Playfair Display', serif;
 }
 
 .quiz-options {
     display: flex;
-    gap: 15px;
     justify-content: center;
+    gap: 15px;
+    margin-top: 25px;
 }
 
 .quiz-btn {
     flex: 1;
-    padding: 15px;
-    border: 2px solid #eee;
+    padding: 20px;
+    border: 1px solid #eee;
     background: white;
     border-radius: 12px;
     font-size: 1rem;
@@ -1196,32 +931,103 @@ h4 {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 5px;
+    gap: 10px;
+    min-width: 120px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
 }
 
 .quiz-btn:hover {
     border-color: var(--primary);
     background: #fff3e0;
     transform: translateY(-3px);
+    box-shadow: 0 5px 15px rgba(232, 93, 4, 0.15);
 }
 
 .quiz-btn i {
     font-size: 1.5rem;
     color: var(--primary);
-    margin-bottom: 5px;
 }
 
-/* Result Styling */
-.result-img {
-    width: 120px;
-    height: 120px;
-    border-radius: 50%;
+/* --- VIDEO CARDS --- */
+.video-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 30px;
+}
+
+.video-card {
+    background: white;
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: var(--shadow);
+    border: 1px solid #eee;
+    transition: 0.3s;
+}
+
+.video-wrapper {
+    position: relative;
+    width: 100%;
+    height: 450px;
+    background: #000;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.video-wrapper video {
+    width: 100%;
+    height: 100%;
     object-fit: cover;
-    margin: 15px auto;
-    border: 4px solid #fff3e0;
-    display: block;
+    object-position: center top;
+    opacity: 0.95;
+    transition: 0.3s;
 }
 
+.play-overlay {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 60px;
+    height: 60px;
+    background: rgba(232, 93, 4, 0.8);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.5rem;
+    border: 3px solid white;
+    pointer-events: none;
+}
+
+/* --- SCROLL TOP BUTTON --- */
+#scrollTopBtn {
+    display: none;
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    z-index: 99;
+    border: none;
+    outline: none;
+    background-color: var(--primary);
+    color: white;
+    cursor: pointer;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    font-size: 1.2rem;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+    transition: 0.3s;
+    align-items: center;
+    justify-content: center;
+}
+
+#scrollTopBtn:hover {
+    background-color: var(--text-dark);
+    transform: translateY(-3px);
+}
 
 /* --- FOOTER & RESPONSIVE --- */
 .footer {
@@ -1238,9 +1044,13 @@ h4 {
     gap: 40px;
 }
 
-.footer-link {
-    color: white;
-    text-decoration: none;
+.footer-bottom {
+    border-top: 1px solid #444;
+    padding-top: 20px;
+    color: #888;
+    font-size: 0.9rem;
+    text-align: center;
+    margin-top: 40px;
 }
 
 @media (max-width: 768px) {
@@ -1252,8 +1062,13 @@ h4 {
         display: block;
     }
 
+    .lang-switch-li {
+        margin-top: 10px;
+    }
+
     .hero h1 {
-        font-size: 2.5rem;
+        font-size: 2.2rem;
+        margin-bottom: 10px;
     }
 
     .product-grid {
@@ -1273,1590 +1088,83 @@ h4 {
         display: none;
     }
 
-    .price-row {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 5px;
-    }
-
-    .add-btn {
-        width: 100%;
-    }
-}
-
-/* --- TESTIMONIALS (VIDEO CARDS) --- */
-.video-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 30px;
-}
-
-.video-card {
-    background: white;
-    border-radius: 20px;
-    overflow: hidden;
-    box-shadow: var(--shadow);
-    border: 1px solid #eee;
-    transition: 0.3s;
-}
-
-.video-card:hover {
-    transform: translateY(-10px);
-    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.12);
-}
-
-.video-wrapper {
-    position: relative;
-    width: 100%;
-    height: 450px;
-    /* INCREASED HEIGHT: Makes it look like a Reel/Story */
-    background: #000;
-    cursor: pointer;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
-
-.video-wrapper video {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    object-position: center top;
-    /* Anchors image to the top so faces are visible */
-    opacity: 0.95;
-    transition: 0.3s;
-}
-
-.video-card:hover .video-wrapper video {
-    opacity: 1;
-    transform: scale(1.05);
-}
-
-.play-overlay {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 60px;
-    height: 60px;
-    background: rgba(232, 93, 4, 0.8);
-    /* Orange tint */
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    font-size: 1.5rem;
-    border: 3px solid white;
-    pointer-events: none;
-    /* Click passes through to video */
-    transition: 0.3s;
-    z-index: 2;
-}
-
-.video-wrapper.playing .play-overlay {
-    display: none;
-}
-
-.video-caption {
-    padding: 20px;
-    text-align: center;
-}
-
-.video-caption .stars {
-    color: var(--secondary);
-    margin-bottom: 5px;
-}
-
-.video-caption h4 {
-    margin-bottom: 5px;
-    font-size: 1.1rem;
-}
-
-.test-location {
-    color: var(--text-muted);
-    font-size: 0.9rem;
-    font-style: italic;
-}
-
-/* Mobile Adjustments for Video */
-@media (max-width: 768px) {
     .video-grid {
         grid-template-columns: 1fr;
-        /* Stack 1 per row on mobile */
-        gap: 20px;
     }
 
     .video-wrapper {
         height: 200px;
     }
-}
 
-/* --- PRICE LIST PAGE STYLES (ENHANCED) --- */
-
-.pricelist-body {
-    background-color: #f4f4f4;
-    /* Slight grey for contrast */
-}
-
-/* Header Section */
-.price-header-section {
-    background: var(--white);
-    padding: 40px 0 30px;
-    border-bottom: 1px solid #eee;
-}
-
-.price-note {
-    color: var(--text-muted);
-    margin-bottom: 20px;
-    font-style: italic;
-}
-
-/* Search Bar */
-.plist-search {
-    position: relative;
-    max-width: 500px;
-    margin: 0 auto;
-}
-
-.plist-search input {
-    width: 100%;
-    padding: 12px 20px 12px 45px;
-    border-radius: 50px;
-    border: 2px solid #eee;
-    font-size: 1rem;
-    outline: none;
-    transition: 0.3s;
-}
-
-.plist-search input:focus {
-    border-color: var(--primary);
-    box-shadow: 0 5px 15px rgba(232, 93, 4, 0.1);
-}
-
-.plist-search i {
-    position: absolute;
-    left: 18px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: #999;
-}
-
-/* Price Card Container */
-.price-category {
-    background: white;
-    border-radius: 16px;
-    box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.08);
-    /* Premium float effect */
-    margin-bottom: 40px;
-    overflow: hidden;
-    border: 1px solid rgba(0, 0, 0, 0.02);
-}
-
-.cat-header {
-    background: var(--text-dark);
-    padding: 15px 25px;
-    color: white;
-}
-
-.cat-header h3 {
-    margin: 0;
-    font-size: 1.3rem;
-    letter-spacing: 1px;
-    color: var(--secondary);
-    /* Gold text */
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-/* Table Styling */
-.price-table {
-    width: 100%;
-    border-collapse: collapse;
-    background: white;
-}
-
-.price-table thead th {
-    background: #fdfdfd;
-    color: var(--text-muted);
-    font-weight: 600;
-    text-transform: uppercase;
-    font-size: 0.85rem;
-    padding: 15px 20px;
-    border-bottom: 2px solid #eee;
-    letter-spacing: 1px;
-    position: sticky;
-    /* Header sticks when scrolling category */
-    top: 0;
-}
-
-.price-table tbody tr {
-    border-bottom: 1px solid #f5f5f5;
-    transition: 0.2s;
-}
-
-.price-table tbody tr:last-child {
-    border-bottom: none;
-}
-
-.price-table tbody tr:hover {
-    background-color: #fffcf5;
-    /* Light cream hover */
-}
-
-.price-table td {
-    padding: 15px 20px;
-    vertical-align: middle;
-    color: var(--text-dark);
-}
-
-/* Product Name */
-.p-name {
-    font-weight: 600;
-    font-size: 1rem;
-}
-
-/* Price Highlight */
-.p-price {
-    font-family: 'Playfair Display', serif;
-    font-weight: 700;
-    color: var(--primary);
-    font-size: 1.2rem;
-    text-align: right;
-}
-
-.text-right {
-    text-align: right;
-}
-
-/* Thumbnail Image */
-.t-thumb {
-    width: 50px;
-    height: 50px;
-    border-radius: 50%;
-    object-fit: cover;
-    border: 2px solid #eee;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-}
-
-/* Floating Print Button (FAB) */
-.fab-print {
-    position: fixed;
-    bottom: 30px;
-    right: 30px;
-    width: 60px;
-    height: 60px;
-    background: var(--text-dark);
-    color: var(--secondary);
-    border-radius: 50%;
-    border: none;
-    font-size: 1.5rem;
-    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
-    cursor: pointer;
-    z-index: 999;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    transition: 0.3s;
-}
-
-.fab-print:hover {
-    transform: scale(1.1) rotate(10deg);
-    background: var(--primary);
-    color: white;
-}
-
-/* Mobile Adjustments */
-@media (max-width: 768px) {
-    .price-table thead {
-        display: none;
+    .hamper-grid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
     }
 
-    /* Hide header on mobile */
-
-    .price-table tr {
-        display: grid;
-        grid-template-columns: 60px 1fr auto;
-        /* Image | Name/Size | Price */
-        align-items: center;
-        padding: 15px;
+    .hamper-option img {
+        width: 40px;
+        height: 40px;
     }
 
-    .price-table td {
-        padding: 0 10px;
-        border: none;
-    }
-
-    /* Reset Cells */
-    .price-table td:nth-child(1) {
-        grid-column: 1;
-        grid-row: 1 / span 2;
-        padding-left: 0;
-    }
-
-    .price-table td:nth-child(2) {
-        grid-column: 2;
-        grid-row: 1;
-        font-size: 1.1rem;
-        padding-bottom: 5px;
-    }
-
-    /* Name */
-    .price-table td:nth-child(3) {
-        grid-column: 2;
-        grid-row: 2;
-        font-size: 0.85rem;
-        color: #999;
-    }
-
-    /* Size */
-    .price-table td:nth-child(4) {
-        grid-column: 3;
-        grid-row: 1 / span 2;
-    }
-
-    /* Price */
-
-    .t-thumb {
-        width: 60px;
-        height: 60px;
-    }
-}
-
-/* --- PRINT STYLES (FIXED FOR COMPACT PDF) --- */
-
-/* --- PRINT STYLES (WITH WATERMARK & ALIGNMENT) --- */
-
-/* 1. Hide Print Header on Screen */
-.print-header {
-    display: none;
-}
-
-@media print {
-
-    /* 2. Hide Web Elements */
-    .navbar,
-    .fab-print,
-    .plist-search,
-    .nav-actions,
-    .price-header-section,
-    .footer,
-    .hero-buttons,
-    .cart-overlay,
-    .cart-sidebar,
-    #announcement-bar,
-    .mobile-nav {
-        display: none !important;
-    }
-
-    /* 3. Page Setup */
-    @page {
-        size: A4;
-        margin: 10mm;
-    }
-
-    body {
-        background: white;
-        font-family: 'Poppins', sans-serif;
-        color: black;
-        margin: 0;
-        padding: 0;
-        font-size: 11pt;
-        position: relative;
-        -webkit-print-color-adjust: exact;
-    }
-
-    /* --- 9. WATERMARK (NEW) --- */
-    body::before {
-        content: "";
-        position: fixed;
-        /* Fixed ensures it repeats on every page */
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        width: 100%;
-        height: 100%;
-        background-image: url('logo.jpg');
-        /* Using your existing logo file */
-        background-repeat: no-repeat;
-        background-position: center center;
-        background-size: 500px auto;
-        /* Large watermark */
-        opacity: 0.08;
-        /* 8% Transparency (Very subtle) */
-        z-index: -1;
-        /* Puts it behind the text */
-        filter: grayscale(100%);
-        /* Optional: Makes it black/white style */
-    }
-
-    /* 4. Print Header */
-    .print-header {
-        display: flex !important;
-        flex-direction: row;
-        align-items: center;
-        justify-content: space-between;
-        border-bottom: 2px solid #e85d04;
-        padding-bottom: 10px;
-        margin-bottom: 20px;
-        position: relative;
-        z-index: 2;
-        /* Ensures header stays on top of watermark */
-        background: white;
-    }
-
-    .print-header img {
-        height: 50px;
-        width: auto;
-    }
-
-    .print-details {
-        text-align: right;
-    }
-
-    .print-details h2 {
-        margin: 0;
-        font-size: 16pt;
-        color: #e85d04;
-        font-family: 'Playfair Display', serif;
-    }
-
-    .print-details h3 {
-        margin: 2px 0;
-        font-size: 10pt;
-        text-transform: uppercase;
-        color: #444;
-    }
-
-    .print-details p {
-        margin: 0;
-        font-size: 9pt;
-        font-weight: 600;
-    }
-
-    /* 5. RESET LAYOUT */
-    .section-pad {
-        padding: 0 !important;
-    }
-
-    .container {
-        width: 100% !important;
-        max-width: 100% !important;
-        padding: 0 !important;
-    }
-
-    /* 6. TABLE ALIGNMENT FIXES */
-    .price-table {
-        display: table !important;
-        width: 100% !important;
-        table-layout: fixed;
-        border-collapse: collapse;
-        background: transparent !important;
-        /* Transparent so watermark shows through */
-    }
-
-    .price-table thead {
-        display: table-header-group !important;
-    }
-
-    .price-table tbody {
-        display: table-row-group !important;
-    }
-
-    .price-table tr {
-        display: table-row !important;
-        border-bottom: 1px solid #eee;
-    }
-
-    .price-table th,
-    .price-table td {
-        display: table-cell !important;
-        padding: 6px 10px !important;
-        vertical-align: middle;
-        position: relative;
-        z-index: 1;
-    }
-
-    /* Column Widths */
-    .price-table th:nth-child(1),
-    .price-table td:nth-child(1) {
-        width: 8%;
-        text-align: center;
-    }
-
-    .price-table th:nth-child(2),
-    .price-table td:nth-child(2) {
-        width: 52%;
-        text-align: left;
-    }
-
-    .price-table th:nth-child(3),
-    .price-table td:nth-child(3) {
-        width: 20%;
-        text-align: left;
-    }
-
-    .price-table th:nth-child(4),
-    .price-table td:nth-child(4) {
-        width: 20%;
-        text-align: right;
-    }
-
-    /* Header Styling */
-    .price-table th {
-        border-bottom: 1px solid #000;
-        color: #444;
-        font-size: 9pt;
-        text-transform: uppercase;
-        font-weight: 700;
-        background: rgba(255, 255, 255, 0.9) !important;
-        /* Slight white bg to make text readable over watermark */
-    }
-
-    /* Content Styling */
-    .t-thumb {
-        width: 30px !important;
-        height: 30px !important;
-        border-radius: 4px;
-    }
-
-    .p-name {
-        font-weight: 600;
-        font-size: 10pt;
-    }
-
-    .p-price {
-        font-weight: 700;
-        font-size: 11pt;
-        color: black !important;
-    }
-
-    /* Category Header */
-    .price-category {
-        border: none !important;
-        box-shadow: none !important;
-        margin-bottom: 15px;
-        break-inside: avoid;
-        background: transparent;
-    }
-
-    .cat-header {
-        background-color: #f9f9f9 !important;
-        padding: 5px 10px !important;
-        border-left: 4px solid #e85d04;
-        margin-bottom: 5px;
-    }
-
-    .cat-header h3 {
-        font-size: 11pt;
-        margin: 0;
-        color: black !important;
-    }
-
-    /* Footer */
-    body::after {
-        content: "Full menu at www.namonamkeen.shop";
-        display: block;
-        text-align: center;
-        font-size: 8pt;
-        margin-top: 20px;
-        color: #777;
-        border-top: 1px solid #ddd;
-        padding-top: 5px;
-        position: relative;
-        z-index: 2;
-        background: white;
+    .hamper-option h4 {
+        font-size: 0.65rem;
     }
 }
 
 /* --- ANNOUNCEMENT BAR --- */
 .announcement-bar {
-    background: var(--text-dark);
-    /* Dark Brown */
+    background-color: var(--text-dark); /* Dark Brown background */
     color: var(--white);
     text-align: center;
-    padding: 10px 40px 10px 20px;
-    /* Right padding for close btn */
+    padding: 12px 40px 12px 20px; /* Extra right padding for close button */
     font-size: 0.9rem;
-    font-weight: 600;
+    font-weight: 500;
     position: relative;
-    z-index: 2000;
-    animation: slideDown 0.5s ease;
+    z-index: 2000; /* Ensures it stays above the navbar */
+    display: none; /* Hidden by default, shown by JS */
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    animation: slideDown 0.4s ease-out;
 }
 
 .announcement-bar p {
     margin: 0;
     letter-spacing: 0.5px;
+    line-height: 1.4;
 }
 
 .announcement-bar button {
     position: absolute;
-    right: 10px;
+    right: 15px;
     top: 50%;
     transform: translateY(-50%);
-    background: none;
+    background: transparent;
     border: none;
-    color: white;
-    font-size: 1.2rem;
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 1.5rem;
     cursor: pointer;
-    opacity: 0.8;
+    line-height: 1;
+    padding: 0;
+    transition: 0.3s;
 }
 
 .announcement-bar button:hover {
-    opacity: 1;
+    color: var(--primary); /* Orange on hover */
+    transform: translateY(-50%) scale(1.1);
 }
 
 @keyframes slideDown {
-    from {
-        transform: translateY(-100%);
-    }
-
-    to {
-        transform: translateY(0);
-    }
+    from { transform: translateY(-100%); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
 }
 
-/* --- FOOTER (Restored) --- */
-.footer {
-    background: var(--text-dark);
-    color: #dcdcdc;
-    /* Light grey text */
-    padding: 60px 0 20px;
-    margin-top: 50px;
-    border-top: 5px solid var(--primary);
-    /* Orange top border */
-}
-
-.footer-content {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 40px;
-    margin-bottom: 40px;
-}
-
-.footer-section h3 {
-    color: var(--primary);
-    font-family: 'Playfair Display', serif;
-    margin-bottom: 15px;
-    font-size: 1.8rem;
-}
-
-.footer-section h4 {
-    color: var(--white);
-    margin-bottom: 20px;
-    font-size: 1.2rem;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    border-bottom: 2px solid #444;
-    display: inline-block;
-    padding-bottom: 5px;
-}
-
-.footer-section p {
-    margin-bottom: 12px;
-    display: flex;
-    align-items: flex-start;
-    /* Aligns icons with text top */
-    gap: 10px;
-    line-height: 1.6;
-    color: #bbb;
-}
-
-.footer-section i {
-    color: var(--primary);
-    margin-top: 5px;
-    /* Adjust icon vertical position */
-}
-
-/* Clickable Links in Footer */
-.footer-link {
-    color: #fff;
-    text-decoration: none;
-    transition: 0.3s;
-}
-
-.footer-link:hover {
-    color: var(--primary);
-    text-decoration: underline;
-}
-
-.footer-bottom {
-    border-top: 1px solid #444;
-    padding-top: 20px;
-    color: #888;
-    font-size: 0.9rem;
-    text-align: center;
-}
-
-/* Mobile Adjustment */
+/* Optional: Make buttons slightly more compact on mobile */
 @media (max-width: 768px) {
-    .footer-content {
-        grid-template-columns: 1fr;
-        /* Stack vertically */
-        text-align: center;
-        gap: 30px;
-    }
-
-    .footer-section p {
-        justify-content: center;
-        /* Center align text and icons */
-    }
-}
-
-/* --- MOBILE HAMPER FIX (3 Items Per Row) --- */
-@media (max-width: 768px) {
-
-    .hamper-grid {
-        /* Force exactly 3 equal columns */
-        grid-template-columns: repeat(3, 1fr);
-        gap: 8px;
-        /* Reduce gap to fit items */
-    }
-
-    .hamper-option {
-        padding: 5px;
-        /* Reduce padding to save space */
-        border-radius: 8px;
-    }
-
-    .hamper-option img {
-        width: 40px;
-        /* Smaller image */
-        height: 40px;
-        margin-bottom: 3px;
-    }
-
-    .hamper-option h4 {
-        font-size: 0.65rem;
-        /* Smaller text to prevent wrapping */
-        line-height: 1.1;
-        white-space: normal;
-        /* Allow text to wrap cleanly */
-        height: 2.2em;
-        /* Limit to 2 lines */
-        overflow: hidden;
-        display: -webkit-box;
-        -webkit-line-clamp: 2;
-        -webkit-box-orient: vertical;
-    }
-
-    /* Adjust the checkmark size for the smaller box */
-    .hamper-option.selected::after {
-        width: 16px;
-        height: 16px;
-        font-size: 0.6rem;
-        top: -4px;
-        right: -4px;
-    }
-}
-
-/* --- ENTRANCE ANIMATIONS (Home Page) --- */
-.animate-up {
-    opacity: 0;
-    transform: translateY(30px);
-    animation: fadeInUp 0.8s ease-out forwards;
-}
-
-.delay-1 {
-    animation-delay: 0.2s;
-}
-
-.delay-2 {
-    animation-delay: 0.4s;
-}
-
-.delay-3 {
-    animation-delay: 0.6s;
-}
-
-@keyframes fadeInUp {
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-/* --- SCROLL TO TOP BUTTON --- */
-#scrollTopBtn {
-    display: none;
-    /* Hidden by default */
-    position: fixed;
-    bottom: 90px;
-    /* Above the PWA Install button */
-    right: 20px;
-    z-index: 990;
-    border: none;
-    outline: none;
-    background-color: var(--secondary);
-    /* Gold color */
-    color: var(--text-dark);
-    cursor: pointer;
-    padding: 12px;
-    border-radius: 50%;
-    width: 45px;
-    height: 45px;
-    font-size: 1.2rem;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-    transition: 0.3s;
-    align-items: center;
-    justify-content: center;
-}
-
-#scrollTopBtn:hover {
-    background-color: var(--primary);
-    /* Orange on hover */
-    color: white;
-    transform: translateY(-3px);
-}
-
-/* Mobile Adjustment: Move it up slightly to avoid PWA button overlap */
-@media (max-width: 768px) {
-    #scrollTopBtn {
-        bottom: 80px;
-        right: 15px;
-    }
-}
-
-/* --- SKELETON LOADING ANIMATION --- */
-.skeleton {
-    background: #eee;
-    background: linear-gradient(110deg, #ececec 8%, #f5f5f5 18%, #ececec 33%);
-    border-radius: 5px;
-    background-size: 200% 100%;
-    animation: 1.5s shine linear infinite;
-}
-
-.skeleton-card {
-    background: white;
-    border-radius: 20px;
-    padding: 0;
-    overflow: hidden;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-    border: 1px solid #f0f0f0;
-    height: 360px;
-    /* Approx height of real card */
-}
-
-.skeleton-img {
-    width: 100%;
-    height: 200px;
-    border-bottom: 1px solid #eee;
-}
-
-.skeleton-info {
-    padding: 20px;
-}
-
-.skeleton-text {
-    height: 20px;
-    margin-bottom: 10px;
-    width: 80%;
-}
-
-.skeleton-text-sm {
-    height: 15px;
-    margin-bottom: 20px;
-    width: 60%;
-}
-
-.skeleton-btn {
-    height: 35px;
-    width: 100%;
-    border-radius: 20px;
-    margin-top: 10px;
-}
-
-@keyframes shine {
-    to {
-        background-position-x: -200%;
-    }
-}
-
-/* --- USER AUTH STYLES --- */
-#user-pic {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    cursor: pointer;
-    border: 2px solid var(--primary);
-    transition: 0.3s;
-}
-
-#user-pic:hover {
-    transform: scale(1.1);
-}
-
-.profile-dropdown {
-    display: none;
-    position: absolute;
-    top: 60px;
-    right: 60px;
-    /* Adjust based on nav layout */
-    background: white;
-    border: 1px solid #eee;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-    border-radius: 10px;
-    padding: 10px;
-    width: 200px;
-    z-index: 3000;
-}
-
-.profile-dropdown.active {
-    display: block;
-}
-
-.profile-dropdown p {
-    font-size: 0.9rem;
-    font-weight: bold;
-    padding: 5px 10px;
-    color: var(--text-dark);
-}
-
-.profile-dropdown button {
-    width: 100%;
-    text-align: left;
-    background: none;
-    border: none;
-    padding: 10px;
-    cursor: pointer;
-    font-size: 0.9rem;
-}
-
-.profile-dropdown button:hover {
-    background: #f9f9f9;
-}
-
-/* Order History Card Style */
-.history-card {
-    background: white;
-    border: 1px solid #ddd;
-    padding: 15px;
-    margin-bottom: 15px;
-    border-radius: 10px;
-    font-size: 0.9rem;
-}
-
-.history-date {
-    color: #888;
-    font-size: 0.8rem;
-    margin-bottom: 5px;
-}
-
-.history-total {
-    font-weight: bold;
-    color: var(--primary);
-    margin-top: 5px;
-    display: block;
-}
-
-/* --- INVOICE MODAL STYLES --- */
-.invoice-container {
-    background: white;
-    width: 500px;
-    max-width: 95%;
-    padding: 30px;
-    border-radius: 10px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-    position: relative;
-    max-height: 90vh;
-    overflow-y: auto;
-}
-
-.invoice-actions {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 20px;
-    border-bottom: 1px solid #eee;
-    padding-bottom: 10px;
-}
-
-.close-invoice {
-    background: none;
-    border: none;
-    font-size: 2rem;
-    cursor: pointer;
-    line-height: 0.5;
-}
-
-/* Bill Design */
-.inv-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-}
-
-.inv-logo {
-    width: 60px;
-    height: auto;
-}
-
-.inv-company {
-    text-align: right;
-    font-size: 0.9rem;
-    color: #555;
-}
-
-.inv-company h2 {
-    color: var(--primary);
-    margin: 0;
-    font-family: 'Playfair Display', serif;
-}
-
-.inv-details {
-    display: flex;
-    justify-content: space-between;
-    margin: 20px 0;
-    font-size: 0.95rem;
-}
-
-.text-right {
-    text-align: right;
-}
-
-.text-center {
-    text-align: center;
-}
-
-.inv-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin: 20px 0;
-    font-size: 0.95rem;
-}
-
-.inv-table th {
-    border-bottom: 2px solid #eee;
-    padding: 10px;
-    text-align: left;
-    color: #555;
-}
-
-.inv-table td {
-    border-bottom: 1px solid #eee;
-    padding: 10px;
-}
-
-.inv-table td:last-child {
-    text-align: right;
-}
-
-.inv-total {
-    text-align: right;
-    margin-top: 20px;
-    padding-top: 10px;
-    border-top: 2px solid #333;
-}
-
-.inv-total h3 {
-    color: var(--primary);
-    font-size: 1.4rem;
-    margin: 0;
-}
-
-.inv-footer {
-    text-align: center;
-    font-size: 0.8rem;
-    color: #888;
-    margin-top: 40px;
-    border-top: 1px solid #eee;
-    padding-top: 10px;
-}
-
-/* --- SMART PRINT STYLES (Handles Price List & Invoice) --- */
-
-/* Hide Print Elements on Screen */
-.print-header,
-.print-watermark-img {
-    display: none;
-}
-
-@media print {
-
-    /* ============================================
-       SCENARIO 1: INVOICE PRINTING
-       (Active when body has class 'printing-invoice')
-       ============================================ */
-    body.printing-invoice * {
-        visibility: hidden;
-        /* Hide EVERYTHING first */
-    }
-
-    body.printing-invoice #invoice-modal,
-    body.printing-invoice #invoice-modal * {
-        visibility: visible;
-        /* Reveal ONLY Invoice */
-    }
-
-    body.printing-invoice #invoice-modal {
-        position: absolute;
-        left: 0;
-        top: 0;
-        width: 100%;
-        height: auto;
-        background: white;
-        z-index: 9999;
-    }
-
-    body.printing-invoice .invoice-container {
-        box-shadow: none;
-        border: none;
-        width: 100%;
-        max-width: 100%;
-        margin: 0;
-        padding: 0;
-    }
-
-    body.printing-invoice .invoice-actions,
-    body.printing-invoice .print-watermark-img,
-    /* Hides Price List Watermark */
-    body.printing-invoice .print-header {
-        /* Hides Price List Header */
-        display: none !important;
-    }
-
-    /* ============================================
-       SCENARIO 2: PRICE LIST PRINTING (Default)
-       (Active when body does NOT have 'printing-invoice')
-       ============================================ */
-
-    /* Hide Web Navigation & Invoice Modal if NOT printing invoice */
-    body:not(.printing-invoice) .navbar,
-    body:not(.printing-invoice) .fab-print,
-    body:not(.printing-invoice) .plist-search,
-    body:not(.printing-invoice) .nav-actions,
-    body:not(.printing-invoice) .price-header-section,
-    body:not(.printing-invoice) .footer,
-    body:not(.printing-invoice) .hero-buttons,
-    body:not(.printing-invoice) .cart-overlay,
-    body:not(.printing-invoice) .cart-sidebar,
-    body:not(.printing-invoice) #announcement-bar,
-    body:not(.printing-invoice) .mobile-nav,
-    body:not(.printing-invoice) #invoice-modal {
-        /* Explicitly hide invoice modal */
-        display: none !important;
-    }
-
-    /* Page Setup */
-    @page {
-        size: A4;
-        margin: 10mm;
-    }
-
-    body {
-        background: white !important;
-        font-family: 'Poppins', sans-serif;
-        color: black;
-        margin: 0;
-        padding: 0;
-        font-size: 11pt;
-        -webkit-print-color-adjust: exact;
-    }
-
-    /* Watermark (Only for Price List) */
-    body:not(.printing-invoice) .print-watermark-img {
-        display: block !important;
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        width: 500px;
-        opacity: 0.1;
-        z-index: -1;
-        filter: grayscale(100%);
-    }
-
-    /* Make Tables Transparent */
-    .price-category,
-    .price-table,
-    .price-table th,
-    .price-table td,
-    .price-table tr {
-        background: transparent !important;
-    }
-
-    /* Price List Header */
-    body:not(.printing-invoice) .print-header {
-        display: flex !important;
-        flex-direction: row;
-        align-items: center;
-        justify-content: space-between;
-        border-bottom: 2px solid #e85d04;
-        padding-bottom: 10px;
-        margin-bottom: 20px;
-    }
-
-    .print-header img {
-        height: 50px;
-        width: auto;
-    }
-
-    .print-details {
-        text-align: right;
-    }
-
-    .print-details h2 {
-        margin: 0;
-        font-size: 16pt;
-        color: #e85d04;
-        font-family: 'Playfair Display', serif;
-    }
-
-    .print-details h3 {
-        margin: 2px 0;
-        font-size: 10pt;
-        text-transform: uppercase;
-        color: #444;
-    }
-
-    .print-details p {
-        margin: 0;
-        font-size: 9pt;
-        font-weight: 600;
-    }
-
-    /* Table Layout */
     .section-pad {
-        padding: 0 !important;
+        padding: 30px 0; /* Even smaller on mobile */
     }
-
-    .container {
-        width: 100% !important;
-        max-width: 100% !important;
-        padding: 0 !important;
+    
+    .filter-btn {
+        padding: 6px 15px; /* Smaller buttons */
+        font-size: 0.9rem;
     }
-
-    .price-table {
-        display: table !important;
-        width: 100% !important;
-        table-layout: fixed;
-        border-collapse: collapse;
-    }
-
-    .price-table thead {
-        display: table-header-group !important;
-    }
-
-    .price-table tbody {
-        display: table-row-group !important;
-    }
-
-    .price-table tr {
-        display: table-row !important;
-        border-bottom: 1px solid #ccc;
-    }
-
-    .price-table th,
-    .price-table td {
-        display: table-cell !important;
-        padding: 6px 8px !important;
-        vertical-align: middle;
-    }
-
-    /* Price List Footer */
-    body:not(.printing-invoice)::after {
-        content: "View full menu at www.namonamkeen.shop";
-        display: block;
-        text-align: center;
-        font-size: 8pt;
-        margin-top: 20px;
-        color: #777;
-        border-top: 1px solid #ddd;
-        padding-top: 5px;
-    }
-}
-
-/* --- TOAST NOTIFICATIONS --- */
-#toast-container {
-    position: fixed;
-    bottom: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 5000;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-.toast {
-    background: #333;
-    color: white;
-    padding: 12px 24px;
-    border-radius: 50px;
-    font-size: 0.9rem;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    animation: slideUpFade 0.4s ease forwards;
-    min-width: 250px;
-    justify-content: center;
-}
-
-.toast.success {
-    background: #2ecc71;
-}
-
-/* Green */
-.toast.error {
-    background: #e74c3c;
-}
-
-/* Red */
-.toast.info {
-    background: #3498db;
-}
-
-/* Blue */
-
-@keyframes slideUpFade {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-/* --- PRODUCT DETAIL MODAL --- */
-.p-detail-content {
-    text-align: center;
-}
-
-.p-detail-img {
-    width: 100%;
-    max-height: 250px;
-    object-fit: cover;
-    border-radius: 10px;
-    margin-bottom: 15px;
-}
-
-.p-detail-tags {
-    display: flex;
-    justify-content: center;
-    gap: 10px;
-    margin-bottom: 15px;
-}
-
-.p-veg-mark {
-    border: 2px solid #2ecc71;
-    color: #2ecc71;
-    padding: 2px;
-    width: 18px;
-    height: 18px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 10px;
-    border-radius: 4px;
-}
-
-.p-detail-desc {
-    color: #666;
-    font-size: 0.95rem;
-    line-height: 1.6;
-    margin-bottom: 20px;
-}
-
-/* --- COUPON UI STYLES --- */
-.coupon-item {
-    cursor: pointer;
-    border: 1px dashed var(--primary);
-    padding: 8px;
-    border-radius: 5px;
-    background: white;
-    transition: 0.2s;
-}
-
-.coupon-item:hover {
-    background: #fff3e0;
-}
-
-.coupon-item strong {
-    color: var(--primary);
-}
-
-/* --- MODAL FIX (Centers the popup) --- */
-.modal-overlay {
-    position: fixed;
-    /* Stays in place even if you scroll */
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.6);
-    /* Dark transparent background */
-    z-index: 5000;
-    /* High number to sit on top of everything */
-    display: none;
-    /* Hidden by default */
-    justify-content: center;
-    /* Centers horizontally */
-    align-items: center;
-    /* Centers vertically */
-    backdrop-filter: blur(4px);
-    /* Blurs the background for a premium look */
-}
-
-/* Show when active */
-.modal-overlay[style*="display: flex"] {
-    display: flex !important;
-}
-
-.modal-content {
-    background: white;
-    width: 500px;
-    max-width: 90%;
-    padding: 30px;
-    border-radius: 15px;
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
-    position: relative;
-    animation: popIn 0.3s ease;
-    max-height: 90vh;
-    /* Prevents it from being taller than screen */
-    overflow-y: auto;
-    /* Scroll inside modal if needed */
-}
-
-/* Animation to make it pop */
-@keyframes popIn {
-    from {
-        opacity: 0;
-        transform: scale(0.9);
-    }
-
-    to {
-        opacity: 1;
-        transform: scale(1);
-    }
-}
-
-/* Close Button Style */
-.close-modal {
-    position: absolute;
-    top: 15px;
-    right: 20px;
-    font-size: 2rem;
-    cursor: pointer;
-    background: none;
-    border: none;
-    color: #888;
-    line-height: 1;
-}
-
-.close-modal:hover {
-    color: #e85d04;
-}
-
-/* Ensure Modal is visible on top */
-#success-modal {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.8);
-    /* Darker background */
-    z-index: 9999 !important;
-    /* Highest Priority */
-}
-
-/* --- FIX: FORCE SUCCESS MODAL VISIBILITY --- */
-#success-modal.active {
-    display: flex !important;
-    opacity: 1 !important;
-    visibility: visible !important;
-    pointer-events: auto !important;
-    /* Ensures you can click buttons */
-}
-
-/* --- FIX: MOBILE MODAL SIZING --- */
-.mobile-modal {
-    width: 90% !important;
-    /* Fits inside screen width */
-    max-width: 400px !important;
-    /* Doesn't get too big on desktop */
-    padding: 25px 20px !important;
-    /* Reduced padding for mobile */
-    max-height: 90vh;
-    /* Prevents overflow off screen */
-    overflow-y: auto;
-    /* Scroll if content is too tall */
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
-}
-
-/* Prevent body scroll when modal is open */
-body.modal-open {
-    overflow: hidden;
-}
-
-/* --- PRODUCT DETAIL MODAL --- */
-.modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.6);
-    z-index: 2000;
-    opacity: 0;
-    visibility: hidden;
-    transition: 0.3s;
-    backdrop-filter: blur(3px);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
-
-.modal-overlay.active,
-.modal-overlay[style*="display: flex"] {
-    opacity: 1;
-    visibility: visible;
-}
-
-.modal-content {
-    background: white;
-    width: 500px;
-    max-width: 90%;
-    padding: 30px;
-    border-radius: 15px;
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
-    position: relative;
-    animation: popIn 0.3s ease;
-    max-height: 90vh;
-    overflow-y: auto;
-}
-
-/* Animation to make it pop */
-@keyframes popIn {
-    from {
-        opacity: 0;
-        transform: scale(0.9);
-    }
-
-    to {
-        opacity: 1;
-        transform: scale(1);
-    }
-}
-
-/* Close Button Style */
-.close-modal {
-    position: absolute;
-    top: 15px;
-    right: 20px;
-    font-size: 2rem;
-    cursor: pointer;
-    background: none;
-    border: none;
-    color: #888;
-    line-height: 1;
-}
-
-.close-modal:hover {
-    color: #e85d04;
 }
