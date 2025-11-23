@@ -878,11 +878,13 @@
             document.getElementById('modal-body').innerHTML = html; document.getElementById('order-modal').style.display = 'flex';
         }
         function closeModal() { document.getElementById('order-modal').style.display = 'none'; }
+        
         function printOrder(id) {
             const o = allOrders.find(x => x.id === id);
             const html = `<div class="print-slip"><h3 style="text-align:center;margin:0;">Namo Namkeen</h3><p style="text-align:center;margin:0;">Packing Slip</p><hr><p><strong>Customer:</strong> ${o.userName} (${o.userPhone})</p><p><strong>Address:</strong> ${o.userAddress}</p><hr>${o.items.map(i => `<div>${i.name} x ${i.qty} <span style="float:right">₹${i.price * i.qty}</span></div>`).join('')}<hr><h3 style="text-align:right">Total: ₹${o.total}</h3></div>`;
             document.getElementById('print-area').innerHTML = html; window.print();
         }
+
         function exportToCSV() {
             let csv = "Date,ID,Name,Phone,Items,Total,Status\n";
             allOrders.forEach(o => { csv += `${o.jsDate.toLocaleDateString()},${o.id},${o.userName},${o.userPhone},"${o.items.map(i => i.name).join('|')}",${o.total},${o.status}\n` });
