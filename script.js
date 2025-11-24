@@ -718,6 +718,107 @@ function toggleLanguage() { currentLang = currentLang === 'en' ? 'hi' : 'en'; re
 function toggleMobileMenu() { document.getElementById('mobile-nav').classList.toggle('active'); }
 function scrollToTop() { window.scrollTo({ top: 0, behavior: 'smooth' }); }
 
+// --- CHECKOUT FLOW ---
+
+// Step 1: Open Payment Modal (Show QR & Total)
+function openPaymentModal() {
+    if (cart.length === 0) return alert("Cart empty");
+    
+    const phone = document.getElementById('cust-phone').value;
+    const address = document.getElementById('cust-address').value;
+    
+    // 1. Validate Details
+    if (phone.length < 10 || address.length < 5) {
+        alert("Please enter a valid Phone Number and Address.");
+        return;
+    }
+
+    // 2. Calculate Final Amount
+    let total = 0;
+    cart.forEach(i => { total += i.price * i.qty; });
+    
+    // Apply Discount Logic
+    let discountAmount = 0;
+    if (appliedDiscount.type === 'percent') {
+        discountAmount = Math.round(total * (appliedDiscount.value / 100));
+    } else if (appliedDiscount.type === 'flat') {
+        discountAmount = appliedDiscount.value;
+    }
+    if (discountAmount > total) discountAmount = total;
+    const finalAmount = total - discountAmount;
+
+    // 3. Update Success Modal UI
+    document.getElementById('success-total-amount').innerText = '₹' + finalAmount;
+
+    // Generate UPI Link (Opens Payment Apps)
+    // Format: upi://pay?pa=UPI_ID&pn=NAME&am=AMOUNT&cu=INR
+    const upiLink = `upi://pay?pa=9826698822@paytm&pn=NamoNamkeen&am=${finalAmount}&cu=INR`;
+    document.getElementById('upi-pay-link').href = upiLink;
+
+    // Generate QR Code Image
+    const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(upiLink)}`;
+    document.getElementById('success-qr-img').src = qrApiUrl;
+
+    // 4. Show the Modal
+    document.getElementById('success-modal').style.display = 'flex';
+    
+    // Close cart sidebar to focus on modal
+    toggleCart();
+}
+
+// Step 2: Save to DB & Send WhatsApp (Called by Button in Modal)
+async function finalizeOrder() {
+    const phone = document.getElementById('cust-phone').value;
+    const address = document.getElementById('cust-address').value;
+    const orderId = 'ORD-' + Date.now().toString().slice(-6);
+    
+    let total = 0;
+    cart.forEach(i => { total += i.price * i.qty; });
+
+    // Recalculate for record
+    let discountAmount = 0;
+    if (appliedDiscount.type === 'percent') {
+        discountAmount = Math.round(total * (appliedDiscount.value / 100));
+    } else if (appliedDiscount.type === 'flat') {
+        discountAmount = appliedDiscount.value;
+    }
+    if (discountAmount > total) discountAmount = total;
+    const final = total - discountAmount;
+
+    // Prepare WhatsApp Message
+    let msg = `*New Order #${orderId}*\nName: ${currentUser.displayName}\nPhone: ${phone}\nAddr: ${address}\n\n`;
+    cart.forEach(i => { msg += `- ${i.name} (${i.weight}) x ${i.qty}\n`; });
+    
+    if(discountAmount > 0) {
+        msg += `\nSubtotal: ₹${total}`;
+        msg += `\nDiscount (${appliedDiscount.code}): -₹${discountAmount}`;
+    }
+    msg += `\n*Total to Pay: ₹${final}*`;
+
+    // Save to Firestore
+    await db.collection("orders").add({
+        id: orderId, 
+        userId: currentUser.uid, 
+        userName: currentUser.displayName, 
+        userPhone: phone, 
+        userAddress: address,
+        items: cart, 
+        total: final, 
+        status: 'Pending', 
+        timestamp: new Date(), 
+        discount: appliedDiscount
+    });
+
+    // Open WhatsApp
+    window.open(`https://wa.me/919826698822?text=${encodeURIComponent(msg)}`, '_blank');
+
+    // Cleanup
+    cart = []; 
+    appliedDiscount = { type: 'none', value: 0, code: null }; 
+    updateCartUI(); 
+    document.getElementById('success-modal').style.display = 'none';
+}
+
 function registerServiceWorker() {
     if ('serviceWorker' in navigator && (window.location.protocol === 'http:' || window.location.protocol === 'https:')) {
         navigator.serviceWorker.register('sw.js')

@@ -265,7 +265,7 @@
                 <i class="fab fa-google"></i> Login to Order
             </button>
 
-            <button id="btn-final-checkout" class="btn-whatsapp-checkout" onclick="checkoutWhatsApp()"
+            <button id="btn-final-checkout" class="btn-whatsapp-checkout" onclick="openPaymentModal()"
                 style="display: none;">
                 <i class="fab fa-whatsapp"></i> Confirm & Order
             </button>
@@ -336,7 +336,7 @@
             </div>
 
             <p style="font-weight: 600; margin-bottom: 8px; font-size: 0.85rem;">Final Step: Send Order to Shop</p>
-            <button id="btn-send-whatsapp" class="btn-whatsapp-checkout"
+            <button id="btn-send-whatsapp" onclick="finalizeOrder()" class="btn-whatsapp-checkout"
                 style="width: 100%; padding: 12px; font-size: 1rem; justify-content: center; display: flex; align-items: center; gap: 8px; background: #25D366; color: white; border: none; border-radius: 8px; cursor: pointer;">
                 <i class="fab fa-whatsapp"></i> Send on WhatsApp
             </button>
@@ -353,7 +353,7 @@
         </div>
     </div>
 
-    <div id="invoice-modal" class="cart-overlay" style="z-index: 4000;">
+        <div id="invoice-modal" class="cart-overlay" style="z-index: 4000;">
         <div class="invoice-container">
             
             <div class="invoice-actions no-print">
