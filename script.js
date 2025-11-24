@@ -554,10 +554,24 @@ function toggleLanguage() { currentLang = currentLang === 'en' ? 'hi' : 'en'; re
 function toggleMobileMenu() { document.getElementById('mobile-nav').classList.toggle('active'); }
 function scrollToTop() { window.scrollTo({ top: 0, behavior: 'smooth' }); }
 
+// Add this to the very end of script.js
 function registerServiceWorker() {
-    if ('serviceWorker' in navigator && (window.location.protocol === 'http:' || window.location.protocol === 'https:')) {
-        navigator.serviceWorker.register('sw.js')
-            .then(reg => console.log("Service Worker Registered"))
-            .catch(err => console.log("SW Registration Failed:", err));
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/sw.js').then(registration => {
+            console.log('SW Registered');
+            
+            registration.onupdatefound = () => {
+                const newWorker = registration.installing;
+                newWorker.onstatechange = () => {
+                    if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                        // New update available
+                        if(confirm("New version available! Refresh to update?")) {
+                            window.location.reload();
+                        }
+                    }
+                };
+            };
+        });
     }
 }
+registerServiceWorker();

@@ -494,4 +494,30 @@ async function importFromSheet() {
         await b.commit();
         alert("Import Done");
     } catch (e) { alert("Import Failed: " + e.message); }
+
+    // --- SERVICE WORKER REGISTRATION ---
+function registerAdminServiceWorker() {
+    if ('serviceWorker' in navigator && (window.location.protocol === 'http:' || window.location.protocol === 'https:')) {
+        navigator.serviceWorker.register('/admin-sw.js')
+            .then(registration => {
+                console.log('Admin SW Registered');
+                
+                registration.onupdatefound = () => {
+                    const newWorker = registration.installing;
+                    newWorker.onstatechange = () => {
+                        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                            // New update available
+                            if(confirm("New Admin Dashboard version available! Refresh now?")) {
+                                window.location.reload();
+                            }
+                        }
+                    };
+                };
+            })
+            .catch(err => console.log("Admin SW Registration Failed:", err));
+    }
+}
+
+// Run registration
+registerAdminServiceWorker();
 }
