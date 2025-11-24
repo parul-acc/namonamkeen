@@ -539,6 +539,11 @@ async function checkoutWhatsApp() {
 }
 
 // --- 11. HISTORY & HELPERS ---
+// --- ORDER HISTORY & INVOICE LOGIC ---
+
+// Global variable to store fetched history for quick access
+let historyOrders = [];
+
 function showOrderHistory() {
     const modal = document.getElementById('history-modal');
     const content = document.getElementById('history-content');
@@ -550,7 +555,7 @@ function showOrderHistory() {
         return;
     }
 
-    content.innerHTML = '<p style="padding:20px; text-align:center;">Loading history...</p>';
+    content.innerHTML = '<p style="padding:20px; text-align:center;">Loading your tasty history... 🍪</p>';
 
     db.collection("orders")
         .where("userId", "==", currentUser.uid)
@@ -559,45 +564,51 @@ function showOrderHistory() {
         .get()
         .then(snap => {
             if (snap.empty) {
-                content.innerHTML = '<p style="padding:20px; text-align:center;">No past orders found.</p>';
+                content.innerHTML = '<p style="padding:20px; text-align:center;">No past orders found. Time to order something! 😋</p>';
                 return;
             }
 
+            historyOrders = []; // Reset local storage
             let html = '';
+
             snap.forEach(doc => {
                 const o = doc.data();
+                historyOrders.push(o); // Save for invoice/repeat
+
                 const date = o.timestamp ? o.timestamp.toDate().toLocaleDateString() : 'N/A';
 
-                let statusColor = '#888';
+                let statusColor = '#e67e22'; // Pending
+                if (o.status === 'Packed') statusColor = '#3498db';
                 if (o.status === 'Delivered') statusColor = '#2ecc71';
-                else if (o.status === 'Pending') statusColor = '#e67e22';
-                else if (o.status === 'Packed') statusColor = '#3498db';
 
-                let itemsHtml = '';
-                if (o.items && o.items.length > 0) {
-                    itemsHtml = o.items.map(i => `
-                        <div style="display:flex; justify-content:space-between; font-size:0.85rem; color:#555;">
-                            <span>${i.name} (${i.weight}) x ${i.qty}</span>
-                            <span>₹${i.price * i.qty}</span>
-                        </div>
-                    `).join('');
-                }
+                // Generate Items List string
+                const itemsList = o.items.map(i =>
+                    `<div style="display:flex; justify-content:space-between; font-size:0.9rem; color:#555; margin-bottom:4px;">
+                        <span>${i.name} x ${i.qty}</span>
+                        <span>₹${i.price * i.qty}</span>
+                    </div>`
+                ).join('');
 
                 html += `
-                    <div style="background:white; border:1px solid #eee; border-radius:8px; padding:15px; margin-bottom:15px; box-shadow:0 2px 5px rgba(0,0,0,0.05);">
-                        <div style="display:flex; justify-content:space-between; border-bottom:1px dashed #eee; padding-bottom:8px; margin-bottom:8px;">
-                            <strong style="font-size:0.9rem;">${date}</strong>
+                    <div style="background:white; border:1px solid #eee; border-radius:10px; padding:15px; margin-bottom:15px; box-shadow:0 2px 5px rgba(0,0,0,0.05);">
+                        <div style="display:flex; justify-content:space-between; border-bottom:1px dashed #ddd; padding-bottom:8px; margin-bottom:10px;">
+                            <div>
+                                <strong style="color:#333;">${date}</strong>
+                                <div style="font-size:0.75rem; color:#999;">#${o.id}</div>
+                            </div>
                             <span style="color:${statusColor}; font-weight:bold; font-size:0.85rem; text-transform:uppercase;">${o.status}</span>
                         </div>
-                        <div style="margin-bottom:10px;">
-                            ${itemsHtml}
-                        </div>
-                        <div style="display:flex; justify-content:space-between; border-top:1px dashed #eee; padding-top:8px; font-weight:bold;">
+                        
+                        <div style="margin-bottom:10px;">${itemsList}</div>
+
+                        <div style="display:flex; justify-content:space-between; border-top:1px dashed #ddd; padding-top:10px; margin-bottom:10px; font-weight:bold; color:#333;">
                             <span>Total</span>
                             <span style="color:var(--primary);">₹${o.total}</span>
                         </div>
-                        <div style="text-align:right; font-size:0.75rem; color:#999; margin-top:5px;">
-                            Order ID: ${o.id}
+
+                        <div class="history-actions">
+                            <button class="btn-outline" onclick="openInvoice('${o.id}')"><i class="fas fa-file-invoice"></i> Invoice</button>
+                            <button class="btn-outline" onclick="repeatOrder('${o.id}')"><i class="fas fa-redo"></i> Repeat</button>
                         </div>
                     </div>
                 `;
@@ -609,11 +620,76 @@ function showOrderHistory() {
             if (err.message.includes("index")) {
                 content.innerHTML = '<p style="padding:20px; color:red; text-align:center;">System Update: Creating database index... Try again in 5 minutes.</p>';
             } else {
-                content.innerHTML = '<p style="padding:20px; color:red; text-align:center;">Failed to load history. Please check your connection.</p>';
+                content.innerHTML = '<p style="padding:20px; color:red; text-align:center;">Failed to load history.</p>';
             }
         });
 }
 
+function openInvoice(orderId) {
+    const order = historyOrders.find(o => o.id === orderId);
+    if (!order) return alert("Order details not found.");
+
+    // Populate Invoice Data
+    document.getElementById('inv-customer-name').innerText = order.userName;
+    document.getElementById('inv-customer-email').innerText = currentUser.email || '-';
+    document.getElementById('inv-order-id').innerText = `#${order.id}`;
+    document.getElementById('inv-date').innerText = order.timestamp ? new Date(order.timestamp.seconds * 1000).toLocaleDateString() : '-';
+
+    // Populate Items
+    const tbody = document.getElementById('inv-items-body');
+    tbody.innerHTML = '';
+    order.items.forEach(i => {
+        tbody.innerHTML += `
+            <tr>
+                <td>${i.name} <br><small>${i.weight}</small></td>
+                <td class="text-center">${i.qty}</td>
+                <td class="text-right">₹${i.price}</td>
+                <td class="text-right">₹${i.price * i.qty}</td>
+            </tr>`;
+    });
+
+    document.getElementById('inv-grand-total').innerText = `₹${order.total}`;
+
+    // Generate UPI QR Code for Payment (if valid amount)
+    const upiLink = `upi://pay?pa=9826698822@paytm&pn=NamoNamkeen&am=${order.total}&cu=INR`;
+    document.getElementById('inv-qr-img').src = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(upiLink)}`;
+
+    // Show Modal
+    document.getElementById('invoice-modal').style.display = 'flex';
+}
+
+function closeInvoice() {
+    document.getElementById('invoice-modal').style.display = 'none';
+}
+
+function printInvoice() {
+    window.print();
+}
+
+function repeatOrder(orderId) {
+    const order = historyOrders.find(o => o.id === orderId);
+    if (!order) return;
+
+    if (confirm("Add all items from this order to your cart?")) {
+        order.items.forEach(item => {
+            // Push to cart array properly
+            // Using a simple push mechanism, checking duplicates is handled in addToCart usually, 
+            // but here we manually reconstruct to ensure simplicity.
+            const cartId = item.cartId || `${item.productId}-${item.weight.replace(/\s/g, '')}`;
+
+            const existing = cart.find(c => c.cartId === cartId);
+            if (existing) {
+                existing.qty += item.qty;
+            } else {
+                cart.push({ ...item, cartId: cartId });
+            }
+        });
+
+        updateCartUI();
+        toggleCart(); // Open cart sidebar
+        closeHistory(); // Close history modal
+    }
+}
 function closeSuccessModal() { document.getElementById('success-modal').style.display = 'none'; }
 function openProfileModal() { document.getElementById('profile-modal').style.display = 'flex'; document.getElementById('profile-menu').classList.remove('active'); }
 function closeProfileModal() { document.getElementById('profile-modal').style.display = 'none'; }
