@@ -84,6 +84,7 @@ function fetchData() {
                 activeCoupons.push(c);
             }
         });
+        // This call was failing because the function was missing
         renderCouponList();
     });
 }
@@ -650,3 +651,32 @@ function searchMenu() { searchQuery = document.getElementById('menu-search').val
 function toggleLanguage() { currentLang = currentLang === 'en' ? 'hi' : 'en'; renderMenu(); updateCartUI(); }
 function toggleMobileMenu() { document.getElementById('mobile-nav').classList.toggle('active'); }
 function scrollToTop() { window.scrollTo({ top: 0, behavior: 'smooth' }); }
+
+// --- COUPON LIST RENDERER (Missing Function) ---
+function renderCouponList() {
+    const listContainer = document.getElementById('coupon-list');
+    if (!listContainer) return;
+    listContainer.innerHTML = '';
+
+    if (activeCoupons.length === 0) {
+        listContainer.innerHTML = '<p style="font-size:0.8rem; color:#777;">No active coupons.</p>';
+        return;
+    }
+
+    activeCoupons.forEach(c => {
+        const desc = c.type === 'percent' ? `${c.value}% OFF` : `₹${c.value} OFF`;
+        listContainer.innerHTML += `
+            <div class="coupon-item" onclick="useCoupon('${c.code}')" style="padding:10px; border-bottom:1px solid #eee; cursor:pointer;">
+                <strong style="color:var(--primary)">${c.code}</strong> - ${desc}
+            </div>`;
+    });
+}
+
+function registerServiceWorker() {
+    // Only register if supported AND running on http/https (not file://)
+    if ('serviceWorker' in navigator && (window.location.protocol === 'http:' || window.location.protocol === 'https:')) {
+        navigator.serviceWorker.register('sw.js')
+            .then(reg => console.log("Service Worker Registered"))
+            .catch(err => console.log("SW Registration Failed:", err));
+    }
+}

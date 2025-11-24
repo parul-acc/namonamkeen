@@ -25,6 +25,7 @@ let state = {
 
 // --- AUTHENTICATION ---
 auth.onAuthStateChanged(user => {
+    console.log("Auth State Changed:", user ? user.email : "No User");
     if (user && ADMIN_EMAILS.includes(user.email)) {
         document.getElementById('login-overlay').style.display = 'none';
         document.getElementById('admin-user-info').innerText = user.displayName;
@@ -39,10 +40,11 @@ function adminLogin() { auth.signInWithPopup(new firebase.auth.GoogleAuthProvide
 function logout() { auth.signOut().then(() => location.reload()); }
 
 function initDashboard() {
+    console.log("Initializing Dashboard...");
     loadDashboardData();
     loadInventory();
     loadOrders();
-    loadCustomers();
+    loadCustomers(); // This triggers the customer fetch
     loadSettings();
     loadCoupons();
 }
@@ -57,7 +59,10 @@ function renderTable(type) {
     const pageItems = dataToRender.slice((s.page - 1) * ITEMS_PER_PAGE, s.page * ITEMS_PER_PAGE);
 
     const tbody = document.getElementById(`${type}-body`);
-    if (!tbody) return;
+    if (!tbody) {
+        console.error(`Table body for ${type} not found in HTML`);
+        return;
+    }
     tbody.innerHTML = '';
 
     if (type === 'inventory') renderInventoryRows(tbody, pageItems);
@@ -76,6 +81,114 @@ function changePage(type, diff) {
         s.page += diff;
         renderTable(type);
     }
+}
+
+// --- 4. CUSTOMERS (FIXED) ---
+function loadCustomers() {
+    console.log("Fetching Customers from Firebase...");
+    db.collection("users").limit(200).get().then(snap => {
+        console.log(`Fetched ${snap.size} customer records.`);
+
+        let count = 0, today = 0;
+        state.customers.data = [];
+
+        snap.forEach(doc => {
+            const u = doc.data();
+            count++;
+
+            let last = null;
+            if (u.lastLogin) {
+                // Handle both Firestore Timestamp and Date strings
+                if (u.lastLogin.seconds) last = new Date(u.lastLogin.seconds * 1000);
+                else last = new Date(u.lastLogin);
+            }
+
+            if (last && !isNaN(last.getTime())) {
+                if (last.setHours(0, 0, 0, 0) === new Date().setHours(0, 0, 0, 0)) today++;
+                u.displayDate = last.toLocaleDateString();
+            } else {
+                u.displayDate = '-';
+            }
+            state.customers.data.push(u);
+        });
+
+        // Update Stats UI
+        if (document.getElementById('cust-total')) document.getElementById('cust-total').innerText = count;
+        if (document.getElementById('cust-active')) document.getElementById('cust-active').innerText = today;
+
+        // Render Table
+        renderTable('customers');
+
+    }).catch(err => {
+        console.error("Error loading customers:", err);
+        alert("Failed to load customers. Check console.");
+    });
+}
+
+function renderCustomerRows(tbody, items) {
+    console.log("Rendering customer rows...", items.length);
+
+    if (items.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">No customers found</td></tr>';
+        return;
+    }
+
+    items.forEach(u => {
+        // SAFE DATA HANDLING (Prevents crashes if data is missing)
+        const name = u.name || 'Guest';
+        const email = u.email || '';
+        const phone = u.phone || '-';
+
+        // Safe address substring
+        let address = '-';
+        if (u.address) {
+            address = String(u.address).substring(0, 20);
+            if (String(u.address).length > 20) address += '...';
+        }
+
+        const date = u.displayDate || '-';
+
+        // Safe WhatsApp Button
+        let waBtn = '-';
+        if (u.phone) {
+            // Remove non-numeric characters for the link
+            const cleanPhone = String(u.phone).replace(/\D/g, '');
+            waBtn = `<button class="icon-btn btn-green" onclick="window.open('https://wa.me/91${cleanPhone}', '_blank')"><i class="fab fa-whatsapp"></i></button>`;
+        }
+
+        tbody.innerHTML += `
+            <tr>
+                <td><strong>${name}</strong><br><small>${email}</small></td>
+                <td>${phone}</td>
+                <td>${address}</td>
+                <td>${date}</td>
+                <td>${waBtn}</td>
+            </tr>`;
+    });
+}
+
+function filterCustomers() {
+    const q = document.getElementById('custSearch').value.toLowerCase();
+    if (!state.customers.data) return;
+    state.customers.filteredData = state.customers.data.filter(u =>
+        (u.name || '').toLowerCase().includes(q) ||
+        (u.phone || '').includes(q) ||
+        (u.email || '').toLowerCase().includes(q)
+    );
+    state.customers.page = 1;
+    renderTable('customers');
+}
+
+function exportCustomersToCSV() {
+    if (!state.customers.data || state.customers.data.length === 0) return alert("No data to export");
+
+    let csv = "Name,Email,Phone,Address,Last Login\n";
+    state.customers.data.forEach(u => {
+        // Handle commas/newlines in address for CSV safety
+        const addr = u.address ? String(u.address).replace(/(\r\n|\n|\r|,)/gm, " ") : "";
+        csv += `"${u.name || ''}","${u.email || ''}","${u.phone || ''}","${addr}","${u.displayDate}"\n`;
+    });
+    downloadCSV(csv, "namo_customers.csv");
 }
 
 // --- 1. DASHBOARD ---
@@ -97,7 +210,6 @@ function loadDashboardData() {
         document.getElementById('pending-count').innerText = pending;
         document.getElementById('avg-order').innerText = '₹' + (count ? Math.round(rev / count) : 0);
 
-        // Sales Chart
         if (salesChartInstance) salesChartInstance.destroy();
         const ctx1 = document.getElementById('salesChart').getContext('2d');
         salesChartInstance = new Chart(ctx1, {
@@ -109,7 +221,6 @@ function loadDashboardData() {
             options: { maintainAspectRatio: false }
         });
 
-        // Product Chart
         if (productChartInstance) productChartInstance.destroy();
         const topP = Object.entries(prodMap).sort((a, b) => b[1] - a[1]).slice(0, 5);
         const ctx2 = document.getElementById('productChart').getContext('2d');
@@ -216,83 +327,6 @@ function exportOrdersToCSV() {
         csv += `"${d}","${o.id}","${o.userName}","${o.userPhone}","${o.userAddress.replace(/\n/g, ' ')}","${items}",${o.total},${o.status}\n`;
     });
     downloadCSV(csv, "namo_orders.csv");
-}
-
-// --- 4. CUSTOMERS ---
-function loadCustomers() {
-    db.collection("users").limit(200).get().then(snap => {
-        let count = 0, today = 0;
-        state.customers.data = [];
-        snap.forEach(doc => {
-            const u = doc.data(); count++;
-            let last = null;
-            if (u.lastLogin) {
-                if (u.lastLogin.seconds) last = new Date(u.lastLogin.seconds * 1000);
-                else last = new Date(u.lastLogin);
-            }
-
-            if (last && !isNaN(last.getTime())) {
-                if (last.setHours(0, 0, 0, 0) === new Date().setHours(0, 0, 0, 0)) today++;
-                u.displayDate = last.toLocaleDateString();
-            } else {
-                u.displayDate = '-';
-            }
-            state.customers.data.push(u);
-        });
-
-        if (document.getElementById('cust-total')) document.getElementById('cust-total').innerText = count;
-        if (document.getElementById('cust-active')) document.getElementById('cust-active').innerText = today;
-        renderTable('customers');
-    });
-}
-
-function renderCustomerRows(tbody, items) {
-    console.log('Inside Loading customers');
-    console.log(items);
-    if (!tbody) return;
-    tbody.innerHTML = '';
-
-    if (items.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">No customers found</td></tr>';
-        return;
-    }
-
-    items.forEach(u => {
-        const name = u.name || 'Guest';
-        const email = u.email || '';
-        const phone = u.phone || '-';
-        const address = u.address ? (u.address.substring(0, 20) + (u.address.length > 20 ? '...' : '')) : '-';
-        const date = u.displayDate || '-';
-        const waLink = u.phone ? `https://wa.me/91${u.phone.replace(/\D/g, '')}` : '#';
-        const waBtn = u.phone ? `<button class="icon-btn btn-green" onclick="window.open('${waLink}', '_blank')"><i class="fab fa-whatsapp"></i></button>` : '-';
-
-        tbody.innerHTML += `
-            <tr>
-                <td><strong>${name}</strong><br><small>${email}</small></td>
-                <td>${phone}</td>
-                <td>${address}</td>
-                <td>${date}</td>
-                <td>${waBtn}</td>
-            </tr>`;
-    });
-}
-
-function filterCustomers() {
-    const q = document.getElementById('custSearch').value.toLowerCase();
-    if (!state.customers.data) return;
-    state.customers.filteredData = state.customers.data.filter(u => (u.name || '').toLowerCase().includes(q) || (u.phone || '').includes(q) || (u.email || '').toLowerCase().includes(q));
-    state.customers.page = 1;
-    renderTable('customers');
-}
-
-function exportCustomersToCSV() {
-    if (!state.customers.data) return;
-    let csv = "Name,Email,Phone,Address,Last Login\n";
-    state.customers.data.forEach(u => {
-        const addr = u.address ? u.address.replace(/(\r\n|\n|\r|,)/gm, " ") : "";
-        csv += `"${u.name || ''}","${u.email || ''}","${u.phone || ''}","${addr}","${u.displayDate}"\n`;
-    });
-    downloadCSV(csv, "namo_customers.csv");
 }
 
 // --- 5. COUPONS ---
