@@ -14,13 +14,6 @@
     <meta name="theme-color" content="#e85d04">
     <link rel="icon" href="logo.jpg" type="image/jpeg">
 
-    <meta property="og:title" content="Namo Namkeen | Authentic Taste of Indore">
-    <meta property="og:description"
-        content="Order fresh, homemade Sev, Mixture, and Sweets. Pick 3 packs for ₹250! Delivery in Mhow & Indore.">
-    <meta property="og:image" content="http://namonamkeen.shop/assets/images/banner.jpg">
-    <meta property="og:url" content="http://namonamkeen.shop/">
-    <meta name="twitter:card" content="summary_large_image">
-
     <link rel="stylesheet" href="style.css">
     <link
         href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Poppins:wght@300;400;500;600&display=swap"
@@ -220,46 +213,53 @@
                 <button class="close-cart" onclick="toggleCart()"><i class="fas fa-times"></i></button>
             </div>
         </div>
-        <div id="cart-items" class="cart-items-container"></div>
+
+        <div class="cart-scrollable-content">
+            <div id="cart-items" class="cart-items-list"></div>
+
+            <div class="cart-details-block">
+                <div class="coupon-section">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+                        <span style="font-size:0.8rem; font-weight:bold; color:#555;">Offers & Coupons</span>
+                        <small style="color:var(--primary); cursor:pointer;" onclick="toggleCouponList()">View
+                            All</small>
+                    </div>
+                    <div style="display:flex; gap:5px;">
+                        <input type="text" id="promo-code" placeholder="Enter Code"
+                            style="flex-grow:1; padding:8px; border:1px solid #ddd; border-radius:5px; text-transform:uppercase; font-size:0.9rem;">
+                        <button onclick="applyPromo()"
+                            style="background:var(--dark); color:white; border:none; padding:8px 15px; border-radius:5px; cursor:pointer;">Apply</button>
+                    </div>
+                    <p id="promo-msg" style="font-size:0.75rem; margin-top:5px; min-height:15px;"></p>
+                    <div id="coupon-list"
+                        style="display:none; background:#f9f9f9; padding:10px; margin-top:5px; border-radius:5px; border:1px solid #eee; max-height:150px; overflow-y:auto;">
+                    </div>
+                </div>
+
+                <div class="total-row">
+                    <span>Total Estimate:</span>
+                    <span id="cart-total">₹0</span>
+                </div>
+
+                <div id="customer-details-inputs">
+                    <label style="font-size:0.8rem; font-weight:bold; color:#555;">Mobile Number <span
+                            style="color:red">*</span></label>
+                    <div
+                        style="display:flex; align-items:center; border:1px solid #ddd; border-radius:8px; padding:0 10px; margin-bottom:10px; background:white;">
+                        <span style="color:#555; font-weight:bold;">+91</span>
+                        <input type="tel" id="cust-phone" maxlength="10"
+                            style="border:none; outline:none; padding:10px; width:100%; font-size:1rem;">
+                    </div>
+
+                    <label style="font-size:0.8rem; font-weight:bold; color:#555;">Delivery Address <span
+                            style="color:red">*</span></label>
+                    <textarea id="cust-address" placeholder="House No, Street, Area, City..." rows="2"
+                        style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px; font-family:inherit; resize:none; margin-bottom:10px;"></textarea>
+                </div>
+            </div>
+        </div>
+
         <div class="cart-footer">
-            <div class="coupon-section">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
-                    <span style="font-size:0.8rem; font-weight:bold; color:#555;">Offers & Coupons</span>
-                    <small style="color:var(--primary); cursor:pointer;" onclick="toggleCouponList()">View All</small>
-                </div>
-                <div style="display:flex; gap:5px;">
-                    <input type="text" id="promo-code" placeholder="Enter Code"
-                        style="flex-grow:1; padding:8px; border:1px solid #ddd; border-radius:5px; text-transform:uppercase; font-size:0.9rem;">
-                    <button onclick="applyPromo()"
-                        style="background:var(--dark); color:white; border:none; padding:8px 15px; border-radius:5px; cursor:pointer;">Apply</button>
-                </div>
-                <p id="promo-msg" style="font-size:0.75rem; margin-top:5px; min-height:15px;"></p>
-                <div id="coupon-list"
-                    style="display:none; background:#f9f9f9; padding:10px; margin-top:5px; border-radius:5px; border:1px solid #eee; max-height:150px; overflow-y:auto;">
-                </div>
-            </div>
-
-            <div class="total-row">
-                <span>Total Estimate:</span>
-                <span id="cart-total">₹0</span>
-            </div>
-
-            <div id="customer-details-inputs" style="margin-bottom: 15px;">
-                <label style="font-size:0.8rem; font-weight:bold; color:#555;">Mobile Number <span
-                        style="color:red">*</span></label>
-                <div
-                    style="display:flex; align-items:center; border:1px solid #ddd; border-radius:8px; padding:0 10px; margin-bottom:10px; background:white;">
-                    <span style="color:#555; font-weight:bold;">+91</span>
-                    <input type="tel" id="cust-phone" maxlength="10"
-                        style="border:none; outline:none; padding:10px; width:100%; font-size:1rem;">
-                </div>
-
-                <label style="font-size:0.8rem; font-weight:bold; color:#555;">Delivery Address <span
-                        style="color:red">*</span></label>
-                <textarea id="cust-address" placeholder="House No, Street, Area, City..." rows="2"
-                    style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px; font-family:inherit; resize:none; margin-bottom:10px;"></textarea>
-            </div>
-
             <button id="btn-login-checkout" class="btn-whatsapp-checkout" onclick="validateAndLogin()"
                 style="background: #4285F4;">
                 <i class="fab fa-google"></i> Login to Order
@@ -275,8 +275,7 @@
     <div id="product-modal" class="modal-overlay">
         <div class="modal-content p-detail-content">
             <button class="close-modal" onclick="closeProductModal()">&times;</button>
-            <div id="p-modal-body">
-            </div>
+            <div id="p-modal-body"></div>
         </div>
     </div>
 
@@ -347,17 +346,6 @@
         </div>
     </div>
 
-    <div id="invoice-modal" class="cart-overlay" style="z-index: 4000;">
-        <div class="invoice-container">
-            <div class="invoice-actions no-print">
-                <button onclick="printInvoice()" class="btn-primary"><i class="fas fa-print"></i> Print / PDF</button>
-                <button onclick="closeInvoice()" class="close-invoice">&times;</button>
-            </div>
-            <div id="invoice-print-area">
-            </div>
-        </div>
-    </div>
-
     <div id="quiz-modal" class="quiz-overlay">
         <div class="quiz-container">
             <button class="close-modal" onclick="closeQuiz()">&times;</button>
@@ -394,7 +382,6 @@
     <button id="scrollTopBtn" onclick="scrollToTop()" title="Go to top">
         <i class="fas fa-arrow-up"></i>
     </button>
-    <div id="toast-container"></div>
 
     <script src="script.js"></script>
 </body>
