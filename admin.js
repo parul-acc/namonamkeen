@@ -57,6 +57,7 @@ function renderTable(type) {
     const pageItems = dataToRender.slice((s.page - 1) * ITEMS_PER_PAGE, s.page * ITEMS_PER_PAGE);
 
     const tbody = document.getElementById(`${type}-body`);
+    if (!tbody) return;
     tbody.innerHTML = '';
 
     if (type === 'inventory') renderInventoryRows(tbody, pageItems);
@@ -239,36 +240,55 @@ function loadCustomers() {
             state.customers.data.push(u);
         });
 
-        document.getElementById('cust-total').innerText = count;
-        document.getElementById('cust-active').innerText = today;
+        if (document.getElementById('cust-total')) document.getElementById('cust-total').innerText = count;
+        if (document.getElementById('cust-active')) document.getElementById('cust-active').innerText = today;
         renderTable('customers');
     });
 }
 
 function renderCustomerRows(tbody, items) {
+    if (!tbody) return;
+    tbody.innerHTML = '';
+
+    if (items.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">No customers found</td></tr>';
+        return;
+    }
+
     items.forEach(u => {
+        const name = u.name || 'Guest';
+        const email = u.email || '';
+        const phone = u.phone || '-';
+        const address = u.address ? (u.address.substring(0, 20) + (u.address.length > 20 ? '...' : '')) : '-';
+        const date = u.displayDate || '-';
+        const waLink = u.phone ? `https://wa.me/91${u.phone.replace(/\D/g, '')}` : '#';
+        const waBtn = u.phone ? `<button class="icon-btn btn-green" onclick="window.open('${waLink}', '_blank')"><i class="fab fa-whatsapp"></i></button>` : '-';
+
         tbody.innerHTML += `
             <tr>
-                <td><strong>${u.name || 'Guest'}</strong><br><small>${u.email || ''}</small></td>
-                <td>${u.phone || '-'}</td>
-                <td>${u.address ? u.address.substring(0, 15) + '...' : '-'}</td>
-                <td>${u.displayDate}</td>
-                <td>${u.phone ? `<button class="icon-btn btn-green" onclick="window.open('https://wa.me/91${u.phone.replace(/\D/g, '')}')"><i class="fab fa-whatsapp"></i></button>` : '-'}</td>
+                <td><strong>${name}</strong><br><small>${email}</small></td>
+                <td>${phone}</td>
+                <td>${address}</td>
+                <td>${date}</td>
+                <td>${waBtn}</td>
             </tr>`;
     });
 }
 
 function filterCustomers() {
     const q = document.getElementById('custSearch').value.toLowerCase();
-    state.customers.filteredData = state.customers.data.filter(u => (u.name || '').toLowerCase().includes(q) || (u.phone || '').includes(q));
+    if (!state.customers.data) return;
+    state.customers.filteredData = state.customers.data.filter(u => (u.name || '').toLowerCase().includes(q) || (u.phone || '').includes(q) || (u.email || '').toLowerCase().includes(q));
     state.customers.page = 1;
     renderTable('customers');
 }
 
 function exportCustomersToCSV() {
+    if (!state.customers.data) return;
     let csv = "Name,Email,Phone,Address,Last Login\n";
     state.customers.data.forEach(u => {
-        csv += `"${u.name || ''}","${u.email || ''}","${u.phone || ''}","${u.address ? u.address.replace(/\n/g, ' ') : ''}","${u.displayDate}"\n`;
+        const addr = u.address ? u.address.replace(/(\r\n|\n|\r|,)/gm, " ") : "";
+        csv += `"${u.name || ''}","${u.email || ''}","${u.phone || ''}","${addr}","${u.displayDate}"\n`;
     });
     downloadCSV(csv, "namo_customers.csv");
 }
@@ -476,7 +496,6 @@ async function importFromSheet() {
         const b = db.batch();
         rows.forEach(rw => {
             if (!rw.trim()) return;
-            // Improved CSV parsing regex
             const c = rw.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g).map(x => x.replace(/^"|"$/g, ''));
             const id = c[0];
             if (!id || id === '999') return;
@@ -494,20 +513,19 @@ async function importFromSheet() {
         await b.commit();
         alert("Import Done");
     } catch (e) { alert("Import Failed: " + e.message); }
+}
 
-    // --- SERVICE WORKER REGISTRATION ---
+// --- SERVICE WORKER ---
 function registerAdminServiceWorker() {
     if ('serviceWorker' in navigator && (window.location.protocol === 'http:' || window.location.protocol === 'https:')) {
         navigator.serviceWorker.register('/admin-sw.js')
             .then(registration => {
                 console.log('Admin SW Registered');
-                
                 registration.onupdatefound = () => {
                     const newWorker = registration.installing;
                     newWorker.onstatechange = () => {
                         if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                            // New update available
-                            if(confirm("New Admin Dashboard version available! Refresh now?")) {
+                            if (confirm("New Admin Dashboard version available! Refresh now?")) {
                                 window.location.reload();
                             }
                         }
@@ -517,7 +535,4 @@ function registerAdminServiceWorker() {
             .catch(err => console.log("Admin SW Registration Failed:", err));
     }
 }
-
-// Run registration
 registerAdminServiceWorker();
-}

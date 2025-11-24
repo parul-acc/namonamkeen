@@ -1,4 +1,3 @@
-/* --- 1. VARIABLES & RESET --- */
 :root {
     --primary: #e85d04;
     --primary-dark: #c34600;
@@ -186,7 +185,7 @@ h4 {
     transition: 0.3s;
 }
 
-/* USER PROFILE (Navbar) */
+/* USER PROFILE */
 #user-profile {
     position: relative;
     display: flex;
@@ -472,6 +471,11 @@ h4 {
     box-shadow: 0 15px 40px rgba(0, 0, 0, 0.12);
 }
 
+.product-card.sold-out {
+    opacity: 0.7;
+    filter: grayscale(0.8);
+}
+
 .ribbon {
     position: absolute;
     top: 15px;
@@ -658,24 +662,67 @@ h4 {
     padding-top: 20px;
 }
 
-/* --- CART SIDEBAR (Slide Transition) --- */
-.cart-overlay {
+/* --- CART SIDEBAR --- */
+.cart-overlay,
+.modal-overlay,
+.quiz-overlay {
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
     background: rgba(0, 0, 0, 0.6);
-    z-index: 2000;
+    z-index: 5000;
     opacity: 0;
     visibility: hidden;
     transition: 0.3s;
     backdrop-filter: blur(4px);
 }
 
-.cart-overlay.active {
+.cart-overlay.active,
+.modal-overlay[style*="display: flex"],
+.quiz-overlay[style*="display: flex"] {
     opacity: 1;
     visibility: visible;
+}
+
+.modal-overlay[style*="display: flex"],
+.quiz-overlay[style*="display: flex"] {
+    display: flex !important;
+    justify-content: center;
+    align-items: center;
+}
+
+/* --- CART SIDEBAR --- */
+.cart-overlay,
+.modal-overlay,
+.quiz-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 5000;
+    /* Overlay stays at 5000 */
+    opacity: 0;
+    visibility: hidden;
+    transition: 0.3s;
+    backdrop-filter: blur(4px);
+}
+
+.cart-overlay.active,
+.modal-overlay[style*="display: flex"],
+.quiz-overlay[style*="display: flex"] {
+    opacity: 1;
+    visibility: visible;
+}
+
+.modal-overlay[style*="display: flex"],
+.quiz-overlay[style*="display: flex"] {
+    display: flex !important;
+    justify-content: center;
+    align-items: center;
 }
 
 .cart-sidebar {
@@ -685,8 +732,10 @@ h4 {
     width: 400px;
     max-width: 90%;
     height: 100%;
-    background: #ffffff;
-    z-index: 2001;
+    background: #f9f9f9;
+    /* Slightly off-white background for contrast */
+    z-index: 5001;
+    /* Higher than overlay */
     transition: cubic-bezier(0.4, 0, 0.2, 1) 0.4s;
     display: flex;
     flex-direction: column;
@@ -700,10 +749,33 @@ h4 {
 .cart-header {
     padding: 20px;
     background: #fff;
-    border-bottom: 1px solid #f0f0f0;
+    border-bottom: 1px solid #eee;
     display: flex;
     justify-content: space-between;
     align-items: center;
+    flex-shrink: 0;
+    /* Prevents header from shrinking */
+}
+
+/* NEW: The main scrollable area containing items + forms */
+.cart-scrollable-content {
+    flex-grow: 1;
+    overflow-y: auto;
+    padding: 20px;
+    padding-bottom: 100px;
+    /* Extra padding so content isn't hidden behind footer */
+}
+
+.cart-items-list {
+    margin-bottom: 20px;
+}
+
+/* Block for Inputs and Totals inside the scroll area */
+.cart-details-block {
+    background: white;
+    padding: 20px;
+    border-radius: 15px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
 }
 
 .cart-header h3 {
@@ -748,6 +820,7 @@ h4 {
     background: #fafafa;
 }
 
+/* Items Styling */
 .cart-item {
     display: flex;
     align-items: center;
@@ -798,12 +871,15 @@ h4 {
     justify-content: center;
 }
 
+/* NEW: Footer is now just the button area */
 .cart-footer {
-    padding: 20px;
+    padding: 15px 20px;
     background: #ffffff;
     border-top: 1px solid #eee;
     box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.05);
     flex-shrink: 0;
+    position: relative;
+    z-index: 10;
 }
 
 .total-row {
@@ -858,29 +934,7 @@ h4 {
     background: #fff3e0;
 }
 
-/* --- QUIZ & PRODUCT MODALS (Display None/Flex) --- */
-/* FIX: Separated this from .cart-overlay to avoid opacity conflicts */
-.modal-overlay,
-.quiz-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.6);
-    z-index: 5000;
-    display: none;
-    justify-content: center;
-    align-items: center;
-    backdrop-filter: blur(4px);
-}
-
-/* Inline style override to show modals */
-.modal-overlay[style*="display: flex"],
-.quiz-overlay[style*="display: flex"] {
-    display: flex !important;
-}
-
+/* --- MODALS CONTENT --- */
 .modal-content {
     background: white;
     width: 500px;
@@ -1013,6 +1067,7 @@ h4 {
 }
 
 /* --- VIDEO CARDS --- */
+/* --- VIDEO CARDS FIXED --- */
 .video-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -1028,6 +1083,11 @@ h4 {
     transition: 0.3s;
 }
 
+.video-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+}
+
 .video-wrapper {
     position: relative;
     width: 100%;
@@ -1037,33 +1097,52 @@ h4 {
     display: flex;
     justify-content: center;
     align-items: center;
+    overflow: hidden;
 }
 
 .video-wrapper video {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    object-position: center top;
-    opacity: 0.95;
-    transition: 0.3s;
+    /* Ensures the thumbnail covers the whole area */
+    object-position: center;
+    opacity: 1;
+    /* FIX: Makes thumbnail clear and visible */
+    transition: transform 0.3s ease;
 }
 
+/* Play Button Styling */
 .play-overlay {
     position: absolute;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    width: 60px;
-    height: 60px;
-    background: rgba(232, 93, 4, 0.8);
+    width: 70px;
+    height: 70px;
+    background: rgba(232, 93, 4, 0.9);
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
     color: white;
-    font-size: 1.5rem;
-    border: 3px solid white;
+    font-size: 1.8rem;
+    border: 3px solid rgba(255, 255, 255, 0.8);
     pointer-events: none;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    z-index: 2;
+}
+
+/* Hover Effect */
+.video-wrapper:hover .play-overlay {
+    transform: translate(-50%, -50%) scale(1.1);
+    background: #e85d04;
+}
+
+/* FIX: Hide overlay when playing */
+.video-wrapper.playing .play-overlay {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.5);
 }
 
 /* --- ANNOUNCEMENT BAR --- */

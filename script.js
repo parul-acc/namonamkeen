@@ -538,15 +538,107 @@ async function checkoutWhatsApp() {
     document.getElementById('success-modal').style.display = 'flex';
 }
 
-// --- 11. HELPERS ---
+// --- 11. HISTORY & HELPERS ---
+function showOrderHistory() {
+    const modal = document.getElementById('history-modal');
+    const content = document.getElementById('history-content');
+
+    modal.classList.add('active');
+
+    if (!currentUser) {
+        content.innerHTML = '<p style="padding:20px; text-align:center;">Please login to view your past orders.</p>';
+        return;
+    }
+
+    content.innerHTML = '<p style="padding:20px; text-align:center;">Loading history...</p>';
+
+    db.collection("orders")
+        .where("userId", "==", currentUser.uid)
+        .orderBy("timestamp", "desc")
+        .limit(20)
+        .get()
+        .then(snap => {
+            if (snap.empty) {
+                content.innerHTML = '<p style="padding:20px; text-align:center;">No past orders found.</p>';
+                return;
+            }
+
+            let html = '';
+            snap.forEach(doc => {
+                const o = doc.data();
+                const date = o.timestamp ? o.timestamp.toDate().toLocaleDateString() : 'N/A';
+
+                let statusColor = '#888';
+                if (o.status === 'Delivered') statusColor = '#2ecc71';
+                else if (o.status === 'Pending') statusColor = '#e67e22';
+                else if (o.status === 'Packed') statusColor = '#3498db';
+
+                let itemsHtml = '';
+                if (o.items && o.items.length > 0) {
+                    itemsHtml = o.items.map(i => `
+                        <div style="display:flex; justify-content:space-between; font-size:0.85rem; color:#555;">
+                            <span>${i.name} (${i.weight}) x ${i.qty}</span>
+                            <span>₹${i.price * i.qty}</span>
+                        </div>
+                    `).join('');
+                }
+
+                html += `
+                    <div style="background:white; border:1px solid #eee; border-radius:8px; padding:15px; margin-bottom:15px; box-shadow:0 2px 5px rgba(0,0,0,0.05);">
+                        <div style="display:flex; justify-content:space-between; border-bottom:1px dashed #eee; padding-bottom:8px; margin-bottom:8px;">
+                            <strong style="font-size:0.9rem;">${date}</strong>
+                            <span style="color:${statusColor}; font-weight:bold; font-size:0.85rem; text-transform:uppercase;">${o.status}</span>
+                        </div>
+                        <div style="margin-bottom:10px;">
+                            ${itemsHtml}
+                        </div>
+                        <div style="display:flex; justify-content:space-between; border-top:1px dashed #eee; padding-top:8px; font-weight:bold;">
+                            <span>Total</span>
+                            <span style="color:var(--primary);">₹${o.total}</span>
+                        </div>
+                        <div style="text-align:right; font-size:0.75rem; color:#999; margin-top:5px;">
+                            Order ID: ${o.id}
+                        </div>
+                    </div>
+                `;
+            });
+            content.innerHTML = html;
+        })
+        .catch(err => {
+            console.error("History Error:", err);
+            if (err.message.includes("index")) {
+                content.innerHTML = '<p style="padding:20px; color:red; text-align:center;">System Update: Creating database index... Try again in 5 minutes.</p>';
+            } else {
+                content.innerHTML = '<p style="padding:20px; color:red; text-align:center;">Failed to load history. Please check your connection.</p>';
+            }
+        });
+}
+
 function closeSuccessModal() { document.getElementById('success-modal').style.display = 'none'; }
 function openProfileModal() { document.getElementById('profile-modal').style.display = 'flex'; document.getElementById('profile-menu').classList.remove('active'); }
 function closeProfileModal() { document.getElementById('profile-modal').style.display = 'none'; }
 function saveProfile() { db.collection("users").doc(currentUser.uid).set({ phone: document.getElementById('edit-phone').value, address: document.getElementById('edit-address').value }, { merge: true }).then(() => closeProfileModal()); }
-function showOrderHistory() { document.getElementById('history-modal').classList.add('active'); }
 function closeHistory() { document.getElementById('history-modal').classList.remove('active'); }
-function playVideo(w) { const v = w.querySelector('video'); if (v.paused) { w.classList.add('playing'); v.play(); } else { v.pause(); } }
+function playVideo(w) {
+    const v = w.querySelector('video');
 
+    // Feature: Pause any other playing videos
+    document.querySelectorAll('.video-wrapper.playing video').forEach(otherVid => {
+        if (otherVid !== v) {
+            otherVid.pause();
+            otherVid.closest('.video-wrapper').classList.remove('playing');
+        }
+    });
+
+    // Toggle current video
+    if (v.paused) {
+        w.classList.add('playing');
+        v.play();
+    } else {
+        w.classList.remove('playing');
+        v.pause();
+    }
+}
 function closeAnnouncement() { document.getElementById('announcement-bar').style.display = 'none'; }
 function filterMenu(c) { currentCategory = c; document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active')); event.target.classList.add('active'); renderMenu(); }
 function searchMenu() { searchQuery = document.getElementById('menu-search').value; renderMenu(); }
@@ -554,24 +646,10 @@ function toggleLanguage() { currentLang = currentLang === 'en' ? 'hi' : 'en'; re
 function toggleMobileMenu() { document.getElementById('mobile-nav').classList.toggle('active'); }
 function scrollToTop() { window.scrollTo({ top: 0, behavior: 'smooth' }); }
 
-// Add this to the very end of script.js
 function registerServiceWorker() {
-    if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('/sw.js').then(registration => {
-            console.log('SW Registered');
-            
-            registration.onupdatefound = () => {
-                const newWorker = registration.installing;
-                newWorker.onstatechange = () => {
-                    if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                        // New update available
-                        if(confirm("New version available! Refresh to update?")) {
-                            window.location.reload();
-                        }
-                    }
-                };
-            };
-        });
+    if ('serviceWorker' in navigator && (window.location.protocol === 'http:' || window.location.protocol === 'https:')) {
+        navigator.serviceWorker.register('sw.js')
+            .then(reg => console.log("Service Worker Registered"))
+            .catch(err => console.log("SW Registration Failed:", err));
     }
 }
-registerServiceWorker();
