@@ -12,8 +12,8 @@
 
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#e85d04">
-    <link rel="apple-touch-icon" href="logo.jpg">
     <link rel="icon" href="logo.jpg" type="image/jpeg">
+
     <meta property="og:title" content="Namo Namkeen | Authentic Taste of Indore">
     <meta property="og:description"
         content="Order fresh, homemade Sev, Mixture, and Sweets. Pick 3 packs for ₹250! Delivery in Mhow & Indore.">
@@ -28,13 +28,6 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
-    <script>
-        window.dataLayer = window.dataLayer || [];
-        function gtag() { dataLayer.push(arguments); }
-        gtag('js', new Date());
-        gtag('config', 'G-XXXXXXXXXX');
-    </script>
 </head>
 
 <body>
@@ -52,15 +45,9 @@
             </a>
 
             <ul class="nav-menu">
-                <li><a href="#home" class="nav-link" data-en="Home" data-hi="होम">Home</a></li>
-                <li><a href="#menu-section" class="nav-link" data-en="Menu" data-hi="मेन्यू">Menu</a></li>
-                <li><a href="pricelist.html" class="nav-link" data-en="Price List" data-hi="मूल्य सूची">Price List</a>
-                </li>
-                <li class="lang-switch-li">
-                    <button id="lang-toggle" onclick="toggleLanguage()">
-                        <span class="lang-en">EN</span> / <span class="lang-hi">हिंदी</span>
-                    </button>
-                </li>
+                <li><a href="#home" class="nav-link">Home</a></li>
+                <li><a href="#menu-section" class="nav-link">Menu</a></li>
+                <li><a href="pricelist.html" class="nav-link">Price List</a></li>
             </ul>
 
             <div class="nav-actions">
@@ -96,25 +83,16 @@
         <a href="pricelist.html">Price List</a>
     </div>
 
-    <button id="install-btn" class="pwa-install-btn" style="display: none;">
-        <i class="fas fa-download"></i> Install App
-    </button>
-
     <section id="home" class="hero">
         <div class="hero-overlay">
             <div class="hero-content">
                 <span class="hero-subtitle animate-up">The Royal Taste of Indore</span>
-                <h1 class="animate-up delay-1" data-en="..." data-hi="...">Crunchy. Spicy.<br>Authentic.</h1>
-                <p class="animate-up delay-2" data-en="..." data-hi="...">Handcrafted namkeen...</p>
-                <div class="hero-buttons animate-up delay-3">
-                </div>
-
+                <h1 class="animate-up delay-1">Crunchy. Spicy.<br>Authentic.</h1>
+                <p class="animate-up delay-2">Handcrafted namkeen delivered to your doorstep.</p>
                 <div class="hero-buttons">
-                    <a href="#menu-section" class="btn-primary" data-en="Order Now" data-hi="अभी आर्डर करें">Order
-                        Now</a>
+                    <a href="#menu-section" class="btn-primary">Order Now</a>
                     <button onclick="openQuiz()" class="btn-secondary">
-                        <i class="fas fa-magic"></i> <span data-en="Snack Finder" data-hi="स्नैक खोजें">Snack
-                            Finder</span>
+                        <i class="fas fa-magic"></i> Snack Finder
                     </button>
                 </div>
             </div>
@@ -125,15 +103,15 @@
         <div class="container badge-grid">
             <div class="badge-item">
                 <i class="fas fa-mortar-pestle"></i>
-                <h4 data-en="Freshly Homemade" data-hi="ताज़ा घर का बना">Freshly Homemade</h4>
+                <h4>Freshly Homemade</h4>
             </div>
             <div class="badge-item">
                 <i class="fas fa-leaf"></i>
-                <h4 data-en="100% Natural" data-hi="100% प्राकृतिक">100% Natural</h4>
+                <h4>100% Natural</h4>
             </div>
             <div class="badge-item">
                 <i class="fas fa-shipping-fast"></i>
-                <h4 data-en="Fast Delivery" data-hi="तेज़ डिलीवरी">Fast Delivery</h4>
+                <h4>Fast Delivery</h4>
             </div>
         </div>
     </section>
@@ -142,7 +120,7 @@
         <div class="container">
             <div class="section-header text-center">
                 <span class="section-subtitle">Select Your Favorites</span>
-                <h2 data-en="Our Full Menu" data-hi="हमारा पूरा मेन्यू">Our Full Menu</h2>
+                <h2>Our Full Menu</h2>
                 <div class="separator"></div>
             </div>
 
@@ -167,9 +145,8 @@
     <section id="hamper-section" class="section-pad" style="background: #fff8e1; border-top: 5px solid var(--primary);">
         <div class="container text-center">
             <span class="section-subtitle">Perfect for Gifting</span>
-            <h2 data-en="Make Your Own Hamper" data-hi="अपना गिफ्ट बॉक्स बनाएं">Make Your Own Hamper</h2>
-            <p data-en="Pick any 3 packs for just ₹250!" data-hi="कोई भी 3 पैक चुनें मात्र ₹250 में!">Pick any 3 packs
-                for just <strong>₹250</strong>!</p>
+            <h2>Make Your Own Hamper</h2>
+            <p>Pick any 3 packs for just <strong>₹250</strong>!</p>
             <div class="separator"></div>
 
             <div class="hamper-builder">
@@ -235,7 +212,7 @@
     <div class="cart-overlay" onclick="toggleCart()"></div>
     <div class="cart-sidebar" id="cart-sidebar">
         <div class="cart-header">
-            <h3 data-en="Your Order" data-hi="आपका आर्डर">Your Order</h3>
+            <h3>Your Order</h3>
             <div class="cart-header-actions">
                 <button id="clear-cart-btn" class="clear-btn" onclick="clearCart()" style="display: none;">
                     <i class="fas fa-trash-alt"></i> Clear
@@ -245,14 +222,11 @@
         </div>
         <div id="cart-items" class="cart-items-container"></div>
         <div class="cart-footer">
-
-            <div class="coupon-section"
-                style="margin-bottom: 15px; border-bottom: 1px dashed #ddd; padding-bottom: 10px;">
+            <div class="coupon-section">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
                     <span style="font-size:0.8rem; font-weight:bold; color:#555;">Offers & Coupons</span>
                     <small style="color:var(--primary); cursor:pointer;" onclick="toggleCouponList()">View All</small>
                 </div>
-
                 <div style="display:flex; gap:5px;">
                     <input type="text" id="promo-code" placeholder="Enter Code"
                         style="flex-grow:1; padding:8px; border:1px solid #ddd; border-radius:5px; text-transform:uppercase; font-size:0.9rem;">
@@ -260,21 +234,13 @@
                         style="background:var(--dark); color:white; border:none; padding:8px 15px; border-radius:5px; cursor:pointer;">Apply</button>
                 </div>
                 <p id="promo-msg" style="font-size:0.75rem; margin-top:5px; min-height:15px;"></p>
-
                 <div id="coupon-list"
-                    style="display:none; background:#f9f9f9; padding:10px; margin-top:5px; border-radius:5px; border:1px solid #eee;">
-                    <div class="coupon-item" onclick="useCoupon('NAMO10')">
-                        <strong>NAMO10</strong> - Get 10% OFF <br><small>Min order ₹200</small>
-                    </div>
-                    <div class="coupon-item" onclick="useCoupon('WELCOME20')"
-                        style="margin-top:8px; border-top:1px solid #eee; padding-top:8px;">
-                        <strong>WELCOME20</strong> - Get 20% OFF <br><small>New customers only</small>
-                    </div>
+                    style="display:none; background:#f9f9f9; padding:10px; margin-top:5px; border-radius:5px; border:1px solid #eee; max-height:150px; overflow-y:auto;">
                 </div>
             </div>
 
             <div class="total-row">
-                <span data-en="Total Estimate:" data-hi="कुल अनुमान:">Total Estimate:</span>
+                <span>Total Estimate:</span>
                 <span id="cart-total">₹0</span>
             </div>
 
@@ -305,6 +271,7 @@
             </button>
         </div>
     </div>
+
     <div id="product-modal" class="modal-overlay">
         <div class="modal-content p-detail-content">
             <button class="close-modal" onclick="closeProductModal()">&times;</button>
@@ -317,19 +284,15 @@
         <div class="modal-content">
             <button class="close-modal" onclick="closeProfileModal()">&times;</button>
             <h2 style="color:var(--primary); margin-top:0;">Edit Profile</h2>
-
             <label style="font-weight:bold; display:block; margin-top:15px;">Your Name</label>
             <input type="text" id="edit-name" disabled
                 style="width:100%; padding:10px; border:1px solid #eee; background:#f9f9f9; border-radius:5px; color:#777;">
-
             <label style="font-weight:bold; display:block; margin-top:15px;">Mobile Number</label>
             <input type="tel" id="edit-phone" placeholder="10-digit number"
                 style="width:100%; padding:10px; border:1px solid #ccc; border-radius:5px;">
-
             <label style="font-weight:bold; display:block; margin-top:15px;">Default Address</label>
             <textarea id="edit-address" rows="3" placeholder="Your full address..."
                 style="width:100%; padding:10px; border:1px solid #ccc; border-radius:5px; resize:none;"></textarea>
-
             <button onclick="saveProfile()" class="btn-primary" style="width:100%; margin-top:20px; padding:12px;">Save
                 Changes</button>
         </div>
@@ -351,12 +314,10 @@
         style="z-index: 9999; display: none; align-items: center; justify-content: center;">
         <div class="modal-content mobile-modal"
             style="text-align: center; background: white; border-radius: 15px; position: relative;">
-
             <div
                 style="width: 60px; height: 60px; background: #e8f5e9; color: #2ecc71; font-size: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 15px;">
                 <i class="fas fa-check"></i>
             </div>
-
             <h2 style="color:#e85d04; margin-bottom: 5px; font-size: 1.5rem;">Order Placed!</h2>
             <p style="color: #666; margin-bottom: 15px; font-size: 0.9rem;">Total: <span id="success-total-amount"
                     style="color:black; font-weight:bold;">₹0</span></p>
@@ -365,11 +326,9 @@
                 style="background: #fff8e1; border: 2px dashed #e85d04; border-radius: 10px; padding: 15px; margin-bottom: 15px;">
                 <p style="margin: 0 0 10px; font-size: 0.85rem; font-weight: bold; color: #d35400;">👇 Tap QR to Pay via
                     UPI 👇</p>
-
                 <a id="upi-pay-link" href="#" style="display: block; text-decoration: none; color: inherit;">
                     <img id="success-qr-img" src="" alt="Payment QR"
                         style="width: 130px; height: 130px; display: block; margin: 0 auto; mix-blend-mode: multiply;">
-
                     <button
                         style="background: #2c3e50; color: white; border: none; padding: 8px 20px; border-radius: 20px; margin-top: 10px; font-size: 0.8rem; cursor: pointer;">
                         <i class="fas fa-mobile-alt"></i> Click to Pay App
@@ -382,7 +341,6 @@
                 style="width: 100%; padding: 12px; font-size: 1rem; justify-content: center; display: flex; align-items: center; gap: 8px; background: #25D366; color: white; border: none; border-radius: 8px; cursor: pointer;">
                 <i class="fab fa-whatsapp"></i> Send on WhatsApp
             </button>
-
             <button onclick="closeSuccessModal()"
                 style="background: none; border: none; margin-top: 15px; color: #999; cursor: pointer; text-decoration: underline; font-size: 0.85rem; padding: 10px;">Close
                 Window</button>
@@ -391,65 +349,19 @@
 
     <div id="invoice-modal" class="cart-overlay" style="z-index: 4000;">
         <div class="invoice-container">
-
             <div class="invoice-actions no-print">
                 <button onclick="printInvoice()" class="btn-primary"><i class="fas fa-print"></i> Print / PDF</button>
                 <button onclick="closeInvoice()" class="close-invoice">&times;</button>
             </div>
-
             <div id="invoice-print-area">
-                <div class="inv-header">
-                    <img src="logo.jpg" alt="Namo Logo" class="inv-logo">
-                    <div class="inv-company">
-                        <h2>Namo Namkeen</h2>
-                        <p>131, Keshav Park, Mhow (M.P.)</p>
-                        <p>+91 98266 98822</p>
-                    </div>
-                </div>
-
-                <hr>
-
-                <div class="inv-details">
-                    <div>
-                        <strong>Billed To:</strong>
-                        <p id="inv-customer-name">Customer Name</p>
-                        <p id="inv-customer-email">email@example.com</p>
-                    </div>
-                    <div class="text-right">
-                        <strong>Order Receipt</strong>
-                        <p>ID: <span id="inv-order-id">#12345</span></p>
-                        <p>Date: <span id="inv-date">22/11/2025</span></p>
-                    </div>
-                </div>
-
-                <table class="inv-table">
-                    <thead>
-                        <tr>
-                            <th>Item</th>
-                            <th class="text-center">Qty</th>
-                            <th class="text-right">Price</th>
-                            <th class="text-right">Total</th>
-                        </tr>
-                    </thead>
-                    <tbody id="inv-items-body">
-                    </tbody>
-                </table>
-
-                <div class="inv-total">
-                    <h3>Grand Total: <span id="inv-grand-total">₹0</span></h3>
-                </div>
-                <div id="inv-qr-section"
-                    style="text-align:center; margin-top:20px; padding:15px; border:2px dashed #e85d04; border-radius:10px; background:#fff8e1;">
-                    <p style="margin:0 0 10px; font-weight:bold; color:#d35400;">Scan to Pay Instantly</p>
-                    <img id="inv-qr-img" src="" alt="QR Code"
-                        style="width:120px; height:120px; mix-blend-mode: multiply;">
-                    <p style="margin:5px 0 0; font-size:0.8rem; color:#555;">Accepted: GPay, PhonePe, Paytm</p>
-                </div>
-                <div class="inv-footer">
-                    <p>Thank you for your order!</p>
-                    <p>Visit: <a href="https://www.namonamkeen.shop">www.namonamkeen.shop</a></p>
-                </div>
             </div>
+        </div>
+    </div>
+
+    <div id="quiz-modal" class="quiz-overlay">
+        <div class="quiz-container">
+            <button class="close-modal" onclick="closeQuiz()">&times;</button>
+            <div id="quiz-content"></div>
         </div>
     </div>
 
@@ -474,72 +386,17 @@
             <p>Designed by Parul Gangwal</p>
             <p style="font-size: 0.8rem;">
                 <a href="privacy.html" style="color:#888; text-decoration:none;">Privacy Policy</a> |
-                <a href="#" style="color:#888; text-decoration:none;">Terms of Service</a>
+                <a href="terms.html" style="color:#888; text-decoration:none;">Terms of Service</a>
             </p>
         </div>
     </footer>
-
-    <div id="success-modal" class="cart-overlay"
-        style="z-index: 9999; display: none; align-items: center; justify-content: center;">
-        <div class="modal-content"
-            style="text-align: center; padding: 40px 30px; background: white; border-radius: 15px; width: 90%; max-width: 400px;">
-
-            <div
-                style="width: 70px; height: 70px; background: #e8f5e9; color: #2ecc71; font-size: 35px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px;">
-                <i class="fas fa-check"></i>
-            </div>
-
-            <h2 style="color:#e85d04; margin-bottom: 10px;">Order Placed!</h2>
-            <p style="color: #666; margin-bottom: 20px; font-size: 0.9rem;">Your items are reserved. Please complete
-                payment to confirm.</p>
-
-            <div
-                style="background: #fff8e1; border: 2px dashed #e85d04; border-radius: 10px; padding: 15px; margin-bottom: 20px;">
-                <p style="margin: 0 0 10px; font-weight: bold; color: #d35400;">Scan to Pay: <span
-                        id="success-total-amount" style="font-size: 1.2rem;">₹0</span></p>
-
-                <img id="success-qr-img" src="" alt="QR Code"
-                    style="width: 140px; height: 140px; display: block; margin: 0 auto; mix-blend-mode: multiply;">
-
-                <p style="margin: 8px 0 0; font-size: 0.75rem; color: #555;">GPay / PhonePe / Paytm</p>
-            </div>
-
-            <p style="font-weight: 600; margin-bottom: 10px; font-size: 0.9rem;">Final Step: Send Order Details</p>
-            <button id="btn-send-whatsapp" class="btn-whatsapp-checkout"
-                style="width: 100%; padding: 12px; font-size: 1rem; justify-content: center; display: flex; align-items: center; gap: 8px; background: #25D366; color: white; border: none; border-radius: 8px; cursor: pointer;">
-                <i class="fab fa-whatsapp"></i> Send on WhatsApp
-            </button>
-
-            <button onclick="closeSuccessModal()"
-                style="background: none; border: none; margin-top: 15px; color: #999; cursor: pointer; text-decoration: underline; font-size: 0.85rem;">Close
-                Window</button>
-        </div>
-    </div>
 
     <button id="scrollTopBtn" onclick="scrollToTop()" title="Go to top">
         <i class="fas fa-arrow-up"></i>
     </button>
     <div id="toast-container"></div>
 
-    <div id="quiz-modal" class="quiz-overlay">
-        <div class="quiz-container">
-            <button class="close-quiz" onclick="closeQuiz()">&times;</button>
-            <div id="quiz-content">
-            </div>
-        </div>
-    </div>
-
-      <!-- PRODUCT DETAIL MODAL -->
-    <div id="product-modal" class="modal-overlay">
-        <div class="modal-content p-detail-content">
-            <button class="close-modal" onclick="closeProductModal()">&times;</button>
-            <div id="p-modal-body">
-                <!-- Injected via JS -->
-            </div>
-        </div>
-    </div>
     <script src="script.js"></script>
-
 </body>
 
 </html>
