@@ -247,6 +247,8 @@ function loadCustomers() {
 }
 
 function renderCustomerRows(tbody, items) {
+    console.log('Inside Loading customers');
+    console.log(items);
     if (!tbody) return;
     tbody.innerHTML = '';
 

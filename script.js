@@ -23,6 +23,7 @@ let currentCategory = 'all';
 let searchQuery = '';
 let currentLang = 'en';
 let selectedHamperItems = [];
+let historyOrders = [];
 
 // New Coupon State
 let activeCoupons = [];
@@ -541,9 +542,7 @@ async function checkoutWhatsApp() {
 // --- 11. HISTORY & HELPERS ---
 // --- ORDER HISTORY & INVOICE LOGIC ---
 
-// Global variable to store fetched history for quick access
-let historyOrders = [];
-
+// 1. Enhanced Order History (Fetches & Saves Data)
 function showOrderHistory() {
     const modal = document.getElementById('history-modal');
     const content = document.getElementById('history-content');
@@ -564,24 +563,22 @@ function showOrderHistory() {
         .get()
         .then(snap => {
             if (snap.empty) {
-                content.innerHTML = '<p style="padding:20px; text-align:center;">No past orders found. Time to order something! 😋</p>';
+                content.innerHTML = '<p style="padding:20px; text-align:center;">No past orders found.</p>';
                 return;
             }
 
-            historyOrders = []; // Reset local storage
+            historyOrders = []; // Store locally for invoice generation
             let html = '';
 
             snap.forEach(doc => {
                 const o = doc.data();
-                historyOrders.push(o); // Save for invoice/repeat
+                historyOrders.push(o);
 
                 const date = o.timestamp ? o.timestamp.toDate().toLocaleDateString() : 'N/A';
-
                 let statusColor = '#e67e22'; // Pending
                 if (o.status === 'Packed') statusColor = '#3498db';
                 if (o.status === 'Delivered') statusColor = '#2ecc71';
 
-                // Generate Items List string
                 const itemsList = o.items.map(i =>
                     `<div style="display:flex; justify-content:space-between; font-size:0.9rem; color:#555; margin-bottom:4px;">
                         <span>${i.name} x ${i.qty}</span>
@@ -598,17 +595,18 @@ function showOrderHistory() {
                             </div>
                             <span style="color:${statusColor}; font-weight:bold; font-size:0.85rem; text-transform:uppercase;">${o.status}</span>
                         </div>
-                        
                         <div style="margin-bottom:10px;">${itemsList}</div>
-
                         <div style="display:flex; justify-content:space-between; border-top:1px dashed #ddd; padding-top:10px; margin-bottom:10px; font-weight:bold; color:#333;">
                             <span>Total</span>
                             <span style="color:var(--primary);">₹${o.total}</span>
                         </div>
-
-                        <div class="history-actions">
-                            <button class="btn-outline" onclick="openInvoice('${o.id}')"><i class="fas fa-file-invoice"></i> Invoice</button>
-                            <button class="btn-outline" onclick="repeatOrder('${o.id}')"><i class="fas fa-redo"></i> Repeat</button>
+                        <div style="display:flex; gap:10px; border-top:1px solid #eee; padding-top:10px;">
+                            <button onclick="openInvoice('${o.id}')" style="flex:1; padding:8px; background:white; border:1px solid #e85d04; color:#e85d04; border-radius:5px; cursor:pointer;">
+                                <i class="fas fa-file-invoice"></i> Invoice
+                            </button>
+                            <button onclick="repeatOrder('${o.id}')" style="flex:1; padding:8px; background:#e85d04; color:white; border:none; border-radius:5px; cursor:pointer;">
+                                <i class="fas fa-redo"></i> Repeat
+                            </button>
                         </div>
                     </div>
                 `;
@@ -617,25 +615,32 @@ function showOrderHistory() {
         })
         .catch(err => {
             console.error("History Error:", err);
-            if (err.message.includes("index")) {
-                content.innerHTML = '<p style="padding:20px; color:red; text-align:center;">System Update: Creating database index... Try again in 5 minutes.</p>';
-            } else {
-                content.innerHTML = '<p style="padding:20px; color:red; text-align:center;">Failed to load history.</p>';
-            }
+            content.innerHTML = '<p style="padding:20px; color:red; text-align:center;">Failed to load history.</p>';
         });
 }
 
+function closeHistory() {
+    document.getElementById('history-modal').classList.remove('active');
+}
+
+// 2. Invoice Logic
 function openInvoice(orderId) {
+    // Find data in the local variable we just saved
     const order = historyOrders.find(o => o.id === orderId);
     if (!order) return alert("Order details not found.");
 
-    // Populate Invoice Data
+    // Populate HTML
     document.getElementById('inv-customer-name').innerText = order.userName;
     document.getElementById('inv-customer-email').innerText = currentUser.email || '-';
     document.getElementById('inv-order-id').innerText = `#${order.id}`;
     document.getElementById('inv-date').innerText = order.timestamp ? new Date(order.timestamp.seconds * 1000).toLocaleDateString() : '-';
+    document.getElementById('inv-grand-total').innerText = `₹${order.total}`;
 
-    // Populate Items
+    // Generate QR Code
+    const upiLink = `upi://pay?pa=9826698822@paytm&pn=NamoNamkeen&am=${order.total}&cu=INR`;
+    document.getElementById('inv-qr-img').src = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(upiLink)}`;
+
+    // Populate Items Table
     const tbody = document.getElementById('inv-items-body');
     tbody.innerHTML = '';
     order.items.forEach(i => {
@@ -647,12 +652,6 @@ function openInvoice(orderId) {
                 <td class="text-right">₹${i.price * i.qty}</td>
             </tr>`;
     });
-
-    document.getElementById('inv-grand-total').innerText = `₹${order.total}`;
-
-    // Generate UPI QR Code for Payment (if valid amount)
-    const upiLink = `upi://pay?pa=9826698822@paytm&pn=NamoNamkeen&am=${order.total}&cu=INR`;
-    document.getElementById('inv-qr-img').src = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(upiLink)}`;
 
     // Show Modal
     document.getElementById('invoice-modal').style.display = 'flex';
@@ -666,17 +665,14 @@ function printInvoice() {
     window.print();
 }
 
+// 3. Repeat Order Logic
 function repeatOrder(orderId) {
     const order = historyOrders.find(o => o.id === orderId);
     if (!order) return;
 
     if (confirm("Add all items from this order to your cart?")) {
         order.items.forEach(item => {
-            // Push to cart array properly
-            // Using a simple push mechanism, checking duplicates is handled in addToCart usually, 
-            // but here we manually reconstruct to ensure simplicity.
             const cartId = item.cartId || `${item.productId}-${item.weight.replace(/\s/g, '')}`;
-
             const existing = cart.find(c => c.cartId === cartId);
             if (existing) {
                 existing.qty += item.qty;
@@ -684,12 +680,12 @@ function repeatOrder(orderId) {
                 cart.push({ ...item, cartId: cartId });
             }
         });
-
         updateCartUI();
-        toggleCart(); // Open cart sidebar
-        closeHistory(); // Close history modal
+        toggleCart();
+        closeHistory();
     }
 }
+
 function closeSuccessModal() { document.getElementById('success-modal').style.display = 'none'; }
 function openProfileModal() { document.getElementById('profile-modal').style.display = 'flex'; document.getElementById('profile-menu').classList.remove('active'); }
 function closeProfileModal() { document.getElementById('profile-modal').style.display = 'none'; }
