@@ -23,14 +23,14 @@ let currentCategory = 'all';
 let searchQuery = '';
 let currentLang = 'en';
 let selectedHamperItems = [];
-let discountMultiplier = 1;
 
 // New Coupon State
 let activeCoupons = [];
+let appliedDiscount = { type: 'none', value: 0, code: null };
 
 // --- 3. INITIALIZATION ---
 document.addEventListener('DOMContentLoaded', () => {
-    fetchData(); // Renamed to generic fetchData
+    fetchData();
     if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
 
     auth.onAuthStateChanged(user => {
@@ -51,17 +51,15 @@ function fetchData() {
     db.collection("products").get().then(snap => {
         products = [];
         snap.forEach(doc => products.push(doc.data()));
-        // Filter out any dummy data
         products = products.filter(p => p.id !== 999);
         renderMenu();
         renderHamperOptions();
     }).catch(err => console.error("Products Error:", err));
 
-    // 2. Fetch Announcement (New Logic)
+    // 2. Fetch Announcement
     db.collection("settings").doc("announcement").get().then(doc => {
         if (doc.exists) {
             const data = doc.data();
-            // Only show if 'active' is true and text exists
             if (data.active === true && data.text) {
                 const bar = document.getElementById('announcement-bar');
                 const txt = document.getElementById('announcement-text');
@@ -70,22 +68,18 @@ function fetchData() {
                     bar.style.display = 'block';
                 }
             } else {
-                // Hide if inactive
                 const bar = document.getElementById('announcement-bar');
                 if (bar) bar.style.display = 'none';
             }
         }
     }).catch(err => console.error("Settings Error:", err));
 
-    // --- [KEEP EXISTING CONFIG & VARS] ---
-let activeCoupons = []; // New variable
-    // 3. Fetch Coupons (New)
+    // 3. Fetch Coupons
     const now = new Date();
     db.collection("coupons").where("isActive", "==", true).onSnapshot(snap => {
         activeCoupons = [];
         snap.forEach(doc => {
             const c = doc.data();
-            // Check expiry client-side as well
             if (c.expiryDate.toDate() > now) {
                 activeCoupons.push(c);
             }
@@ -97,17 +91,17 @@ let activeCoupons = []; // New variable
 // --- 5. RENDER MENU ---
 function renderMenu() {
     const grid = document.getElementById('menu-grid');
-    if(!grid) return;
+    if (!grid) return;
     grid.innerHTML = '';
 
     const filtered = products.filter(p => {
-        const name = (p.name + (p.nameHi||'')).toLowerCase();
+        const name = (p.name + (p.nameHi || '')).toLowerCase();
         const matchesCat = currentCategory === 'all' || p.category === currentCategory;
         const matchesSearch = name.includes(searchQuery.toLowerCase());
         return matchesCat && matchesSearch;
     });
 
-    if(filtered.length === 0) {
+    if (filtered.length === 0) {
         grid.innerHTML = '<p style="text-align:center; grid-column:1/-1;">No products found.</p>';
         return;
     }
@@ -116,26 +110,22 @@ function renderMenu() {
         const name = currentLang === 'en' ? p.name : (p.nameHi || p.name);
         const desc = currentLang === 'en' ? p.desc : (p.descHi || p.desc);
         const ribbonHTML = p.bestseller ? `<div class="ribbon">Bestseller</div>` : '';
-        
+
         let variantHtml = '';
         let displayPrice = p.price;
         let isAvailable = p.in_stock;
 
-        // Logic to find the first available variant to show price
         if (p.variants && p.variants.length > 0) {
             const firstActive = p.variants.find(v => v.inStock !== false);
             displayPrice = firstActive ? firstActive.price : p.variants[0].price;
-            if (!firstActive) isAvailable = false; // All variants OOS
+            if (!firstActive) isAvailable = false;
 
             variantHtml = `<select class="variant-select" id="variant-select-${p.id}" onclick="event.stopPropagation()" onchange="updateCardPrice(${p.id}, this.value)">`;
-            
             p.variants.forEach((v, index) => {
-                const stockStatus = (v.inStock !== false); // Default true if undefined
+                const stockStatus = (v.inStock !== false);
                 const disabledAttr = stockStatus ? '' : 'disabled';
                 const label = v.weight + (stockStatus ? '' : ' (Out of Stock)');
-                // Select first active one by default
                 const selectedAttr = (v.price === displayPrice && stockStatus) ? 'selected' : '';
-                
                 variantHtml += `<option value="${index}" ${disabledAttr} ${selectedAttr}>${label}</option>`;
             });
             variantHtml += `</select>`;
@@ -162,7 +152,6 @@ function renderMenu() {
     });
 }
 
-// --- 6. VARIANT ACTIONS ---
 function updateCardPrice(id, index) {
     const p = products.find(x => x.id === id);
     if (p && p.variants && p.variants[index]) {
@@ -179,11 +168,10 @@ function addToCartFromGrid(id) {
     addToCart(p, v);
 }
 
-// --- 7. HAMPER LOGIC ---
+// --- 6. HAMPER LOGIC ---
 function renderHamperOptions() {
     const container = document.getElementById('hamper-options');
     if (!container) return;
-    // Filter items <= 105
     const eligible = products.filter(p => p.price <= 105 && p.in_stock);
 
     container.innerHTML = '';
@@ -253,7 +241,7 @@ function addHamperToCart() {
     updateCartUI();
 }
 
-// --- 8. SNACK FINDER ---
+// --- 7. SNACK FINDER ---
 function openQuiz() {
     if (!products || products.length === 0) { alert("Loading..."); return; }
     document.getElementById('quiz-modal').style.display = 'flex';
@@ -286,15 +274,14 @@ function findResult(keyword) {
     document.getElementById('quiz-content').innerHTML = `<div class="quiz-result"><h3 style="color:green">Try This!</h3><img src="${p.image}" class="result-img" onerror="this.src='logo.jpg'"><h2>${p.name}</h2><button class="btn-primary" style="padding:10px;" onclick="openProductDetail(${p.id}); closeQuiz();">View</button></div>`;
 }
 
-// --- 9. MODAL ---
-// --- 2. UPDATED PRODUCT MODAL (Popup) ---
+// --- 8. PRODUCT MODAL ---
 function openProductDetail(id) {
     const p = products.find(x => x.id === id);
-    if(!p) return;
-    
+    if (!p) return;
+
     const name = currentLang === 'en' ? p.name : (p.nameHi || p.name);
     const desc = currentLang === 'en' ? p.desc : (p.descHi || p.desc);
-    
+
     let variantHtml = '';
     let initialPrice = p.price;
     let isAvailable = p.in_stock;
@@ -309,18 +296,15 @@ function openProductDetail(id) {
             const stockStatus = (v.inStock !== false);
             const disabledAttr = stockStatus ? '' : 'disabled';
             const label = v.weight + (stockStatus ? '' : ' (Out of Stock)');
-            // Show price in dropdown for clarity
             const optionText = `${label} - ₹${v.price}`;
             const selectedAttr = (v.price === initialPrice && stockStatus) ? 'selected' : '';
-            
             variantHtml += `<option value="${idx}" data-price="${v.price}" ${disabledAttr} ${selectedAttr}>${optionText}</option>`;
         });
         variantHtml += `</select>`;
     }
 
-    // Button State
     let btnHtml = `<button class="btn-primary" style="padding:10px 20px;" onclick="addToCartFromModal(${p.id})">Add to Cart</button>`;
-    if(!isAvailable) {
+    if (!isAvailable) {
         btnHtml = `<button class="btn-primary" style="padding:10px 20px; background:#999; cursor:not-allowed;" disabled>Out of Stock</button>`;
     }
 
@@ -333,7 +317,7 @@ function openProductDetail(id) {
             <h3 id="modal-price-display" style="color:var(--primary); margin:0;">₹${initialPrice}</h3>
             ${btnHtml}
         </div>`;
-    
+
     document.getElementById('p-modal-body').innerHTML = html;
     document.getElementById('product-modal').style.display = 'flex';
 }
@@ -355,7 +339,7 @@ function addToCartFromModal(id) {
 
 function closeProductModal() { document.getElementById('product-modal').style.display = 'none'; }
 
-// --- 10. CART ---
+// --- 9. CART & COUPONS ---
 function addToCart(p, v) {
     const cartId = `${p.id}-${v.weight.replace(/\s/g, '')}`;
     const ex = cart.find(i => i.cartId === cartId);
@@ -374,37 +358,48 @@ function updateCartUI() {
     if (cart.length === 0) {
         con.innerHTML = '<p style="text-align:center; padding:20px;">Cart is empty</p>';
         document.getElementById('clear-cart-btn').style.display = 'none';
-        appliedDiscount = { type: 'none', value: 0, code: null }; // Reset
+        appliedDiscount = { type: 'none', value: 0, code: null };
         document.getElementById('promo-code').value = '';
     } else {
         document.getElementById('clear-cart-btn').style.display = 'flex';
         cart.forEach(i => {
             subtotal += i.price * i.qty;
             count += i.qty;
-            // [Keep existing cart item HTML...]
-            con.innerHTML += `<div class="cart-item">... (existing item HTML) ...</div>`;
+
+            con.innerHTML += `
+            <div class="cart-item">
+                <img src="${i.image}" onerror="this.src='logo.jpg'">
+                <div class="item-details" style="flex-grow:1;">
+                    <h4>${i.name}</h4>
+                    <div style="font-size:0.85rem; color:#666;">${i.weight}</div>
+                    <div style="font-weight:bold; color:var(--primary);">₹${i.price}</div>
+                    <div class="item-controls">
+                        <button class="qty-btn" onclick="changeQty('${i.cartId}', -1)">-</button>
+                        <span style="margin:0 10px; font-weight:600;">${i.qty}</span>
+                        <button class="qty-btn" onclick="changeQty('${i.cartId}', 1)">+</button>
+                    </div>
+                </div>
+                <button onclick="removeFromCart('${i.cartId}')" style="background:none; border:none; color:#999; cursor:pointer;"><i class="fas fa-trash"></i></button>
+            </div>`;
         });
     }
 
-    // CALCULATE DISCOUNT
     let discountAmount = 0;
-    if (appliedDiscount.type === 'percent') {
+    if (appliedDiscount && appliedDiscount.type === 'percent') {
         discountAmount = Math.round(subtotal * (appliedDiscount.value / 100));
-    } else if (appliedDiscount.type === 'flat') {
+    } else if (appliedDiscount && appliedDiscount.type === 'flat') {
         discountAmount = appliedDiscount.value;
     }
 
-    // Prevent negative total
     if (discountAmount > subtotal) discountAmount = subtotal;
     const final = subtotal - discountAmount;
 
-    // Display Logic
     document.getElementById('cart-total').innerHTML = `
         <div style="font-size:0.9rem; color:#666;">Subtotal: ₹${subtotal}</div>
         ${discountAmount > 0 ? `<div style="font-size:0.9rem; color:green;">Coupon (${appliedDiscount.code}): -₹${discountAmount}</div>` : ''}
         <div style="font-size:1.3rem; font-weight:bold; color:var(--primary); margin-top:5px;">₹${final}</div>
     `;
-    
+
     document.getElementById('cart-count').innerText = count;
 }
 
@@ -416,14 +411,6 @@ function changeQty(id, d) {
 function removeFromCart(id) { cart = cart.filter(x => x.cartId !== id); updateCartUI(); }
 function clearCart() { if (confirm("Clear?")) { cart = []; updateCartUI(); } }
 function toggleCart() { document.getElementById('cart-sidebar').classList.toggle('active'); document.querySelector('.cart-overlay').classList.toggle('active'); }
-
-// --- 11. EXTRAS ---
-function closeAnnouncement() { document.getElementById('announcement-bar').style.display = 'none'; }
-function filterMenu(c) { currentCategory = c; document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active')); event.target.classList.add('active'); renderMenu(); }
-function searchMenu() { searchQuery = document.getElementById('menu-search').value; renderMenu(); }
-function toggleLanguage() { currentLang = currentLang === 'en' ? 'hi' : 'en'; renderMenu(); updateCartUI(); }
-function toggleMobileMenu() { document.getElementById('mobile-nav').classList.toggle('active'); }
-function scrollToTop() { window.scrollTo({ top: 0, behavior: 'smooth' }); }
 
 function renderCouponList() {
     const listContainer = document.getElementById('coupon-list');
@@ -444,6 +431,11 @@ function renderCouponList() {
     });
 }
 
+function toggleCouponList() {
+    const l = document.getElementById('coupon-list');
+    l.style.display = l.style.display === 'none' ? 'block' : 'none';
+}
+
 function useCoupon(code) {
     document.getElementById('promo-code').value = code;
     applyPromo();
@@ -453,20 +445,15 @@ function useCoupon(code) {
 function applyPromo() {
     const input = document.getElementById('promo-code').value.toUpperCase().trim();
     if (!input) {
-        // If empty, remove discount
         appliedDiscount = { type: 'none', value: 0, code: null };
+        document.getElementById('promo-msg').innerText = "";
         updateCartUI();
         return;
     }
 
     const coupon = activeCoupons.find(c => c.code === input);
-
     if (coupon) {
-        appliedDiscount = {
-            code: coupon.code,
-            type: coupon.type,
-            value: coupon.value
-        };
+        appliedDiscount = { code: coupon.code, type: coupon.type, value: coupon.value };
         document.getElementById('promo-msg').innerText = "Code Applied!";
         document.getElementById('promo-msg').style.color = "green";
     } else {
@@ -477,6 +464,7 @@ function applyPromo() {
     updateCartUI();
 }
 
+// --- 10. AUTH & CHECKOUT ---
 function validateAndLogin() {
     if (document.getElementById('cust-phone').value.length < 10) { alert("Enter valid phone"); return; }
     googleLogin();
@@ -520,27 +508,38 @@ async function checkoutWhatsApp() {
 
     const orderId = 'ORD-' + Date.now().toString().slice(-6);
     let total = 0;
+    cart.forEach(i => { total += i.price * i.qty; });
+
+    let discountAmount = 0;
+    if (appliedDiscount.type === 'percent') {
+        discountAmount = Math.round(total * (appliedDiscount.value / 100));
+    } else if (appliedDiscount.type === 'flat') {
+        discountAmount = appliedDiscount.value;
+    }
+    if (discountAmount > total) discountAmount = total;
+    const final = total - discountAmount;
+
     let msg = `*New Order #${orderId}*\nName: ${currentUser.displayName}\nPhone: ${phone}\nAddr: ${address}\n\n`;
-    cart.forEach(i => { total += i.price * i.qty; msg += `- ${i.name} (${i.weight}) x ${i.qty}\n`; });
-    const final = Math.round(total * discountMultiplier);
-    msg += `\n*Total: ₹${final}*`;
+    cart.forEach(i => { msg += `- ${i.name} (${i.weight}) x ${i.qty}\n`; });
+
+    if (discountAmount > 0) {
+        msg += `\nSubtotal: ₹${total}`;
+        msg += `\nDiscount (${appliedDiscount.code}): -₹${discountAmount}`;
+    }
+    msg += `\n*Total to Pay: ₹${final}*`;
 
     await db.collection("orders").add({
         id: orderId, userId: currentUser.uid, userName: currentUser.displayName, userPhone: phone, userAddress: address,
-        items: cart, total: final, status: 'Pending', timestamp: new Date()
+        items: cart, total: final, status: 'Pending', timestamp: new Date(), discount: appliedDiscount
     });
     window.open(`https://wa.me/919826698822?text=${encodeURIComponent(msg)}`, '_blank');
-    cart = []; updateCartUI(); toggleCart();
+    cart = []; appliedDiscount = { type: 'none', value: 0, code: null }; updateCartUI(); toggleCart();
     document.getElementById('success-total-amount').innerText = '₹' + final;
     document.getElementById('success-modal').style.display = 'flex';
 }
 
+// --- 11. HELPERS ---
 function closeSuccessModal() { document.getElementById('success-modal').style.display = 'none'; }
-function toggleCouponList() { 
-    const l = document.getElementById('coupon-list'); 
-    l.style.display = l.style.display === 'none' ? 'block' : 'none'; 
-}function useCoupon(c) { document.getElementById('promo-code').value = c; applyPromo(); toggleCouponList(); }
-function applyPromo() { const c = document.getElementById('promo-code').value.toUpperCase(); if (c === 'NAMO10') { discountMultiplier = 0.9; } else { discountMultiplier = 1; alert("Invalid Code"); } updateCartUI(); }
 function openProfileModal() { document.getElementById('profile-modal').style.display = 'flex'; document.getElementById('profile-menu').classList.remove('active'); }
 function closeProfileModal() { document.getElementById('profile-modal').style.display = 'none'; }
 function saveProfile() { db.collection("users").doc(currentUser.uid).set({ phone: document.getElementById('edit-phone').value, address: document.getElementById('edit-address').value }, { merge: true }).then(() => closeProfileModal()); }
@@ -548,8 +547,14 @@ function showOrderHistory() { document.getElementById('history-modal').classList
 function closeHistory() { document.getElementById('history-modal').classList.remove('active'); }
 function playVideo(w) { const v = w.querySelector('video'); if (v.paused) { w.classList.add('playing'); v.play(); } else { v.pause(); } }
 
+function closeAnnouncement() { document.getElementById('announcement-bar').style.display = 'none'; }
+function filterMenu(c) { currentCategory = c; document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active')); event.target.classList.add('active'); renderMenu(); }
+function searchMenu() { searchQuery = document.getElementById('menu-search').value; renderMenu(); }
+function toggleLanguage() { currentLang = currentLang === 'en' ? 'hi' : 'en'; renderMenu(); updateCartUI(); }
+function toggleMobileMenu() { document.getElementById('mobile-nav').classList.toggle('active'); }
+function scrollToTop() { window.scrollTo({ top: 0, behavior: 'smooth' }); }
+
 function registerServiceWorker() {
-    // Only register if supported AND running on http/https (not file://)
     if ('serviceWorker' in navigator && (window.location.protocol === 'http:' || window.location.protocol === 'https:')) {
         navigator.serviceWorker.register('sw.js')
             .then(reg => console.log("Service Worker Registered"))

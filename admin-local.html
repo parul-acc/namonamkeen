@@ -850,21 +850,111 @@
         </div>
     </div>
 
-    <script>
-        const firebaseConfig = {
-            apiKey: "AIzaSyB-Ep3yEAzFBlqOVGOxhjbmjwlSH0Xx5qU",
-            authDomain: "namo-namkeen-app.firebaseapp.com",
-            projectId: "namo-namkeen-app",
-            storageBucket: "namo-namkeen-app.firebasestorage.app",
-            messagingSenderId: "154786466552",
-            appId: "1:154786466552:web:9be55b7b599806f536490d",
-            measurementId: "G-8HJJ8YW1YH"
-        };
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
-        const auth = firebase.auth();
-        const ADMIN_EMAILS = ["parul19.accenture@gmail.com"];
+<script>
+        // --- MOCK MODE CONFIGURATION ---
+        // We simulate the Firebase DB object to return dummy data instead of connecting to the cloud.
+        
+        const mockProducts = [
+            { docId: '1', id: 101, name: "Ratlami Sev", category: "spicy", price: 240, in_stock: true, image: "assets/images/product/Ratlami_Sev.jpg", variants: [{weight: "250g", price: 60}, {weight: "500g", price: 120}] },
+            { docId: '2', id: 102, name: "Khatta Meetha", category: "sweet", price: 220, in_stock: true, image: "assets/images/product/KhattaMeetha.jpg", variants: [{weight: "Standard", price: 220}] },
+            { docId: '3', id: 103, name: "Ujjaini Sev", category: "spicy", price: 240, in_stock: false, image: "assets/images/product/Ujjani_Sev.jpg", variants: [{weight: "400g", price: 100}] },
+            { docId: '4', id: 104, name: "Mini Samosa", category: "premium", price: 300, in_stock: true, image: "assets/images/product/mini-samosa.jpg", variants: [] }
+        ];
 
+        const mockOrders = [
+            { docId: 'o1', id: 'ORD-111111', userName: "John Doe", userPhone: "9876543210", userAddress: "123 Main St, Indore", total: 540, status: "Pending", timestamp: { seconds: Date.now()/1000 }, items: [{name: "Ratlami Sev", qty: 2}, {name: "Mini Samosa", qty: 1}] },
+            { docId: 'o2', id: 'ORD-222222', userName: "Priya Sharma", userPhone: "9988776655", userAddress: "45 Jain Nagar, Mhow", total: 220, status: "Packed", timestamp: { seconds: (Date.now()-86400000)/1000 }, items: [{name: "Khatta Meetha", qty: 1}] },
+            { docId: 'o3', id: 'ORD-333333', userName: "Amit Verma", userPhone: "9123456789", userAddress: "78 Scheme 54", total: 950, status: "Delivered", timestamp: { seconds: (Date.now()-172800000)/1000 }, items: [{name: "Hamper Box", qty: 3}] }
+        ];
+
+        const mockUsers = [
+            { name: "John Doe", email: "john@example.com", phone: "9876543210", address: "123 Main St, Indore", lastLogin: new Date() },
+            { name: "Priya Sharma", email: "priya@example.com", phone: "9988776655", address: "45 Jain Nagar, Mhow", lastLogin: new Date(Date.now()-86400000) }
+        ];
+
+        const mockCoupons = [
+            { docId: 'c1', code: "WELCOME50", type: "flat", value: 50, expiryDate: { toDate: () => new Date(Date.now() + 864000000) }, isActive: true },
+            { docId: 'c2', code: "NAMO10", type: "percent", value: 10, expiryDate: { toDate: () => new Date(Date.now() - 864000000) }, isActive: false }
+        ];
+
+        // --- MOCK DB IMPLEMENTATION ---
+        const db = {
+            collection: (name) => {
+                return {
+                    // Mock get()
+                    get: () => {
+                        return Promise.resolve({
+                            forEach: (callback) => {
+                                let data = [];
+                                if(name === 'products') data = mockProducts;
+                                if(name === 'users') data = mockUsers;
+                                data.forEach(item => callback({ data: () => item, id: item.docId || 'test-id' }));
+                            }
+                        });
+                    },
+                    // Mock orderBy().onSnapshot() chain
+                    orderBy: (field, dir) => {
+                        return {
+                            limit: (num) => {
+                                return {
+                                    onSnapshot: (callback) => {
+                                        let data = [];
+                                        if(name === 'orders') data = mockOrders;
+                                        if(name === 'products') data = mockProducts;
+                                        if(name === 'coupons') data = mockCoupons;
+                                        
+                                        let snap = [];
+                                        data.forEach(item => {
+                                            snap.push({ data: () => item, id: item.docId });
+                                        });
+                                        // Mock the 'forEach' method on the snapshot
+                                        snap.forEach = (cb) => data.forEach(item => cb({ data: () => item, id: item.docId }));
+                                        callback(snap);
+                                    }
+                                }
+                            },
+                            onSnapshot: (callback) => {
+                                // Handle cases without limit()
+                                let data = (name === 'products') ? mockProducts : (name === 'coupons' ? mockCoupons : []);
+                                let snap = [];
+                                data.forEach(item => snap.push({ data: () => item, id: item.docId }));
+                                snap.forEach = (cb) => data.forEach(item => cb({ data: () => item, id: item.docId }));
+                                callback(snap);
+                            }
+                        };
+                    },
+                    // Mock where().onSnapshot()
+                    where: () => {
+                        return {
+                            onSnapshot: () => {} 
+                        }
+                    },
+                    // Mock doc() operations
+                    doc: (id) => {
+                        return {
+                            update: () => { alert(`[Mock] Updated doc ${id}`); return Promise.resolve(); },
+                            delete: () => { alert(`[Mock] Deleted doc ${id}`); return Promise.resolve(); },
+                            set: () => { alert(`[Mock] Set/Saved data for ${id}`); return Promise.resolve(); },
+                            get: () => {
+                                // Return a specific product for editing
+                                const p = mockProducts.find(x => x.docId === id);
+                                return Promise.resolve({ 
+                                    exists: !!p, 
+                                    data: () => p || { text: "Mock Announcement", active: true } 
+                                });
+                            }
+                        }
+                    },
+                    add: () => { alert("[Mock] Added new document"); return Promise.resolve(); }
+                };
+            }
+        };
+
+        const auth = {
+            signOut: () => { location.reload(); return Promise.resolve(); }
+        };
+
+        // --- INITIALIZATION ---
         let salesChartInstance, productChartInstance;
         const ITEMS_PER_PAGE = 10;
         let state = {
@@ -873,8 +963,13 @@
             customers: { data: [], filteredData: [], page: 1 }
         };
 
+        // BYPASS LOGIN LOGIC
+        document.getElementById('login-overlay').style.display = 'none';
+        document.getElementById('admin-user-info').innerText = "Test Admin (Local)";
+        initDashboard();
 
-        function logout() { auth.signOut().then(() => location.reload()); }
+        function adminLogin() { alert("Already in Test Mode"); }
+        function logout() { location.reload(); }
 
         function initDashboard() {
             loadDashboardData();
@@ -882,6 +977,7 @@
             loadOrders();
             loadCustomers();
             loadSettings();
+            loadCoupons(); // Added coupons load
         }
 
         // --- PAGINATION ---
@@ -900,7 +996,8 @@
             if (type === 'orders') renderOrderRows(tbody, pageItems);
             if (type === 'customers') renderCustomerRows(tbody, pageItems);
 
-            document.getElementById(`${type}-page-info`).innerText = `Page ${s.page} of ${totalPages}`;
+            const info = document.getElementById(`${type}-page-info`);
+            if(info) info.innerText = `Page ${s.page} of ${totalPages}`;
         }
 
         function changePage(type, diff) {
@@ -919,7 +1016,7 @@
                 let rev = 0, count = 0, pending = 0, salesMap = {}, prodMap = {};
                 snap.forEach(doc => {
                     const o = doc.data();
-                    const d = o.timestamp ? o.timestamp.toDate() : new Date();
+                    const d = o.timestamp ? new Date(o.timestamp.seconds * 1000) : new Date();
                     rev += o.total; count++;
                     if (o.status === 'Pending') pending++;
                     const dateStr = d.toLocaleDateString();
@@ -961,7 +1058,7 @@
             items.forEach(p => {
                 const vs = p.variants ? p.variants.map(v => `${v.weight}: ₹${v.price}`).join(' ') : '₹' + p.price;
                 const rowClass = !p.in_stock ? 'row-out-stock' : '';
-                tbody.innerHTML += `<tr class="${rowClass}"><td><img src="${p.image}" width="40" height="40" style="border-radius:5px; object-fit:cover;"></td><td><strong>${p.name}</strong><br><small>${p.category}</small></td><td><small>${vs}</small></td><td><span class="stock-tag ${p.in_stock ? 'stock-in' : 'stock-out'}" onclick="toggleStock('${p.docId}',${!p.in_stock})">${p.in_stock ? 'In Stock' : 'Out'}</span></td><td><button class="icon-btn" style="background:#3498db" onclick="editProduct('${p.docId}')"><i class="fas fa-edit"></i></button><button class="icon-btn" style="background:#e74c3c" onclick="delProduct('${p.docId}')"><i class="fas fa-trash"></i></button></td></tr>`;
+                tbody.innerHTML += `<tr class="${rowClass}"><td><img src="${p.image}" width="40" height="40" style="border-radius:5px; object-fit:cover;" onerror="this.src='logo.jpg'"></td><td><strong>${p.name}</strong><br><small>${p.category}</small></td><td><small>${vs}</small></td><td><span class="stock-tag ${p.in_stock ? 'stock-in' : 'stock-out'}" onclick="toggleStock('${p.docId}',${!p.in_stock})">${p.in_stock ? 'In Stock' : 'Out'}</span></td><td><button class="icon-btn" style="background:#3498db" onclick="editProduct('${p.docId}')"><i class="fas fa-edit"></i></button><button class="icon-btn" style="background:#e74c3c" onclick="delProduct('${p.docId}')"><i class="fas fa-trash"></i></button></td></tr>`;
             });
         }
 
@@ -1002,43 +1099,23 @@
         }
 
         function exportOrdersToCSV() {
-            let csv = "Date,Order ID,Customer,Phone,Address,Items,Total,Status\n";
-            state.orders.data.forEach(o => {
-                const d = o.timestamp ? new Date(o.timestamp.seconds * 1000).toLocaleDateString() : '-';
-                const items = o.items.map(i => `${i.name} x ${i.qty}`).join(' | ');
-                csv += `"${d}","${o.id}","${o.userName}","${o.userPhone}","${o.userAddress.replace(/\n/g, ' ')}","${items}",${o.total},${o.status}\n`;
-            });
-            downloadCSV(csv, "namo_orders.csv");
+            alert("[Mock] CSV Export triggered.");
         }
 
-        // --- 4. CUSTOMERS (FIXED ROBUST RENDER) ---
+        // --- 4. CUSTOMERS ---
         function loadCustomers() {
             db.collection("users").limit(200).get().then(snap => {
                 let count = 0, today = 0;
                 state.customers.data = [];
                 snap.forEach(doc => {
                     const u = doc.data(); count++;
-
-                    // Safely handle date
-                    let last = null;
-                    if (u.lastLogin) {
-                        // If it's a Firestore Timestamp (object with seconds)
-                        if (u.lastLogin.seconds) {
-                            last = new Date(u.lastLogin.seconds * 1000);
-                        }
-                        // If it's already a Date object or string
-                        else {
-                            last = new Date(u.lastLogin);
-                        }
-                    }
-
+                    let last = u.lastLogin ? new Date(u.lastLogin) : null;
                     if (last && !isNaN(last.getTime())) {
                         if (last.setHours(0, 0, 0, 0) === new Date().setHours(0, 0, 0, 0)) today++;
                         u.displayDate = last.toLocaleDateString();
                     } else {
                         u.displayDate = '-';
                     }
-
                     state.customers.data.push(u);
                 });
 
@@ -1055,7 +1132,7 @@
                     <td>${u.phone || '-'}</td>
                     <td>${u.address ? u.address.substring(0, 15) + '...' : '-'}</td>
                     <td>${u.displayDate}</td>
-                    <td>${u.phone ? `<button class="icon-btn" style="background:#25D366" onclick="window.open('https://wa.me/91${u.phone.replace(/\D/g, '')}')"><i class="fab fa-whatsapp"></i></button>` : '-'}</td>
+                    <td>${u.phone ? `<button class="icon-btn" style="background:#25D366" onclick="alert('Mock: Open WhatsApp')"><i class="fab fa-whatsapp"></i></button>` : '-'}</td>
                 </tr>`;
             });
         }
@@ -1068,34 +1145,19 @@
         }
 
         function exportCustomersToCSV() {
-            let csv = "Name,Email,Phone,Address,Last Login\n";
-            state.customers.data.forEach(u => {
-                csv += `"${u.name || ''}","${u.email || ''}","${u.phone || ''}","${u.address ? u.address.replace(/\n/g, ' ') : ''}","${u.displayDate}"\n`;
-            });
-            downloadCSV(csv, "namo_customers.csv");
+            alert("[Mock] CSV Export triggered");
         }
 
         // --- UTILS & HELPERS ---
-        function downloadCSV(csv, filename) {
-            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement("a");
-            link.href = URL.createObjectURL(blob);
-            link.download = filename;
-            link.click();
-        }
-
         function setStatus(id, status) {
             db.collection("orders").doc(id).update({ status: status }).then(() => {
-                const order = state.orders.data.find(o => o.docId === id);
-                if (order && confirm(`Updated to ${status}. Notify customer?`)) {
-                    let msg = `Hello ${order.userName}, your Namo Namkeen order #${order.id} is now *${status}*.`;
-                    window.open(`https://wa.me/91${order.userPhone.replace(/\D/g, '')}?text=${encodeURIComponent(msg)}`, '_blank');
-                }
+                alert(`[Mock] Order ${id} updated to ${status}`);
             });
         }
 
         function viewOrder(id) {
             const o = state.orders.data.find(x => x.docId === id);
+            if(!o) return;
             let h = `<p><strong>Customer:</strong> ${o.userName} (${o.userPhone})</p><p><strong>Address:</strong> ${o.userAddress}</p><hr style="margin:10px 0;">`;
             o.items.forEach(i => h += `<div>${i.name} x ${i.qty}</div>`);
             h += `<h3 style="text-align:right">Total: ₹${o.total}</h3>`;
@@ -1105,8 +1167,8 @@
 
         function loadSettings() {
             db.collection("settings").doc("announcement").get().then(doc => {
-                if (doc.exists) {
-                    const data = doc.data();
+                const data = doc.data();
+                if(document.getElementById('setting-announce')) {
                     document.getElementById('setting-announce').value = data.text || '';
                     document.getElementById('setting-announce-active').value = data.active ? 'true' : 'false';
                 }
@@ -1115,11 +1177,7 @@
 
         function toggleStock(id, s) { db.collection("products").doc(id).update({ in_stock: s }); }
         function delProduct(id) { if (confirm("Delete?")) db.collection("products").doc(id).delete(); }
-        function saveSettings() {
-            const text = document.getElementById('setting-announce').value;
-            const active = document.getElementById('setting-announce-active').value === 'true';
-            db.collection("settings").doc("announcement").set({ text, active }, { merge: true }).then(() => alert("Saved"));
-        }
+        function saveSettings() { alert("[Mock] Settings Saved"); }
         function closeModal(id) { document.getElementById(id).style.display = 'none'; }
         function toggleSidebar() { document.getElementById('sidebar').classList.toggle('active'); }
         function switchView(v) {
@@ -1133,10 +1191,8 @@
         }
 
         function openProductModal() { document.getElementById('p-id').value = ''; document.getElementById('variant-container').innerHTML = ''; addVariantRow(); document.getElementById('product-modal').style.display = 'flex'; }
-        // --- 3. Updated: Edit Product (Loads the stock status) ---
+        
         function editProduct(id) {
-            // Note: Use 'state.inventory.data' for local or fetch from 'db' for production
-            // This example assumes fetching from DB for safety
             db.collection("products").doc(id).get().then(d => {
                 const p = d.data();
                 document.getElementById('p-id').value = id;
@@ -1152,7 +1208,6 @@
 
                 if (p.variants && p.variants.length > 0) {
                     p.variants.forEach(v => {
-                        // Handle old data that might not have 'inStock' property yet (default to true)
                         const stockStatus = (v.inStock !== undefined) ? v.inStock : true;
                         addVariantRow(v.weight, v.price, stockStatus);
                     });
@@ -1162,96 +1217,38 @@
                 document.getElementById('product-modal').style.display = 'flex';
             });
         }
-        // --- 1. Updated: Add Variant Row (Now includes Stock Checkbox) ---
+
         function addVariantRow(w = '', p = '', inStock = true) {
             const d = document.createElement('div');
             d.className = 'variant-row';
             d.style.display = "flex";
             d.style.gap = "10px";
             d.style.alignItems = "center";
-
-            // Checkbox state
             const checked = inStock ? 'checked' : '';
-
             d.innerHTML = `
-        <input class="form-control" placeholder="Flavor/Size (e.g. Masala)" value="${w}" style="margin:0; flex:2;">
-        <input class="form-control" type="number" placeholder="Price" value="${p}" style="margin:0; flex:1;">
-        
-        <div style="display:flex; align-items:center; gap:5px; background:#eee; padding:5px 10px; border-radius:5px;">
-            <input type="checkbox" class="var-stock" ${checked} style="width:auto; margin:0;">
-            <small>Stock</small>
-        </div>
-
-        <button class="remove-variant" onclick="this.parentElement.remove()" style="background:#ffebee; color:red; border:none; width:30px; height:30px; border-radius:50%; cursor:pointer;">&times;</button>
-    `;
+                <input class="form-control" placeholder="Variety/Size" value="${w}" style="margin:0; flex:2;">
+                <input class="form-control" type="number" placeholder="Price" value="${p}" style="margin:0; flex:1;">
+                <div style="display:flex; align-items:center; gap:5px; background:#eee; padding:5px 10px; border-radius:5px;">
+                    <input type="checkbox" class="var-stock" ${checked} style="width:auto; margin:0;">
+                    <small>Stock</small>
+                </div>
+                <button class="remove-variant" onclick="this.parentElement.remove()" style="background:#ffebee; color:red; border:none; width:30px; height:30px; border-radius:50%; cursor:pointer;">&times;</button>
+            `;
             document.getElementById('variant-container').appendChild(d);
         }
-        // --- 2. Updated: Save Product (Saves the stock status) ---
+
         function saveProduct() {
-            const id = document.getElementById('p-id').value || Date.now().toString();
-            const vs = [];
-
-            document.querySelectorAll('.variant-row').forEach(r => {
-                const inputs = r.querySelectorAll('input');
-                const name = inputs[0].value.trim();
-                const price = parseInt(inputs[1].value);
-                const inStock = inputs[2].checked; // Get checkbox value
-
-                if (name && price) {
-                    vs.push({ weight: name, price: price, inStock: inStock });
-                }
-            });
-
-            if (vs.length === 0) vs.push({ weight: 'Standard', price: 0, inStock: true });
-
-            // Calculate base price (lowest active variant, or 0 if all OOS)
-            const activeVariants = vs.filter(v => v.inStock);
-            const basePrice = activeVariants.length > 0 ? Math.min(...activeVariants.map(v => v.price)) : (vs[0].price || 0);
-
-            db.collection("products").doc(id).set({
-                id: parseInt(id),
-                name: document.getElementById('p-name').value,
-                nameHi: document.getElementById('p-nameHi').value,
-                category: document.getElementById('p-category').value,
-                image: document.getElementById('p-image').value,
-                in_stock: document.getElementById('p-stock').checked, // Global stock
-                bestseller: document.getElementById('p-bestseller').checked,
-                variants: vs, // Save new variant structure
-                price: basePrice
-            }, { merge: true }).then(() => closeModal('product-modal'));
+            alert("[Mock] Product Saved");
+            closeModal('product-modal');
         }
-        async function importFromSheet() {
-            if (!confirm("Overwrite?")) return;
-            const u = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRznY2zlF7wuPxkTe1k22gRLVOA9AHtmgZy2LBdEs9LIU3GlO_VxmFyN446vpb9IPspRXMeiBi4Lc29/pub?output=csv";
-            const r = await fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`);
-            const t = await r.text();
-            const rows = t.split("\n").slice(1);
-            const b = db.batch();
-            rows.forEach(rw => {
-                if (!rw.trim()) return;
-                const c = rw.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
-                const id = c[0].replace(/"/g, '').trim();
-                if (!id || id === '999') return;
-                let v = [], rp = c[3].replace(/"/g, '').trim();
-                if (rp.includes('|')) rp.split('|').forEach(x => { let [s, p] = x.split('='); if (s) v.push({ weight: s.trim(), price: parseInt(p) }) });
-                else v.push({ weight: 'Standard', price: parseInt(rp) || 0 });
-                b.set(db.collection("products").doc(id), {
-                    id: parseInt(id), name: c[1].replace(/"/g, '').trim(), nameHi: c[2].replace(/"/g, '').trim(),
-                    price: Math.min(...v.map(z => z.price)), variants: v, desc: c[4].replace(/"/g, '').trim(),
-                    category: c[6].trim(), image: c[7].trim(), in_stock: c[10].trim().toUpperCase() === 'TRUE'
-                }, { merge: true });
-            });
-            await b.commit(); alert("Done");
-        }
+        function importFromSheet() { alert("[Mock] Import triggered"); }
 
-
-        // --- NEW COUPON FUNCTIONS ---
-
+        // --- COUPONS ---
         function loadCoupons() {
             db.collection("coupons").orderBy("expiryDate", "desc").onSnapshot(snap => {
                 const tbody = document.getElementById('coupons-body');
+                if(!tbody) return;
                 tbody.innerHTML = '';
-
                 snap.forEach(doc => {
                     const c = doc.data();
                     const expiry = c.expiryDate.toDate();
@@ -1278,45 +1275,9 @@
             });
         }
 
-        function saveCoupon() {
-            const code = document.getElementById('cpn-code').value.toUpperCase().trim();
-            const type = document.getElementById('cpn-type').value;
-            const value = document.getElementById('cpn-value').value;
-            const dateStr = document.getElementById('cpn-expiry').value;
-
-            if (!code || !value || !dateStr) {
-                alert("Please fill all fields");
-                return;
-            }
-
-            // Create timestamp for end of the selected day
-            const expiryDate = new Date(dateStr);
-            expiryDate.setHours(23, 59, 59);
-
-            db.collection("coupons").add({
-                code: code,
-                type: type,
-                value: parseInt(value),
-                expiryDate: expiryDate,
-                isActive: true
-            }).then(() => {
-                alert("Coupon Created!");
-                // Clear form
-                document.getElementById('cpn-code').value = '';
-                document.getElementById('cpn-value').value = '';
-                document.getElementById('cpn-expiry').value = '';
-            }).catch(err => alert("Error: " + err.message));
-        }
-
-        function deleteCoupon(id) {
-            if (confirm("Permanently delete this coupon?")) {
-                db.collection("coupons").doc(id).delete();
-            }
-        }
-
-        function toggleCoupon(id, status) {
-            db.collection("coupons").doc(id).update({ isActive: status });
-        }
+        function saveCoupon() { alert("[Mock] Coupon Saved"); }
+        function deleteCoupon(id) { alert(`[Mock] Deleted Coupon ${id}`); }
+        function toggleCoupon(id, status) { alert(`[Mock] Toggled Coupon ${id} to ${status}`); }
 
     </script>
 </body>
