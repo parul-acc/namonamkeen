@@ -25,7 +25,7 @@ let currentLang = 'en';
 let selectedHamperItems = [];
 let historyOrders = [];
 
-// New Coupon State
+// Coupon State
 let activeCoupons = [];
 let appliedDiscount = { type: 'none', value: 0, code: null };
 
@@ -40,7 +40,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-// Scroll Listener
 window.onscroll = function () {
     const btn = document.getElementById("scrollTopBtn");
     if (btn) btn.style.display = (document.body.scrollTop > 300 || document.documentElement.scrollTop > 300) ? "flex" : "none";
@@ -48,7 +47,7 @@ window.onscroll = function () {
 
 // --- 4. DATA FETCHING ---
 function fetchData() {
-    // 1. Fetch Products
+    // Products
     db.collection("products").get().then(snap => {
         products = [];
         snap.forEach(doc => products.push(doc.data()));
@@ -57,7 +56,7 @@ function fetchData() {
         renderHamperOptions();
     }).catch(err => console.error("Products Error:", err));
 
-    // 2. Fetch Announcement
+    // Announcement
     db.collection("settings").doc("announcement").get().then(doc => {
         if (doc.exists) {
             const data = doc.data();
@@ -75,7 +74,7 @@ function fetchData() {
         }
     }).catch(err => console.error("Settings Error:", err));
 
-    // 3. Fetch Coupons
+    // Coupons
     const now = new Date();
     db.collection("coupons").where("isActive", "==", true).onSnapshot(snap => {
         activeCoupons = [];
@@ -340,7 +339,7 @@ function addToCartFromModal(id) {
 
 function closeProductModal() { document.getElementById('product-modal').style.display = 'none'; }
 
-// --- 9. CART & COUPONS ---
+// --- 9. CART ---
 function addToCart(p, v) {
     const cartId = `${p.id}-${v.weight.replace(/\s/g, '')}`;
     const ex = cart.find(i => i.cartId === cartId);
@@ -385,21 +384,18 @@ function updateCartUI() {
         });
     }
 
+    // CALCULATE DISCOUNT
     let discountAmount = 0;
-    if (appliedDiscount && appliedDiscount.type === 'percent') {
+    if (appliedDiscount.type === 'percent') {
         discountAmount = Math.round(subtotal * (appliedDiscount.value / 100));
-    } else if (appliedDiscount && appliedDiscount.type === 'flat') {
+    } else if (appliedDiscount.type === 'flat') {
         discountAmount = appliedDiscount.value;
     }
 
     if (discountAmount > subtotal) discountAmount = subtotal;
     const final = subtotal - discountAmount;
 
-    document.getElementById('cart-total').innerHTML = `
-        <div style="font-size:0.9rem; color:#666;">Subtotal: ₹${subtotal}</div>
-        ${discountAmount > 0 ? `<div style="font-size:0.9rem; color:green;">Coupon (${appliedDiscount.code}): -₹${discountAmount}</div>` : ''}
-        <div style="font-size:1.3rem; font-weight:bold; color:var(--primary); margin-top:5px;">₹${final}</div>
-    `;
+    document.getElementById('cart-total').innerText = `₹${final}`;
 
     document.getElementById('cart-count').innerText = count;
 }
@@ -413,59 +409,93 @@ function removeFromCart(id) { cart = cart.filter(x => x.cartId !== id); updateCa
 function clearCart() { if (confirm("Clear?")) { cart = []; updateCartUI(); } }
 function toggleCart() { document.getElementById('cart-sidebar').classList.toggle('active'); document.querySelector('.cart-overlay').classList.toggle('active'); }
 
-function renderCouponList() {
-    const listContainer = document.getElementById('coupon-list');
-    if (!listContainer) return;
-    listContainer.innerHTML = '';
+// --- 10. CHECKOUT FLOW (Split Logic) ---
 
-    if (activeCoupons.length === 0) {
-        listContainer.innerHTML = '<p style="font-size:0.8rem; color:#777;">No active coupons.</p>';
+// Step 1: Open Payment Modal
+function openPaymentModal() {
+    if (cart.length === 0) return alert("Cart empty");
+
+    const phone = document.getElementById('cust-phone').value;
+    const address = document.getElementById('cust-address').value;
+
+    if (phone.length < 10 || address.length < 5) {
+        alert("Please enter a valid Phone Number and Address.");
         return;
     }
 
-    activeCoupons.forEach(c => {
-        const desc = c.type === 'percent' ? `${c.value}% OFF` : `₹${c.value} OFF`;
-        listContainer.innerHTML += `
-            <div class="coupon-item" onclick="useCoupon('${c.code}')" style="padding:10px; border-bottom:1px solid #eee; cursor:pointer;">
-                <strong style="color:var(--primary)">${c.code}</strong> - ${desc}
-            </div>`;
+    let total = 0;
+    cart.forEach(i => { total += i.price * i.qty; });
+
+    let discountAmount = 0;
+    if (appliedDiscount.type === 'percent') {
+        discountAmount = Math.round(total * (appliedDiscount.value / 100));
+    } else if (appliedDiscount.type === 'flat') {
+        discountAmount = appliedDiscount.value;
+    }
+    if (discountAmount > total) discountAmount = total;
+    const finalAmount = total - discountAmount;
+
+    document.getElementById('success-total-amount').innerText = '₹' + finalAmount;
+
+    const upiLink = `upi://pay?pa=9826698822@paytm&pn=NamoNamkeen&am=${finalAmount}&cu=INR`;
+    document.getElementById('upi-pay-link').href = upiLink;
+
+    const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(upiLink)}`;
+    document.getElementById('success-qr-img').src = qrApiUrl;
+
+    document.getElementById('success-modal').style.display = 'flex';
+    toggleCart();
+}
+
+// Step 2: Finalize Order
+async function finalizeOrder() {
+    const phone = document.getElementById('cust-phone').value;
+    const address = document.getElementById('cust-address').value;
+    const orderId = 'ORD-' + Date.now().toString().slice(-6);
+
+    let total = 0;
+    cart.forEach(i => { total += i.price * i.qty; });
+
+    let discountAmount = 0;
+    if (appliedDiscount.type === 'percent') {
+        discountAmount = Math.round(total * (appliedDiscount.value / 100));
+    } else if (appliedDiscount.type === 'flat') {
+        discountAmount = appliedDiscount.value;
+    }
+    if (discountAmount > total) discountAmount = total;
+    const final = total - discountAmount;
+
+    let msg = `*New Order #${orderId}*\nName: ${currentUser.displayName}\nPhone: ${phone}\nAddr: ${address}\n\n`;
+    cart.forEach(i => { msg += `- ${i.name} (${i.weight}) x ${i.qty}\n`; });
+
+    if (discountAmount > 0) {
+        msg += `\nSubtotal: ₹${total}`;
+        msg += `\nDiscount (${appliedDiscount.code}): -₹${discountAmount}`;
+    }
+    msg += `\n*Total to Pay: ₹${final}*`;
+
+    await db.collection("orders").add({
+        id: orderId,
+        userId: currentUser.uid,
+        userName: currentUser.displayName,
+        userPhone: phone,
+        userAddress: address,
+        items: cart,
+        total: final,
+        status: 'Pending',
+        timestamp: new Date(),
+        discount: appliedDiscount
     });
-}
 
-function toggleCouponList() {
-    const l = document.getElementById('coupon-list');
-    l.style.display = l.style.display === 'none' ? 'block' : 'none';
-}
+    window.open(`https://wa.me/919826698822?text=${encodeURIComponent(msg)}`, '_blank');
 
-function useCoupon(code) {
-    document.getElementById('promo-code').value = code;
-    applyPromo();
-    document.getElementById('coupon-list').style.display = 'none';
-}
-
-function applyPromo() {
-    const input = document.getElementById('promo-code').value.toUpperCase().trim();
-    if (!input) {
-        appliedDiscount = { type: 'none', value: 0, code: null };
-        document.getElementById('promo-msg').innerText = "";
-        updateCartUI();
-        return;
-    }
-
-    const coupon = activeCoupons.find(c => c.code === input);
-    if (coupon) {
-        appliedDiscount = { code: coupon.code, type: coupon.type, value: coupon.value };
-        document.getElementById('promo-msg').innerText = "Code Applied!";
-        document.getElementById('promo-msg').style.color = "green";
-    } else {
-        appliedDiscount = { type: 'none', value: 0, code: null };
-        document.getElementById('promo-msg').innerText = "Invalid or Expired Code";
-        document.getElementById('promo-msg').style.color = "red";
-    }
+    cart = [];
+    appliedDiscount = { type: 'none', value: 0, code: null };
     updateCartUI();
+    document.getElementById('success-modal').style.display = 'none';
 }
 
-// --- 10. AUTH & CHECKOUT ---
+// --- 11. AUTH & HISTORY ---
 function validateAndLogin() {
     if (document.getElementById('cust-phone').value.length < 10) { alert("Enter valid phone"); return; }
     googleLogin();
@@ -498,55 +528,9 @@ function updateUserUI(loggedIn) {
     }
 }
 
-function logout() { auth.signOut().then(() => location.reload()); }
-function toggleProfileMenu() { document.getElementById('profile-menu').classList.toggle('active'); }
-
-async function checkoutWhatsApp() {
-    if (cart.length === 0) return alert("Cart empty");
-    const phone = document.getElementById('cust-phone').value;
-    const address = document.getElementById('cust-address').value;
-    if (phone.length < 10 || address.length < 5) return alert("Details needed");
-
-    const orderId = 'ORD-' + Date.now().toString().slice(-6);
-    let total = 0;
-    cart.forEach(i => { total += i.price * i.qty; });
-
-    let discountAmount = 0;
-    if (appliedDiscount.type === 'percent') {
-        discountAmount = Math.round(total * (appliedDiscount.value / 100));
-    } else if (appliedDiscount.type === 'flat') {
-        discountAmount = appliedDiscount.value;
-    }
-    if (discountAmount > total) discountAmount = total;
-    const final = total - discountAmount;
-
-    let msg = `*New Order #${orderId}*\nName: ${currentUser.displayName}\nPhone: ${phone}\nAddr: ${address}\n\n`;
-    cart.forEach(i => { msg += `- ${i.name} (${i.weight}) x ${i.qty}\n`; });
-
-    if (discountAmount > 0) {
-        msg += `\nSubtotal: ₹${total}`;
-        msg += `\nDiscount (${appliedDiscount.code}): -₹${discountAmount}`;
-    }
-    msg += `\n*Total to Pay: ₹${final}*`;
-
-    await db.collection("orders").add({
-        id: orderId, userId: currentUser.uid, userName: currentUser.displayName, userPhone: phone, userAddress: address,
-        items: cart, total: final, status: 'Pending', timestamp: new Date(), discount: appliedDiscount
-    });
-    window.open(`https://wa.me/919826698822?text=${encodeURIComponent(msg)}`, '_blank');
-    cart = []; appliedDiscount = { type: 'none', value: 0, code: null }; updateCartUI(); toggleCart();
-    document.getElementById('success-total-amount').innerText = '₹' + final;
-    document.getElementById('success-modal').style.display = 'flex';
-}
-
-// --- 11. HISTORY & HELPERS ---
-// --- ORDER HISTORY & INVOICE LOGIC ---
-
-// 1. Enhanced Order History (Fetches & Saves Data)
 function showOrderHistory() {
     const modal = document.getElementById('history-modal');
     const content = document.getElementById('history-content');
-
     modal.classList.add('active');
 
     if (!currentUser) {
@@ -554,7 +538,7 @@ function showOrderHistory() {
         return;
     }
 
-    content.innerHTML = '<p style="padding:20px; text-align:center;">Loading your tasty history... 🍪</p>';
+    content.innerHTML = '<p style="padding:20px; text-align:center;">Loading history...</p>';
 
     db.collection("orders")
         .where("userId", "==", currentUser.uid)
@@ -566,16 +550,13 @@ function showOrderHistory() {
                 content.innerHTML = '<p style="padding:20px; text-align:center;">No past orders found.</p>';
                 return;
             }
-
-            historyOrders = []; // Store locally for invoice generation
+            historyOrders = [];
             let html = '';
-
             snap.forEach(doc => {
                 const o = doc.data();
                 historyOrders.push(o);
-
                 const date = o.timestamp ? o.timestamp.toDate().toLocaleDateString() : 'N/A';
-                let statusColor = '#e67e22'; // Pending
+                let statusColor = '#e67e22';
                 if (o.status === 'Packed') statusColor = '#3498db';
                 if (o.status === 'Delivered') statusColor = '#2ecc71';
 
@@ -589,27 +570,18 @@ function showOrderHistory() {
                 html += `
                     <div style="background:white; border:1px solid #eee; border-radius:10px; padding:15px; margin-bottom:15px; box-shadow:0 2px 5px rgba(0,0,0,0.05);">
                         <div style="display:flex; justify-content:space-between; border-bottom:1px dashed #ddd; padding-bottom:8px; margin-bottom:10px;">
-                            <div>
-                                <strong style="color:#333;">${date}</strong>
-                                <div style="font-size:0.75rem; color:#999;">#${o.id}</div>
-                            </div>
+                            <div><strong style="color:#333;">${date}</strong><div style="font-size:0.75rem; color:#999;">#${o.id}</div></div>
                             <span style="color:${statusColor}; font-weight:bold; font-size:0.85rem; text-transform:uppercase;">${o.status}</span>
                         </div>
                         <div style="margin-bottom:10px;">${itemsList}</div>
                         <div style="display:flex; justify-content:space-between; border-top:1px dashed #ddd; padding-top:10px; margin-bottom:10px; font-weight:bold; color:#333;">
-                            <span>Total</span>
-                            <span style="color:var(--primary);">₹${o.total}</span>
+                            <span>Total</span><span style="color:var(--primary);">₹${o.total}</span>
                         </div>
                         <div style="display:flex; gap:10px; border-top:1px solid #eee; padding-top:10px;">
-                            <button onclick="openInvoice('${o.id}')" style="flex:1; padding:8px; background:white; border:1px solid #e85d04; color:#e85d04; border-radius:5px; cursor:pointer;">
-                                <i class="fas fa-file-invoice"></i> Invoice
-                            </button>
-                            <button onclick="repeatOrder('${o.id}')" style="flex:1; padding:8px; background:#e85d04; color:white; border:none; border-radius:5px; cursor:pointer;">
-                                <i class="fas fa-redo"></i> Repeat
-                            </button>
+                            <button onclick="openInvoice('${o.id}')" style="flex:1; padding:8px; background:white; border:1px solid #e85d04; color:#e85d04; border-radius:5px; cursor:pointer;"><i class="fas fa-file-invoice"></i> Invoice</button>
+                            <button onclick="repeatOrder('${o.id}')" style="flex:1; padding:8px; background:#e85d04; color:white; border:none; border-radius:5px; cursor:pointer;"><i class="fas fa-redo"></i> Repeat</button>
                         </div>
-                    </div>
-                `;
+                    </div>`;
             });
             content.innerHTML = html;
         })
@@ -619,210 +591,62 @@ function showOrderHistory() {
         });
 }
 
-function closeHistory() {
-    document.getElementById('history-modal').classList.remove('active');
-}
+function closeHistory() { document.getElementById('history-modal').classList.remove('active'); }
 
-// 2. Invoice Logic
+// Invoice & Repeat
 function openInvoice(orderId) {
-    // Find data in the local variable we just saved
     const order = historyOrders.find(o => o.id === orderId);
     if (!order) return alert("Order details not found.");
-
-    // Populate HTML
     document.getElementById('inv-customer-name').innerText = order.userName;
     document.getElementById('inv-customer-email').innerText = currentUser.email || '-';
     document.getElementById('inv-order-id').innerText = `#${order.id}`;
     document.getElementById('inv-date').innerText = order.timestamp ? new Date(order.timestamp.seconds * 1000).toLocaleDateString() : '-';
-    document.getElementById('inv-grand-total').innerText = `₹${order.total}`;
-
-    // Generate QR Code
-    const upiLink = `upi://pay?pa=9826698822@paytm&pn=NamoNamkeen&am=${order.total}&cu=INR`;
-    document.getElementById('inv-qr-img').src = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(upiLink)}`;
-
-    // Populate Items Table
     const tbody = document.getElementById('inv-items-body');
     tbody.innerHTML = '';
     order.items.forEach(i => {
-        tbody.innerHTML += `
-            <tr>
-                <td>${i.name} <br><small>${i.weight}</small></td>
-                <td class="text-center">${i.qty}</td>
-                <td class="text-right">₹${i.price}</td>
-                <td class="text-right">₹${i.price * i.qty}</td>
-            </tr>`;
+        tbody.innerHTML += `<tr><td>${i.name} <br><small>${i.weight}</small></td><td class="text-center">${i.qty}</td><td class="text-right">₹${i.price}</td><td class="text-right">₹${i.price * i.qty}</td></tr>`;
     });
-
-    // Show Modal
+    document.getElementById('inv-grand-total').innerText = `₹${order.total}`;
+    const upiLink = `upi://pay?pa=9826698822@paytm&pn=NamoNamkeen&am=${order.total}&cu=INR`;
+    document.getElementById('inv-qr-img').src = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(upiLink)}`;
     document.getElementById('invoice-modal').style.display = 'flex';
 }
-
-function closeInvoice() {
-    document.getElementById('invoice-modal').style.display = 'none';
-}
-
-function printInvoice() {
-    window.print();
-}
-
-// 3. Repeat Order Logic
+function closeInvoice() { document.getElementById('invoice-modal').style.display = 'none'; }
+function printInvoice() { window.print(); }
 function repeatOrder(orderId) {
     const order = historyOrders.find(o => o.id === orderId);
     if (!order) return;
-
     if (confirm("Add all items from this order to your cart?")) {
         order.items.forEach(item => {
             const cartId = item.cartId || `${item.productId}-${item.weight.replace(/\s/g, '')}`;
             const existing = cart.find(c => c.cartId === cartId);
-            if (existing) {
-                existing.qty += item.qty;
-            } else {
-                cart.push({ ...item, cartId: cartId });
-            }
+            if (existing) existing.qty += item.qty; else cart.push({ ...item, cartId: cartId });
         });
-        updateCartUI();
-        toggleCart();
-        closeHistory();
+        updateCartUI(); toggleCart(); closeHistory();
     }
 }
 
+// --- HELPER ---
+function logout() { auth.signOut().then(() => location.reload()); }
+function toggleProfileMenu() { document.getElementById('profile-menu').classList.toggle('active'); }
 function closeSuccessModal() { document.getElementById('success-modal').style.display = 'none'; }
+function toggleCouponList() { const l = document.getElementById('coupon-list'); l.style.display = l.style.display === 'none' ? 'block' : 'none'; }
+function useCoupon(code) { document.getElementById('promo-code').value = code; applyPromo(); document.getElementById('coupon-list').style.display = 'none'; }
+function applyPromo() {
+    const input = document.getElementById('promo-code').value.toUpperCase().trim();
+    if (!input) { appliedDiscount = { type: 'none', value: 0, code: null }; document.getElementById('promo-msg').innerText = ""; updateCartUI(); return; }
+    const coupon = activeCoupons.find(c => c.code === input);
+    if (coupon) { appliedDiscount = { code: coupon.code, type: coupon.type, value: coupon.value }; document.getElementById('promo-msg').innerText = "Code Applied!"; document.getElementById('promo-msg').style.color = "green"; }
+    else { appliedDiscount = { type: 'none', value: 0, code: null }; document.getElementById('promo-msg').innerText = "Invalid Code"; document.getElementById('promo-msg').style.color = "red"; }
+    updateCartUI();
+}
 function openProfileModal() { document.getElementById('profile-modal').style.display = 'flex'; document.getElementById('profile-menu').classList.remove('active'); }
 function closeProfileModal() { document.getElementById('profile-modal').style.display = 'none'; }
 function saveProfile() { db.collection("users").doc(currentUser.uid).set({ phone: document.getElementById('edit-phone').value, address: document.getElementById('edit-address').value }, { merge: true }).then(() => closeProfileModal()); }
-function closeHistory() { document.getElementById('history-modal').classList.remove('active'); }
-function playVideo(w) {
-    const v = w.querySelector('video');
-
-    // Feature: Pause any other playing videos
-    document.querySelectorAll('.video-wrapper.playing video').forEach(otherVid => {
-        if (otherVid !== v) {
-            otherVid.pause();
-            otherVid.closest('.video-wrapper').classList.remove('playing');
-        }
-    });
-
-    // Toggle current video
-    if (v.paused) {
-        w.classList.add('playing');
-        v.play();
-    } else {
-        w.classList.remove('playing');
-        v.pause();
-    }
-}
+function playVideo(w) { const v = w.querySelector('video'); document.querySelectorAll('.video-wrapper.playing video').forEach(o => { if (o !== v) { o.pause(); o.closest('.video-wrapper').classList.remove('playing'); } }); if (v.paused) { w.classList.add('playing'); v.play(); } else { w.classList.remove('playing'); v.pause(); } }
 function closeAnnouncement() { document.getElementById('announcement-bar').style.display = 'none'; }
 function filterMenu(c) { currentCategory = c; document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active')); event.target.classList.add('active'); renderMenu(); }
 function searchMenu() { searchQuery = document.getElementById('menu-search').value; renderMenu(); }
 function toggleLanguage() { currentLang = currentLang === 'en' ? 'hi' : 'en'; renderMenu(); updateCartUI(); }
 function toggleMobileMenu() { document.getElementById('mobile-nav').classList.toggle('active'); }
 function scrollToTop() { window.scrollTo({ top: 0, behavior: 'smooth' }); }
-
-// --- CHECKOUT FLOW ---
-
-// Step 1: Open Payment Modal (Show QR & Total)
-function openPaymentModal() {
-    if (cart.length === 0) return alert("Cart empty");
-    
-    const phone = document.getElementById('cust-phone').value;
-    const address = document.getElementById('cust-address').value;
-    
-    // 1. Validate Details
-    if (phone.length < 10 || address.length < 5) {
-        alert("Please enter a valid Phone Number and Address.");
-        return;
-    }
-
-    // 2. Calculate Final Amount
-    let total = 0;
-    cart.forEach(i => { total += i.price * i.qty; });
-    
-    // Apply Discount Logic
-    let discountAmount = 0;
-    if (appliedDiscount.type === 'percent') {
-        discountAmount = Math.round(total * (appliedDiscount.value / 100));
-    } else if (appliedDiscount.type === 'flat') {
-        discountAmount = appliedDiscount.value;
-    }
-    if (discountAmount > total) discountAmount = total;
-    const finalAmount = total - discountAmount;
-
-    // 3. Update Success Modal UI
-    document.getElementById('success-total-amount').innerText = '₹' + finalAmount;
-
-    // Generate UPI Link (Opens Payment Apps)
-    // Format: upi://pay?pa=UPI_ID&pn=NAME&am=AMOUNT&cu=INR
-    const upiLink = `upi://pay?pa=9826698822@paytm&pn=NamoNamkeen&am=${finalAmount}&cu=INR`;
-    document.getElementById('upi-pay-link').href = upiLink;
-
-    // Generate QR Code Image
-    const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(upiLink)}`;
-    document.getElementById('success-qr-img').src = qrApiUrl;
-
-    // 4. Show the Modal
-    document.getElementById('success-modal').style.display = 'flex';
-    
-    // Close cart sidebar to focus on modal
-    toggleCart();
-}
-
-// Step 2: Save to DB & Send WhatsApp (Called by Button in Modal)
-async function finalizeOrder() {
-    const phone = document.getElementById('cust-phone').value;
-    const address = document.getElementById('cust-address').value;
-    const orderId = 'ORD-' + Date.now().toString().slice(-6);
-    
-    let total = 0;
-    cart.forEach(i => { total += i.price * i.qty; });
-
-    // Recalculate for record
-    let discountAmount = 0;
-    if (appliedDiscount.type === 'percent') {
-        discountAmount = Math.round(total * (appliedDiscount.value / 100));
-    } else if (appliedDiscount.type === 'flat') {
-        discountAmount = appliedDiscount.value;
-    }
-    if (discountAmount > total) discountAmount = total;
-    const final = total - discountAmount;
-
-    // Prepare WhatsApp Message
-    let msg = `*New Order #${orderId}*\nName: ${currentUser.displayName}\nPhone: ${phone}\nAddr: ${address}\n\n`;
-    cart.forEach(i => { msg += `- ${i.name} (${i.weight}) x ${i.qty}\n`; });
-    
-    if(discountAmount > 0) {
-        msg += `\nSubtotal: ₹${total}`;
-        msg += `\nDiscount (${appliedDiscount.code}): -₹${discountAmount}`;
-    }
-    msg += `\n*Total to Pay: ₹${final}*`;
-
-    // Save to Firestore
-    await db.collection("orders").add({
-        id: orderId, 
-        userId: currentUser.uid, 
-        userName: currentUser.displayName, 
-        userPhone: phone, 
-        userAddress: address,
-        items: cart, 
-        total: final, 
-        status: 'Pending', 
-        timestamp: new Date(), 
-        discount: appliedDiscount
-    });
-
-    // Open WhatsApp
-    window.open(`https://wa.me/919826698822?text=${encodeURIComponent(msg)}`, '_blank');
-
-    // Cleanup
-    cart = []; 
-    appliedDiscount = { type: 'none', value: 0, code: null }; 
-    updateCartUI(); 
-    document.getElementById('success-modal').style.display = 'none';
-}
-
-function registerServiceWorker() {
-    if ('serviceWorker' in navigator && (window.location.protocol === 'http:' || window.location.protocol === 'https:')) {
-        navigator.serviceWorker.register('sw.js')
-            .then(reg => console.log("Service Worker Registered"))
-            .catch(err => console.log("SW Registration Failed:", err));
-    }
-}
