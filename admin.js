@@ -294,7 +294,7 @@ function renderOrderRows(tbody, items) {
         tbody.innerHTML += `
             <tr>
                 <td>${d}<br><small>#${o.id}</small></td>
-                <td><strong>${o.userName}</strong><br><small>${o.userPhone}</small></td>
+                <td><strong>${escapeHtml(o.userName)}</strong><br><small>${escapeHtml(o.userPhone)}</small></td>
                 <td>₹${o.total}</td>
                 <td>
                     <select class="status-select" onchange="setStatus('${o.docId}', this.value)">
@@ -324,7 +324,7 @@ function exportOrdersToCSV() {
     state.orders.data.forEach(o => {
         const d = o.timestamp ? new Date(o.timestamp.seconds * 1000).toLocaleDateString() : '-';
         const items = o.items.map(i => `${i.name} x ${i.qty}`).join(' | ');
-        csv += `"${d}","${o.id}","${o.userName}","${o.userPhone}","${o.userAddress.replace(/\n/g, ' ')}","${items}",${o.total},${o.status}\n`;
+        csv += `"${d}","${o.id}","${escapeHtml(o.userName)}","${escapeHtml(o.userPhone)}","${escapeHtml(o.userAddress.replace(/\n/g, ' '))}","${items}",${o.total},${o.status}\n`;
     });
     downloadCSV(csv, "namo_orders.csv");
 }
@@ -392,15 +392,15 @@ function setStatus(id, status) {
     db.collection("orders").doc(id).update({ status: status }).then(() => {
         const order = state.orders.data.find(o => o.docId === id);
         if (order && confirm(`Updated to ${status}. Notify customer?`)) {
-            let msg = `Hello ${order.userName}, your Namo Namkeen order #${order.id} is now *${status}*.`;
-            window.open(`https://wa.me/91${order.userPhone.replace(/\D/g, '')}?text=${encodeURIComponent(msg)}`, '_blank');
+            let msg = `Hello ${escapeHtml(order.userName)}, your Namo Namkeen order #${order.id} is now *${status}*.`;
+            window.open(`https://wa.me/91${escapeHtml(order.userPhone.replace(/\D/g, ''))}?text=${encodeURIComponent(msg)}`, '_blank');
         }
     });
 }
 
 function viewOrder(id) {
     const o = state.orders.data.find(x => x.docId === id);
-    let h = `<p><strong>Customer:</strong> ${o.userName} (${o.userPhone})</p><p><strong>Address:</strong> ${o.userAddress}</p><hr style="margin:10px 0;">`;
+    let h = `<p><strong>Customer:</strong> ${escapeHtml(o.userName)} (${escapeHtml(o.userPhone)})</p><p><strong>Address:</strong> ${escapeHtml(o.userAddress)}</p><hr style="margin:10px 0;">`;
     o.items.forEach(i => h += `<div>${i.name} x ${i.qty}</div>`);
     if (o.discount) h += `<div style="color:green; margin-top:5px;">Discount: ${o.discount.code} Applied</div>`;
     h += `<h3 style="text-align:right">Total: ₹${o.total}</h3>`;
@@ -549,6 +549,16 @@ async function importFromSheet() {
         await b.commit();
         alert("Import Done");
     } catch (e) { alert("Import Failed: " + e.message); }
+}
+
+function escapeHtml(text) {
+  if (!text) return text;
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 }
 
 // --- SERVICE WORKER ---

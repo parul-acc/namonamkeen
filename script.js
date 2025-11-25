@@ -163,7 +163,11 @@ function renderMenu() {
                     <div style="margin-bottom:10px; min-height:30px;">${variantHtml}</div>
                     <div class="price-row">
                         <span class="price" id="price-${p.id}">₹${displayPrice}</span>
-                        <button class="add-btn" onclick="event.stopPropagation(); ${btnAction}">${btnText}</button>
+                      <button class="add-btn" 
+    onclick="event.stopPropagation(); ${btnAction}" 
+    ${!isAvailable ? 'disabled style="background:#ccc; cursor:not-allowed;"' : ''}>
+    ${btnText}
+</button>
                     </div>
                 </div>
             </div>`;
@@ -191,7 +195,9 @@ function renderHamperOptions() {
     if (!products || products.length === 0) return;
     const container = document.getElementById('hamper-options');
     if (!container) return;
-    const eligible = products.filter(p => p.price <= 105 && p.in_stock);
+    // In renderHamperOptions()
+const limit = shopConfig.hamperMaxItemPrice || 105;
+const eligible = products.filter(p => p.price <= limit && p.in_stock);
 
     container.innerHTML = '';
     eligible.forEach(p => {
@@ -211,7 +217,7 @@ function toggleHamperItem(p, el) {
     } else {
         if (selectedHamperItems.length < 3) {
             const currentTotal = selectedHamperItems.reduce((sum, item) => sum + item.price, 0);
-            if (currentTotal + p.price > 310) {
+            if (currentTotal + p.price > shopConfig.hamperPrice) {
                 alert(`Total value too high! Try a cheaper item.`);
                 return;
             }
@@ -243,13 +249,14 @@ function updateHamperUI() {
 
 function addHamperToCart() {
     if (selectedHamperItems.length !== 3) return;
+    const price = shopConfig.hamperPrice || 250;
     const names = selectedHamperItems.map(p => p.name).join(' + ');
     cart.push({
         cartId: 'hamper-' + Date.now(),
         productId: 'HAMPER',
         name: 'Gift Box (3 Packs)',
         weight: names,
-        price: 250,
+        price: price,
         image: 'assets/images/product/mini-samosa.jpg',
         qty: 1
     });
