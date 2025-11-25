@@ -25,6 +25,13 @@ let currentLang = 'en';
 let selectedHamperItems = [];
 let historyOrders = [];
 
+// NEW: Add this Shop Config
+let shopConfig = {
+    upiId: "8103276050@ybl", // Default fallback if DB fails
+    adminPhone: "919826698822",
+    deliveryCharge: 0
+};
+
 // Coupon State
 let activeCoupons = [];
 let appliedDiscount = { type: 'none', value: 0, code: null };
@@ -55,6 +62,16 @@ function fetchData() {
         renderMenu();
         renderHamperOptions();
     }).catch(err => console.error("Products Error:", err));
+
+    // NEW: Fetch Shop Configuration from Firestore
+    db.collection("settings").doc("config").onSnapshot(doc => {
+        if (doc.exists) {
+            const data = doc.data();
+            if (data.upiId) shopConfig.upiId = data.upiId;
+            if (data.adminPhone) shopConfig.adminPhone = data.adminPhone;
+            console.log("Shop Config Loaded:", shopConfig);
+        }
+    });
 
     // Announcement
     db.collection("settings").doc("announcement").get().then(doc => {
@@ -171,6 +188,7 @@ function addToCartFromGrid(id) {
 
 // --- 6. HAMPER LOGIC ---
 function renderHamperOptions() {
+    if (!products || products.length === 0) return;
     const container = document.getElementById('hamper-options');
     if (!container) return;
     const eligible = products.filter(p => p.price <= 105 && p.in_stock);
@@ -416,11 +434,19 @@ function toggleCart() { document.getElementById('cart-sidebar').classList.toggle
 function openPaymentModal() {
     if (cart.length === 0) return alert("Cart empty");
 
-    const phone = document.getElementById('cust-phone').value;
-    const address = document.getElementById('cust-address').value;
+    const phoneInput = document.getElementById('cust-phone').value.trim();
+    const address = document.getElementById('cust-address').value.trim();
 
-    if (phone.length < 10 || address.length < 3) {
-        alert("Please enter a valid Phone Number and Address.");
+    // Regex: Exactly 10 digits, no spaces, no letters
+    const phoneRegex = /^[0-9]{10}$/;
+
+    if (!phoneRegex.test(phoneInput)) {
+        alert("Please enter a valid 10-digit mobile number (e.g., 9876543210).");
+        return;
+    }
+
+    if (address.length < 3) {
+        alert("Please enter a complete address.");
         return;
     }
 
@@ -438,7 +464,8 @@ function openPaymentModal() {
 
     document.getElementById('success-total-amount').innerText = '₹' + finalAmount;
 
-    const upiLink = `upi://pay?pa=9826698822@paytm&pn=NamoNamkeen&am=${finalAmount}&cu=INR`;
+    // Use Shop Config for UPI
+    const upiLink = `upi://pay?pa=${shopConfig.upiId}&pn=NamoNamkeen&am=${finalAmount}&cu=INR`;
     document.getElementById('upi-pay-link').href = upiLink;
 
     const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(upiLink)}`;
@@ -450,6 +477,8 @@ function openPaymentModal() {
 
 // Step 2: Finalize Order
 async function finalizeOrder() {
+    // Start Loading
+    toggleBtnLoading('btn-send-whatsapp', true);
     const phone = document.getElementById('cust-phone').value;
     const address = document.getElementById('cust-address').value;
     const orderId = 'ORD-' + Date.now().toString().slice(-6);
@@ -475,25 +504,34 @@ async function finalizeOrder() {
     }
     msg += `\n*Total to Pay: ₹${final}*`;
 
-    await db.collection("orders").add({
-        id: orderId,
-        userId: currentUser.uid,
-        userName: currentUser.displayName,
-        userPhone: phone,
-        userAddress: address,
-        items: cart,
-        total: final,
-        status: 'Pending',
-        timestamp: new Date(),
-        discount: appliedDiscount
-    });
+    try {
+        await db.collection("orders").add({
+            id: orderId,
+            userId: currentUser.uid,
+            userName: currentUser.displayName,
+            userPhone: phone,
+            userAddress: address,
+            items: cart,
+            total: final,
+            status: 'Pending',
+            timestamp: new Date(),
+            discount: appliedDiscount
+        });
 
-    window.open(`https://wa.me/919826698822?text=${encodeURIComponent(msg)}`, '_blank');
+        // NEW: Use Configured Admin Phone
+        window.open(`https://wa.me/${shopConfig.adminPhone}?text=${encodeURIComponent(msg)}`, '_blank');
 
-    cart = [];
-    appliedDiscount = { type: 'none', value: 0, code: null };
-    updateCartUI();
-    document.getElementById('success-modal').style.display = 'none';
+        cart = [];
+        appliedDiscount = { type: 'none', value: 0, code: null };
+        updateCartUI();
+        document.getElementById('success-modal').style.display = 'none';
+    } catch (error) {
+        console.error(error);
+        alert("Order failed. Please try again.");
+    } finally {
+        // Stop Loading
+        toggleBtnLoading('btn-send-whatsapp', false);
+    }
 }
 
 // --- 11. AUTH & HISTORY ---
@@ -503,6 +541,9 @@ function validateAndLogin() {
 }
 
 function googleLogin() {
+    toggleBtnLoading('login-btn', true); // Sidebar login
+    toggleBtnLoading('btn-login-checkout', true); // Cart login
+
     auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()).then(res => {
         db.collection("users").doc(res.user.uid).set({
             name: res.user.displayName, email: res.user.email,
@@ -510,7 +551,12 @@ function googleLogin() {
             address: document.getElementById('cust-address').value,
             lastLogin: new Date()
         }, { merge: true });
-    }).catch(e => alert(e.message));
+        // UI updates automatically via onAuthStateChanged, so we don't need to manually stop loading here
+    }).catch(e => {
+        alert(e.message);
+        toggleBtnLoading('login-btn', false);
+        toggleBtnLoading('btn-login-checkout', false);
+    });
 }
 
 function updateUserUI(loggedIn) {
@@ -678,5 +724,22 @@ function registerServiceWorker() {
         navigator.serviceWorker.register('sw.js')
             .then(reg => console.log("Service Worker Registered"))
             .catch(err => console.log("SW Registration Failed:", err));
+    }
+}
+
+// NEW HELPER: Toggles button loading state
+function toggleBtnLoading(btnId, isLoading) {
+    const btn = document.getElementById(btnId);
+    if (!btn) return;
+
+    if (isLoading) {
+        btn.dataset.originalText = btn.innerHTML; // Save original text/icon
+        btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Processing...';
+        btn.disabled = true;
+        btn.style.opacity = "0.7";
+    } else {
+        if (btn.dataset.originalText) btn.innerHTML = btn.dataset.originalText; // Restore
+        btn.disabled = false;
+        btn.style.opacity = "1";
     }
 }
