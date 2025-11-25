@@ -19,8 +19,8 @@ let salesChartInstance, productChartInstance;
 const ITEMS_PER_PAGE = 10;
 let state = {
     inventory: { data: [], page: 1 },
-    orders: { data: [], filteredData: [], page: 1 },
-    customers: { data: [], filteredData: [], page: 1 }
+    orders: { data: [], filteredData: null, page: 1 },
+    customers: { data: [], filteredData: null, page: 1 }
 };
 
 // --- AUTHENTICATION ---

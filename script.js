@@ -419,7 +419,7 @@ function openPaymentModal() {
     const phone = document.getElementById('cust-phone').value;
     const address = document.getElementById('cust-address').value;
 
-    if (phone.length < 10 || address.length < 5) {
+    if (phone.length < 10 || address.length < 3) {
         alert("Please enter a valid Phone Number and Address.");
         return;
     }
