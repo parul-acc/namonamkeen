@@ -729,8 +729,8 @@ h4 {
     position: fixed;
     top: 0;
     right: -450px;
-    width: 400px;
-    max-width: 90%;
+    width: 100%;       /* Default to full width for safety */
+    max-width: 400px;  /* Cap it at 400px for desktops */
     height: 100%;
     background: #f9f9f9;
     /* Slightly off-white background for contrast */
