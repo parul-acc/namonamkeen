@@ -24,17 +24,25 @@ let state = {
 };
 
 // --- AUTHENTICATION ---
-auth.onAuthStateChanged(user => {
-    console.log("Auth State Changed:", user ? user.email : "No User");
-    if (user && ADMIN_EMAILS.includes(user.email)) {
+if (window.location.pathname.endsWith('admin-local.html')) {
+    document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('login-overlay').style.display = 'none';
-        document.getElementById('admin-user-info').innerText = user.displayName;
+        document.getElementById('admin-user-info').innerText = 'Local Admin';
         initDashboard();
-    } else if (user) {
-        alert("Access Denied. Admin Only.");
-        auth.signOut();
-    }
-});
+    });
+} else {
+    auth.onAuthStateChanged(user => {
+        console.log("Auth State Changed:", user ? user.email : "No User");
+        if (user && ADMIN_EMAILS.includes(user.email)) {
+            document.getElementById('login-overlay').style.display = 'none';
+            document.getElementById('admin-user-info').innerText = user.displayName;
+            initDashboard();
+        } else if (user) {
+            alert("Access Denied. Admin Only.");
+            auth.signOut();
+        }
+    });
+}
 
 function adminLogin() { auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()); }
 function logout() { auth.signOut().then(() => location.reload()); }
