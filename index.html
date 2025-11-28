@@ -73,15 +73,16 @@
         </div>
     </nav>
 
-<div class="mobile-nav" id="mobile-nav">
-    <a href="#home" onclick="toggleMobileMenu()">Home</a>
-    <a href="#menu-section" onclick="toggleMobileMenu()">Menu</a>
-    <a href="pricelist.html">Price List</a>
-    
-    <button id="pwa-install-btn" style="display: none; background: var(--primary); color: white; border: none; padding: 10px 20px; border-radius: 20px; font-weight: 600; cursor: pointer; margin-top: 10px;">
-        <i class="fas fa-download"></i> Install App
-    </button>
-</div>
+    <div class="mobile-nav" id="mobile-nav">
+        <a href="#home" onclick="toggleMobileMenu()">Home</a>
+        <a href="#menu-section" onclick="toggleMobileMenu()">Menu</a>
+        <a href="pricelist.html">Price List</a>
+
+        <button id="pwa-install-btn"
+            style="display: none; background: var(--primary); color: white; border: none; padding: 10px 20px; border-radius: 20px; font-weight: 600; cursor: pointer; margin-top: 10px;">
+            <i class="fas fa-download"></i> Install App
+        </button>
+    </div>
 
     <section id="home" class="hero">
         <div class="hero-overlay">
@@ -273,6 +274,10 @@
                         </label>
                     </div>
                 </div>
+
+                <label class="input-label" style="margin-top:15px;">Delivery Note (Optional)</label>
+                <textarea id="delivery-note" placeholder="e.g. Leave at security, Don't ring bell..." rows="1"
+                    class="form-control" style="font-size:0.9rem;"></textarea>
 
                 <div class="total-row" style="margin-top: 20px; border-top: 1px dashed #ddd; padding-top: 15px;">
                     <span>Total Amount:</span>

@@ -39,6 +39,7 @@ let appliedDiscount = { type: 'none', value: 0, code: null };
 
 // --- 3. INITIALIZATION ---
 document.addEventListener('DOMContentLoaded', () => {
+    loadCartLocal();
     fetchData();
     if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
 
@@ -55,6 +56,21 @@ window.onscroll = function () {
 
 // --- 4. DATA FETCHING ---
 function fetchData() {
+    // 1. Show Skeletons
+    const grid = document.getElementById('menu-grid');
+    if (grid) {
+        grid.innerHTML = '';
+        for (let i = 0; i < 6; i++) {
+            grid.innerHTML += `
+            <div class="sk-card">
+                <div class="skeleton sk-img"></div>
+                <div class="skeleton sk-title"></div>
+                <div class="skeleton sk-text"></div>
+                <div class="skeleton sk-text" style="width:80%"></div>
+                <div class="skeleton sk-btn"></div>
+            </div>`;
+        }
+    }
     // Products
     db.collection("products").get().then(snap => {
         products = [];
@@ -489,6 +505,7 @@ function addToCart(p, v) {
     else cart.push({ cartId: cartId, productId: p.id, name: p.name, image: p.image, weight: v.weight, price: v.price, qty: 1 });
     updateCartUI();
     toggleCart();
+    saveCartLocal();
 }
 
 function updateCartUI() {
@@ -544,11 +561,27 @@ function updateCartUI() {
 
 function changeQty(id, d) {
     const i = cart.find(x => x.cartId === id);
-    if (i) { i.qty += d; if (i.qty <= 0) removeFromCart(id); else updateCartUI(); }
+    if (i) {
+        i.qty += d; if (i.qty <= 0)
+            removeFromCart(id);
+    }
+    else {
+        updateCartUI();
+    }
+    saveCartLocal();
 }
 
-function removeFromCart(id) { cart = cart.filter(x => x.cartId !== id); updateCartUI(); }
-function clearCart() { if (confirm("Clear?")) { cart = []; updateCartUI(); } }
+function removeFromCart(id) {
+    cart = cart.filter(x => x.cartId !== id); updateCartUI();
+    saveCartLocal();
+}
+function clearCart() {
+    if (confirm("Clear?")) {
+        cart = [];
+        updateCartUI();
+    }
+    saveCartLocal();
+}
 function toggleCart() { document.getElementById('cart-sidebar').classList.toggle('active'); document.querySelector('.cart-overlay').classList.toggle('active'); }
 
 // --- 10. CHECKOUT FLOW (Split Logic) ---
@@ -1062,6 +1095,9 @@ function openRazorpayModal(amountPaise, amountINR, userPhone) {
 async function saveOrderToFirebase(method, paymentStatus, txnId) {
     toggleBtnLoading('btn-main-checkout', true);
 
+    // 1. Get value
+    const deliveryNote = document.getElementById('delivery-note') ? document.getElementById('delivery-note').value.trim() : '';
+
     const phone = document.getElementById('cust-phone').value;
     const address = document.getElementById('cust-address').value;
     const orderId = 'ORD-' + Date.now().toString().slice(-6);
@@ -1084,6 +1120,7 @@ async function saveOrderToFirebase(method, paymentStatus, txnId) {
             userName: uName,
             userPhone: phone,
             userAddress: address,
+            deliveryNote: deliveryNote,
             items: cart,
             total: finalAmount,
             discount: appliedDiscount,
@@ -1097,6 +1134,7 @@ async function saveOrderToFirebase(method, paymentStatus, txnId) {
         // Update UI
         showSuccessModal(orderId, finalAmount, method);
         cart = [];
+        saveCartLocal();
         updateCartUI();
         if (document.getElementById('cart-sidebar').classList.contains('active')) toggleCart();
 
@@ -1109,8 +1147,10 @@ async function saveOrderToFirebase(method, paymentStatus, txnId) {
 }
 
 function showSuccessModal(orderId, amount, method) {
-    const msg = `*New Order: ${orderId}*\n*Method:* ${method}\n*Amount:* ₹${amount}\n*Customer:* ${currentUser.displayName}\n*Address:* ${document.getElementById('cust-address').value}\n\n*Payment:* ${method === 'Online' ? 'PAID ✅' : 'Cash on Delivery 🚚'}`;
+    const note = document.getElementById('delivery-note').value.trim();
+    const noteText = note ? `\n*Note:* ${note}` : '';
 
+    const msg = `*New Order: ${orderId}*\n*Method:* ${method}\n*Amount:* ₹${amount}\n*Customer:* ${currentUser.displayName}\n*Address:* ${document.getElementById('cust-address').value}${noteText}\n\n*Payment:* ${method === 'Online' ? 'PAID ✅' : 'Cash on Delivery 🚚'}`;
     document.getElementById('success-order-id').innerText = orderId;
 
     // Update the WhatsApp Button
@@ -1287,3 +1327,15 @@ window.addEventListener('appinstalled', () => {
     console.log('PWA was installed');
     // You could save this event to Firestore to track how many users installed the app
 });
+
+function saveCartLocal() {
+    localStorage.setItem('namoCart', JSON.stringify(cart));
+}
+
+function loadCartLocal() {
+    const saved = localStorage.getItem('namoCart');
+    if (saved) {
+        cart = JSON.parse(saved);
+        updateCartUI();
+    }
+}

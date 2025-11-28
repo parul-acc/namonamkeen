@@ -307,35 +307,68 @@ function loadOrders() {
 }
 
 function renderOrderRows(tbody, items) {
+    tbody.innerHTML = '';
     items.forEach(o => {
         const d = o.timestamp ? new Date(o.timestamp.seconds * 1000).toLocaleDateString() : '-';
+        const statusClass = `status-${o.status.toLowerCase()}`;
+        const itemCount = o.items.length;
+
         tbody.innerHTML += `
             <tr>
-                <td>${d}<br><small>#${o.id}</small></td>
-                <td><strong>${escapeHtml(o.userName)}</strong><br><small>${escapeHtml(o.userPhone)}</small></td>
-                <td>₹${o.total}</td>
+                <td><input type="checkbox" class="order-check" value="${o.docId}" onchange="updateBulkUI()"></td>
+                <td><strong>#${o.id}</strong><br><small style="color:#888">${d}</small></td>
                 <td>
-                    <select class="status-select" onchange="setStatus('${o.docId}', this.value)">
-                        <option ${o.status === 'Pending' ? 'selected' : ''}>Pending</option>
-                        <option ${o.status === 'Packed' ? 'selected' : ''}>Packed</option>
-                        <option ${o.status === 'Delivered' ? 'selected' : ''}>Delivered</option>
-                    </select>
+                    <div style="font-weight:600;">${escapeHtml(o.userName)}</div>
+                    <div style="font-size:0.85rem; color:#666;">${o.userPhone}</div>
                 </td>
-                <td><button class="icon-btn btn-blue" onclick="viewOrder('${o.docId}')"><i class="fas fa-eye"></i></button></td>
-                <button class="icon-btn" style="background:#555;" onclick="printPackingSlip('${o.docId}')" title="Print Slip">
-        <i class="fas fa-print"></i>
-    </button>
-                </tr>`;
+                <td>${itemCount} Items</td>
+                <td style="font-weight:bold;">₹${o.total}</td>
+                <td><span class="status-pill ${statusClass}">${o.status}</span></td>
+                <td>
+                    <button class="icon-btn btn-blue" onclick="viewOrder('${o.docId}')" title="View"><i class="fas fa-eye"></i></button>
+                    <button class="icon-btn" style="background:#555;" onclick="printPackingSlip('${o.docId}')" title="Print"><i class="fas fa-print"></i></button>
+                    
+                    ${o.status === 'Pending' ?
+                `<button class="icon-btn btn-green" onclick="setStatus('${o.docId}', 'Packed')" title="Mark Packed"><i class="fas fa-box"></i></button>`
+                : ''}
+                </td>
+            </tr>`;
     });
 }
 
-function filterOrdersByStatus() {
+function filterOrders() {
     const status = document.getElementById('order-filter').value;
-    if (status === 'All') {
-        state.orders.filteredData = null;
-    } else {
-        state.orders.filteredData = state.orders.data.filter(o => o.status === status);
-    }
+    const query = document.getElementById('order-search').value.toLowerCase();
+    const dateStart = document.getElementById('date-start').value;
+    const dateEnd = document.getElementById('date-end').value;
+
+    state.orders.filteredData = state.orders.data.filter(o => {
+        // 1. Status Filter
+        const matchesStatus = (status === 'All') || (o.status === status);
+
+        // 2. Search Filter (ID, Name, Phone)
+        const str = (o.id + o.userName + o.userPhone).toLowerCase();
+        const matchesSearch = str.includes(query);
+
+        // 3. Date Filter
+        let matchesDate = true;
+        if (dateStart || dateEnd) {
+            const orderDate = o.timestamp ? new Date(o.timestamp.seconds * 1000) : new Date();
+            orderDate.setHours(0, 0, 0, 0); // Normalize time
+
+            if (dateStart) {
+                const start = new Date(dateStart);
+                if (orderDate < start) matchesDate = false;
+            }
+            if (dateEnd) {
+                const end = new Date(dateEnd);
+                if (orderDate > end) matchesDate = false;
+            }
+        }
+
+        return matchesStatus && matchesSearch && matchesDate;
+    });
+
     state.orders.page = 1;
     renderTable('orders');
 }
@@ -423,14 +456,95 @@ function setStatus(id, status) {
     });
 }
 
+// Replace the existing viewOrder function
 function viewOrder(id) {
     const o = state.orders.data.find(x => x.docId === id);
-    let h = `<p><strong>Customer:</strong> ${escapeHtml(o.userName)} (${escapeHtml(o.userPhone)})</p><p><strong>Address:</strong> ${escapeHtml(o.userAddress)}</p><hr style="margin:10px 0;">`;
-    o.items.forEach(i => h += `<div>${i.name} x ${i.qty}</div>`);
-    if (o.discount) h += `<div style="color:green; margin-top:5px;">Discount: ${o.discount.code} Applied</div>`;
-    h += `<h3 style="text-align:right">Total: ₹${o.total}</h3>`;
-    document.getElementById('order-detail-content').innerHTML = h;
+    if (!o) return;
+
+    // Generate Editable Items List
+    let itemsHtml = '';
+    o.items.forEach((item, idx) => {
+        itemsHtml += `
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; border-bottom:1px solid #eee; padding-bottom:5px;">
+            <div>
+                <strong>${item.name}</strong> <small>(${item.weight})</small><br>
+                Price: ₹${item.price}
+            </div>
+            <div style="display:flex; align-items:center; gap:5px;">
+                <button onclick="adminUpdateQty('${id}', ${idx}, -1)" style="padding:2px 8px;">-</button>
+                <span>${item.qty}</span>
+                <button onclick="adminUpdateQty('${id}', ${idx}, 1)" style="padding:2px 8px;">+</button>
+                <button onclick="adminRemoveItem('${id}', ${idx})" style="color:red; border:none; background:none; margin-left:5px;">&times;</button>
+            </div>
+        </div>`;
+    });
+
+    const html = `
+        <div style="background:#f9f9f9; padding:10px; border-radius:5px; margin-bottom:15px;">
+            <p><strong>Customer:</strong> ${escapeHtml(o.userName)}</p>
+            <p><strong>Phone:</strong> ${escapeHtml(o.userPhone)}</p>
+            <p><strong>Address:</strong> ${escapeHtml(o.userAddress)}</p>
+        </div>
+        
+        <h4>Order Items (Edit Mode)</h4>
+        <div id="admin-order-items">${itemsHtml}</div>
+        
+        <div style="margin-top:20px; text-align:right; border-top:2px solid #eee; padding-top:10px;">
+            <h3>Total: ₹${o.total}</h3>
+            ${o.discount && o.discount.value > 0 ? `<small style="color:green">Discount Applied: -₹${o.discount.value}</small>` : ''}
+        </div>
+    `;
+
+    document.getElementById('order-detail-content').innerHTML = html;
     document.getElementById('order-modal').style.display = 'flex';
+}
+
+// Add these NEW Helper Functions to admin.js
+function adminUpdateQty(orderId, itemIdx, change) {
+    const orderDoc = state.orders.data.find(x => x.docId === orderId);
+    if (!orderDoc) return;
+
+    // Clone items array
+    let newItems = [...orderDoc.items];
+    let item = newItems[itemIdx];
+    
+    item.qty += change;
+    if (item.qty < 1) return adminRemoveItem(orderId, itemIdx); // Remove if 0
+
+    recalculateAndSave(orderId, newItems, orderDoc);
+}
+
+function adminRemoveItem(orderId, itemIdx) {
+    if(!confirm("Remove this item?")) return;
+    const orderDoc = state.orders.data.find(x => x.docId === orderId);
+    let newItems = [...orderDoc.items];
+    
+    newItems.splice(itemIdx, 1); // Remove item
+    recalculateAndSave(orderId, newItems, orderDoc);
+}
+
+function recalculateAndSave(orderId, newItems, orderDoc) {
+    // 1. Calculate New Total
+    let newTotal = newItems.reduce((sum, i) => sum + (i.price * i.qty), 0);
+    
+    // 2. Re-apply Discount if exists
+    let discountVal = 0;
+    if (orderDoc.discount) {
+        if (orderDoc.discount.type === 'percent') discountVal = Math.round(newTotal * (orderDoc.discount.value / 100));
+        else discountVal = orderDoc.discount.value;
+    }
+    const finalTotal = Math.max(0, newTotal - discountVal);
+
+    // 3. Update Firebase
+    db.collection("orders").doc(orderId).update({
+        items: newItems,
+        total: finalTotal
+    }).then(() => {
+        // UI will auto-update because of onSnapshot in loadOrders
+        // But we need to refresh the modal specifically
+        // Simple hack: Close and reopen or just alert
+        viewOrder(orderId); // Refresh modal content
+    });
 }
 
 function loadSettings() {
@@ -664,5 +778,55 @@ function printPackingSlip(docId) {
         </html>
     `);
     slipWindow.document.close();
+}
+
+// --- BULK ACTIONS ---
+function toggleAllOrders(source) {
+    const checkboxes = document.querySelectorAll('.order-check');
+    checkboxes.forEach(c => c.checked = source.checked);
+    updateBulkUI();
+}
+
+function updateBulkUI() {
+    const checked = document.querySelectorAll('.order-check:checked');
+    const toolbar = document.getElementById('bulk-toolbar');
+    const countSpan = document.getElementById('selected-count');
+
+    if (checked.length > 0) {
+        toolbar.classList.add('active');
+        countSpan.innerText = `${checked.length} Selected`;
+    } else {
+        toolbar.classList.remove('active');
+    }
+}
+
+function bulkUpdateStatus(newStatus) {
+    const checked = document.querySelectorAll('.order-check:checked');
+    if (checked.length === 0) return;
+
+    if (!confirm(`Mark ${checked.length} orders as ${newStatus}?`)) return;
+
+    const batch = db.batch();
+    checked.forEach(c => {
+        const docRef = db.collection("orders").doc(c.value);
+        batch.update(docRef, { status: newStatus });
+    });
+
+    batch.commit().then(() => {
+        alert("Bulk Update Successful");
+        // Clear selection
+        document.querySelectorAll('.order-check').forEach(c => c.checked = false);
+        updateBulkUI();
+    }).catch(err => alert("Error: " + err.message));
+}
+
+function bulkPrintSlips() {
+    const checked = document.querySelectorAll('.order-check:checked');
+    if (checked.length === 0) return;
+
+    // In a real app, you might bundle these into one PDF.
+    // For now, we open them sequentially or just the first one as a demo.
+    alert("Printing " + checked.length + " slips...");
+    checked.forEach(c => printPackingSlip(c.value));
 }
 registerAdminServiceWorker();
