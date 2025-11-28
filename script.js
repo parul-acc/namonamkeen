@@ -236,13 +236,13 @@ function toggleHamperItem(p, el) {
         if (selectedHamperItems.length < 3) {
             const currentTotal = selectedHamperItems.reduce((sum, item) => sum + item.price, 0);
             if (currentTotal + p.price > shopConfig.hamperPrice) {
-                alert(`Total value too high! Try a cheaper item.`);
+                showToast("Total value too high! Try a cheaper item.", "success");
                 return;
             }
             selectedHamperItems.push(p);
             el.classList.add('selected');
         } else {
-            alert("Select only 3 items!");
+            showToast("Select only 3 items!", "success");
         }
     }
     updateHamperUI();
@@ -287,7 +287,7 @@ function addHamperToCart() {
 
 // --- 7. SNACK FINDER ---
 function openQuiz() {
-    if (!products || products.length === 0) { alert("Loading..."); return; }
+    if (!products || products.length === 0) { showToast("Loading...", "success"); return; }
     document.getElementById('quiz-modal').style.display = 'flex';
     startQuiz();
 }
@@ -321,6 +321,7 @@ function findResult(keyword) {
 // --- 8. PRODUCT MODAL ---
 function openProductDetail(id) {
     const p = products.find(x => x.id === id);
+    updateSchema(p);
     if (!p) return;
 
     const name = currentLang === 'en' ? p.name : (p.nameHi || p.name);
@@ -359,6 +360,10 @@ function openProductDetail(id) {
         btnHtml = `<button class="btn-primary pm-btn" style="background:#ccc; cursor:not-allowed;" disabled>Sold Out</button>`;
     }
 
+    // 1. Create the Share Link
+    const shareText = encodeURIComponent(`Check out this ${name} from Namo Namkeen! It looks delicious. 😋 Order here: https://namonamkeen.shop`);
+    const shareUrl = `https://wa.me/?text=${shareText}`;
+
     let html = `
         <div class="pm-grid">
             <div class="pm-image-container">
@@ -366,7 +371,12 @@ function openProductDetail(id) {
             </div>
 
             <div class="pm-details">
+                <div style="display:flex; justify-content:space-between; align-items:start;">
                 <span class="pm-category">${category}</span>
+                <a href="${shareUrl}" target="_blank" style="color:#25D366; font-size:1.2rem;" title="Share on WhatsApp">
+                    <i class="fab fa-whatsapp"></i>
+                </a>
+            </div>
                 <h2 class="pm-title">${name}</h2>
                 <p class="pm-desc">${desc}</p>
 
@@ -501,14 +511,14 @@ function toggleCart() { document.getElementById('cart-sidebar').classList.toggle
 
 // 1. Called when user clicks "Proceed to Pay"
 function initiateCheckout() {
-    if (cart.length === 0) return alert("Your cart is empty!");
+    if (cart.length === 0) return showToast("Your cart is empty!", "success");
 
     const phone = document.getElementById('cust-phone').value.trim();
     const address = document.getElementById('cust-address').value.trim();
 
     // Validation
-    if (!/^[0-9]{10}$/.test(phone)) return alert("Please enter a valid 10-digit phone number.");
-    if (address.length < 3) return alert("Please enter a complete delivery address.");
+    if (!/^[0-9]{10}$/.test(phone)) return showToast("Please enter a valid 10-digit phone number.", "error");
+    if (address.length < 3) return showToast("Please enter a complete delivery address.", "error");
 
     // Get Payment Method
     const paymentMethod = document.querySelector('input[name="paymentMethod"]:checked').value;
@@ -547,7 +557,7 @@ function handleCheckout() {
 
     // Safety Check to prevent the "null" error
     if (!phoneInput || !addressInput) {
-        alert("Error: Checkout form not loaded correctly. Please refresh.");
+        showToast("Error: Checkout form not loaded correctly. Please refresh.", "error");
         return;
     }
 
@@ -555,9 +565,9 @@ function handleCheckout() {
     const address = addressInput.value.trim();
 
     // 2. Validate
-    if (cart.length === 0) return alert("Your cart is empty!");
-    if (!/^[0-9]{10}$/.test(phone)) return alert("Please enter a valid 10-digit mobile number.");
-    if (address.length < 5) return alert("Please enter a complete delivery address.");
+    if (cart.length === 0) return showToast("Your cart is empty!", "error");
+    if (!/^[0-9]{10}$/.test(phone)) return showToast("Please enter a valid 10-digit mobile number.", "error");
+    if (address.length < 5) return showToast("Please enter a complete delivery address.", "error");
 
     // 3. PROCEED DIRECTLY (Do not force login)
     // We will handle "Guest" status inside the payment functions
@@ -623,7 +633,7 @@ async function finalizeOrder(paymentMode) {
 
     } catch (error) {
         console.error("Order Error:", error);
-        alert("Failed to place order. Please try again.");
+        showToast("Failed to place order. Please try again.", "error");
     } finally {
         toggleBtnLoading('btn-final-checkout', false);
     }
@@ -639,7 +649,7 @@ function togglePaymentUI() {
 
 // --- 11. AUTH & HISTORY ---
 function validateAndLogin() {
-    if (document.getElementById('cust-phone').value.length < 10) { alert("Enter valid phone"); return; }
+    if (document.getElementById('cust-phone').value.length < 10) { showToast("Enter valid phone", "error"); return; }
     googleLogin();
 }
 
@@ -664,24 +674,34 @@ function googleLogin(isCheckoutFlow = false) {
         }
 
     }).catch(e => {
-        alert(e.message);
+        showToast(e.message, "error");
         if (isCheckoutFlow) toggleBtnLoading('btn-main-checkout', false);
         else toggleBtnLoading('login-btn', false);
     });
 }
 
 function updateUserUI(loggedIn) {
+    // 1. Declare it here (Top Level of Function)
+    const guestLink = document.getElementById('guest-login-option');
+
     if (loggedIn) {
         document.getElementById('login-btn').style.display = 'none';
         document.getElementById('user-profile').style.display = 'block';
-        document.getElementById('user-pic').src = currentUser.photoURL;
-        document.getElementById('user-name').innerText = currentUser.displayName;
-        // Hide the "Have an account?" link in cart since they are logged in
+
+        // Check if currentUser exists before accessing properties to prevent errors
+        if (currentUser) {
+            document.getElementById('user-pic').src = currentUser.photoURL || 'logo.jpg'; // Fallback image
+            document.getElementById('user-name').innerText = currentUser.displayName || 'User';
+        }
+
+        // Hide the guest login link if it exists
         if (guestLink) guestLink.style.display = 'none';
+
     } else {
         document.getElementById('login-btn').style.display = 'block';
         document.getElementById('user-profile').style.display = 'none';
-        // Show the link
+
+        // Show the guest login link if it exists
         if (guestLink) guestLink.style.display = 'block';
     }
 }
@@ -708,51 +728,69 @@ function showOrderHistory() {
                 content.innerHTML = '<p style="padding:20px; text-align:center;">No past orders found.</p>';
                 return;
             }
-            historyOrders = [];
             let html = '';
             snap.forEach(doc => {
                 const o = doc.data();
-                historyOrders.push(o);
                 const date = o.timestamp ? o.timestamp.toDate().toLocaleDateString() : 'N/A';
-                let statusColor = '#e67e22';
-                if (o.status === 'Packed') statusColor = '#3498db';
-                if (o.status === 'Delivered') statusColor = '#2ecc71';
 
-                // NEW Code:
-                const itemsList = o.items.map(i => {
-                    // Check if this item allows rating (only standard products, not custom hampers if logic gets complex)
-                    // We pass ID, Name, Image to the function
-                    return `
-    <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.9rem; color:#555; margin-bottom:8px; border-bottom:1px solid #f0f0f0; padding-bottom:5px;">
-        <div style="display:flex; align-items:center;">
-            <img src="${i.image}" style="width:30px; height:30px; border-radius:4px; margin-right:8px; object-fit:cover;">
-            <div>
-                <div>${i.name} (${i.weight})</div>
-                <small>Qty: ${i.qty}</small>
-            </div>
-        </div>
-        <div style="display:flex; align-items:center;">
-            <span style="margin-right:5px;">₹${i.price * i.qty}</span>
-            <button class="btn-rate" onclick="openReviewModal('${i.productId}', '${o.id}', '${encodeURIComponent(i.name)}', '${encodeURIComponent(i.image)}')">
-                <i class="far fa-star"></i> Rate
-            </button>
-        </div>
-    </div>`;
-                }).join('');
+                // --- TIMELINE LOGIC ---
+                let progress = '0%';
+                let s1 = '', s2 = '', s3 = '';
+
+                if (o.status === 'Pending') {
+                    progress = '0%'; s1 = 'active';
+                } else if (o.status === 'Packed') {
+                    progress = '50%'; s1 = 'active'; s2 = 'active';
+                } else if (o.status === 'Delivered') {
+                    progress = '100%'; s1 = 'active'; s2 = 'active'; s3 = 'active';
+                }
+
+                const timelineHTML = `
+                <div class="timeline-container">
+                    <div class="timeline-line-bg"></div>
+                    <div class="timeline-line-fill" style="width: ${progress}"></div>
+                    
+                    <div class="timeline-step ${s1}">
+                        <div class="step-dot"><i class="fas fa-clipboard-check"></i></div>
+                        <div class="step-label">Placed</div>
+                    </div>
+                    <div class="timeline-step ${s2}">
+                        <div class="step-dot"><i class="fas fa-box-open"></i></div>
+                        <div class="step-label">Packed</div>
+                    </div>
+                    <div class="timeline-step ${s3}">
+                        <div class="step-dot"><i class="fas fa-truck"></i></div>
+                        <div class="step-label">Delivered</div>
+                    </div>
+                </div>`;
+                // ----------------------
+
+                const itemsList = o.items.map(i =>
+                    `<div style="display:flex; justify-content:space-between; align-items:center; font-size:0.9rem; color:#555; margin-bottom:8px; border-bottom:1px solid #f0f0f0; padding-bottom:5px;">
+                        <div style="display:flex; align-items:center;">
+                            <img src="${i.image}" style="width:30px; height:30px; border-radius:4px; margin-right:8px; object-fit:cover;">
+                            <div><div>${i.name}</div><small>x ${i.qty}</small></div>
+                        </div>
+                        <button class="btn-rate" onclick="openReviewModal('${i.productId}', '${o.id}', '${encodeURIComponent(i.name)}', '${encodeURIComponent(i.image)}')"><i class="far fa-star"></i> Rate</button>
+                    </div>`
+                ).join('');
 
                 html += `
                     <div style="background:white; border:1px solid #eee; border-radius:10px; padding:15px; margin-bottom:15px; box-shadow:0 2px 5px rgba(0,0,0,0.05);">
-                        <div style="display:flex; justify-content:space-between; border-bottom:1px dashed #ddd; padding-bottom:8px; margin-bottom:10px;">
+                        <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
                             <div><strong style="color:#333;">${date}</strong><div style="font-size:0.75rem; color:#999;">#${o.id}</div></div>
-                            <span style="color:${statusColor}; font-weight:bold; font-size:0.85rem; text-transform:uppercase;">${o.status}</span>
+                            <span style="font-weight:bold; color:var(--primary); font-size:0.9rem;">₹${o.total}</span>
                         </div>
-                        <div style="margin-bottom:10px;">${itemsList}</div>
-                        <div style="display:flex; justify-content:space-between; border-top:1px dashed #ddd; padding-top:10px; margin-bottom:10px; font-weight:bold; color:#333;">
-                            <span>Total</span><span style="color:var(--primary);">₹${o.total}</span>
+                        
+                        ${timelineHTML}
+                        
+                        <div style="margin-top:25px; border-top:1px dashed #ddd; padding-top:10px;">
+                            ${itemsList}
                         </div>
-                        <div style="display:flex; gap:10px; border-top:1px solid #eee; padding-top:10px;">
-                            <button onclick="openInvoice('${o.id}')" style="flex:1; padding:8px; background:white; border:1px solid #e85d04; color:#e85d04; border-radius:5px; cursor:pointer;"><i class="fas fa-file-invoice"></i> Invoice</button>
-                            <button onclick="repeatOrder('${o.id}')" style="flex:1; padding:8px; background:#e85d04; color:white; border:none; border-radius:5px; cursor:pointer;"><i class="fas fa-redo"></i> Repeat</button>
+                        
+                        <div style="display:flex; gap:10px; margin-top:15px;">
+                            <button onclick="openInvoice('${o.id}')" style="flex:1; padding:8px; border:1px solid #e85d04; background:white; color:#e85d04; border-radius:5px; cursor:pointer;">Invoice</button>
+                            <button onclick="repeatOrder('${o.id}')" style="flex:1; padding:8px; background:#e85d04; color:white; border:none; border-radius:5px; cursor:pointer;">Repeat</button>
                         </div>
                     </div>`;
             });
@@ -769,7 +807,7 @@ function closeHistory() { document.getElementById('history-modal').classList.rem
 // Invoice & Repeat
 function openInvoice(orderId) {
     const order = historyOrders.find(o => o.id === orderId);
-    if (!order) return alert("Order details not found.");
+    if (!order) return showToast("Order details not found.", "error");
     document.getElementById('inv-customer-name').innerText = order.userName;
     document.getElementById('inv-customer-email').innerText = currentUser.email || '-';
     document.getElementById('inv-order-id').innerText = `#${order.id}`;
@@ -872,14 +910,14 @@ function toggleBtnLoading(btnId, isLoading) {
     // --- NEW RAZORPAY PAYMENT LOGIC ---
 
     function initiateRazorpayPayment() {
-        if (cart.length === 0) return alert("Your cart is empty!");
+        if (cart.length === 0) return showToast("Your cart is empty!", "error");
 
         const phone = document.getElementById('cust-phone').value.trim();
         const address = document.getElementById('cust-address').value.trim();
 
         // Basic Validation
-        if (!/^[0-9]{10}$/.test(phone)) return alert("Please enter a valid 10-digit mobile number.");
-        if (address.length < 5) return alert("Please enter a complete address.");
+        if (!/^[0-9]{10}$/.test(phone)) return showToast("Please enter a valid 10-digit mobile number.", "error");
+        if (address.length < 5) return showToast("Please enter a complete address.", "error");
 
         // Check Payment Method (Assuming you added the radio buttons from previous step)
         // If you haven't added radio buttons, we default to Online Payment
@@ -929,13 +967,13 @@ function toggleBtnLoading(btnId, isLoading) {
             },
             "theme": { "color": "#e85d04" },
             "modal": {
-                "ondismiss": function () { alert('Payment cancelled.'); }
+                "ondismiss": function () { showToast("Payment cancelled.", "error"); }
             }
         };
 
         var rzp1 = new Razorpay(options);
         rzp1.on('payment.failed', function (response) {
-            alert("Payment Failed: " + response.error.description);
+            showToast("Payment Failed: " + response.error.description);
         });
         rzp1.open();
     }
@@ -983,7 +1021,7 @@ function toggleBtnLoading(btnId, isLoading) {
 
         } catch (error) {
             console.error("DB Error:", error);
-            alert("Error saving order.");
+            showToast("Error saving order.", "error");
         } finally {
             toggleBtnLoading('btn-main-checkout', false);
         }
@@ -1025,7 +1063,7 @@ function toggleBtnLoading(btnId, isLoading) {
         const comment = document.getElementById('review-comment').value.trim();
         const ratingElem = document.querySelector('input[name="rating"]:checked');
 
-        if (!ratingElem) return alert("Please select a star rating!");
+        if (!ratingElem) return showToast("Please select a star rating!", "error");
         const rating = parseInt(ratingElem.value);
 
         toggleBtnLoading('btn-submit-review', true);
@@ -1038,7 +1076,7 @@ function toggleBtnLoading(btnId, isLoading) {
                 .get();
 
             if (!check.empty) {
-                alert("You have already reviewed this item!");
+                showToast("You have already reviewed this item!", "error");
                 toggleBtnLoading('btn-submit-review', false);
                 return;
             }
@@ -1063,7 +1101,7 @@ function toggleBtnLoading(btnId, isLoading) {
                 ratingCount: firebase.firestore.FieldValue.increment(1)
             });
 
-            alert("Thanks for your feedback!");
+            showToast("Thanks for your feedback!", "success");
             closeModal('review-modal');
 
             // Refresh data to show new stars on menu
@@ -1071,9 +1109,100 @@ function toggleBtnLoading(btnId, isLoading) {
 
         } catch (error) {
             console.error("Review Error:", error);
-            alert("Failed to submit review. Try again.");
+            showToast("Failed to submit review. Try again.", "error");
         } finally {
             toggleBtnLoading('btn-submit-review', false);
         }
     }
+
+    // --- TOAST FUNCTION ---
+    function showToast(message, type = 'neutral') {
+        const container = document.getElementById('toast-container');
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+
+        let icon = '';
+        if (type === 'success') icon = '<i class="fas fa-check-circle" style="color:#2ecc71"></i>';
+        if (type === 'error') icon = '<i class="fas fa-exclamation-circle" style="color:#e74c3c"></i>';
+
+        toast.innerHTML = `${icon} <span>${message}</span>`;
+        container.appendChild(toast);
+
+        // Remove after 3 seconds
+        setTimeout(() => {
+            toast.style.opacity = '0';
+            setTimeout(() => toast.remove(), 400);
+        }, 3000);
+    }
+
+    // --- SEO HELPER ---
+    function updateSchema(p) {
+        // 1. Remove old schema if exists
+        const oldSchema = document.getElementById('json-ld-product');
+        if (oldSchema) oldSchema.remove();
+
+        // 2. Create new Schema JSON
+        const schemaData = {
+            "@context": "https://schema.org/",
+            "@type": "Product",
+            "name": p.name,
+            "image": ["https://namonamkeen.shop/" + p.image],
+            "description": p.desc || "Authentic Indore Namkeen",
+            "brand": {
+                "@type": "Brand",
+                "name": "Namo Namkeen"
+            },
+            "offers": {
+                "@type": "Offer",
+                "url": "https://namonamkeen.shop",
+                "priceCurrency": "INR",
+                "price": p.price,
+                "availability": p.in_stock ? "https://schema.org/InStock" : "https://schema.org/OutOfStock"
+            }
+        };
+
+        // 3. Inject into Head
+        const script = document.createElement('script');
+        script.id = "json-ld-product";
+        script.type = "application/ld+json";
+        script.text = JSON.stringify(schemaData);
+        document.head.appendChild(script);
+    }
+
+    // --- PWA INSTALLATION LOGIC ---
+    let deferredPrompt;
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+        // 1. Prevent Chrome 67 and earlier from automatically showing the prompt
+        e.preventDefault();
+        // 2. Stash the event so it can be triggered later.
+        deferredPrompt = e;
+        // 3. Update UI notify the user they can add to home screen
+        const installBtn = document.getElementById('pwa-install-btn');
+        if (installBtn) {
+            installBtn.style.display = 'block'; // Show the button
+
+            installBtn.addEventListener('click', () => {
+                // Hide our user interface that shows our A2HS button
+                installBtn.style.display = 'none';
+                // Show the prompt
+                deferredPrompt.prompt();
+                // Wait for the user to respond to the prompt
+                deferredPrompt.userChoice.then((choiceResult) => {
+                    if (choiceResult.outcome === 'accepted') {
+                        console.log('User accepted the A2HS prompt');
+                    } else {
+                        console.log('User dismissed the A2HS prompt');
+                    }
+                    deferredPrompt = null;
+                });
+            });
+        }
+    });
+
+    // Optional: Analytics to track if app was installed successfully
+    window.addEventListener('appinstalled', () => {
+        console.log('PWA was installed');
+        // You could save this event to Firestore to track how many users installed the app
+    });
 }

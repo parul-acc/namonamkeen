@@ -2041,3 +2041,131 @@ textarea {
         gap: 5px;
     }
 }
+
+/* --- ORDER TIMELINE STYLES --- */
+.timeline-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: relative;
+    margin: 20px 0 10px;
+    padding: 0 10px;
+}
+
+/* The gray background line */
+.timeline-line-bg {
+    position: absolute;
+    top: 15px;
+    /* Centers line behind dots */
+    left: 10px;
+    right: 10px;
+    height: 4px;
+    background: #e0e0e0;
+    z-index: 0;
+}
+
+/* The active colored line */
+.timeline-line-fill {
+    position: absolute;
+    top: 15px;
+    left: 10px;
+    height: 4px;
+    background: #2ecc71;
+    /* Green */
+    z-index: 1;
+    transition: width 0.3s;
+}
+
+.timeline-step {
+    position: relative;
+    z-index: 2;
+    text-align: center;
+    width: 30px;
+    /* Width of the dot area */
+}
+
+.step-dot {
+    width: 30px;
+    height: 30px;
+    background: #e0e0e0;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 0.8rem;
+    margin: 0 auto 5px;
+    /* Center dot and add space below */
+    border: 2px solid white;
+    /* separation from line */
+}
+
+.step-label {
+    font-size: 0.7rem;
+    color: #999;
+    position: absolute;
+    width: 100px;
+    left: 50%;
+    transform: translateX(-50%);
+    text-align: center;
+}
+
+/* Active State */
+.timeline-step.active .step-dot {
+    background: #2ecc71;
+    box-shadow: 0 0 0 3px rgba(46, 204, 113, 0.2);
+}
+
+.timeline-step.active .step-label {
+    color: #2c3e50;
+    font-weight: 600;
+}
+
+/* --- TOAST NOTIFICATIONS --- */
+#toast-container {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 6000;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.toast {
+    background: rgba(44, 24, 16, 0.95);
+    /* Dark Brown */
+    color: white;
+    padding: 12px 25px;
+    border-radius: 50px;
+    font-size: 0.9rem;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    animation: slideUpFade 0.4s ease forwards;
+    opacity: 0;
+    min-width: 250px;
+    justify-content: center;
+}
+
+.toast.success {
+    border-bottom: 3px solid #2ecc71;
+}
+
+.toast.error {
+    border-bottom: 3px solid #e74c3c;
+}
+
+@keyframes slideUpFade {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}

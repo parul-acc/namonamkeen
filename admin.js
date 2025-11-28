@@ -312,7 +312,10 @@ function renderOrderRows(tbody, items) {
                     </select>
                 </td>
                 <td><button class="icon-btn btn-blue" onclick="viewOrder('${o.docId}')"><i class="fas fa-eye"></i></button></td>
-            </tr>`;
+                <button class="icon-btn" style="background:#555;" onclick="printPackingSlip('${o.docId}')" title="Print Slip">
+        <i class="fas fa-print"></i>
+    </button>
+                </tr>`;
     });
 }
 
@@ -560,13 +563,13 @@ async function importFromSheet() {
 }
 
 function escapeHtml(text) {
-  if (!text) return text;
-  return text
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
+    if (!text) return text;
+    return text
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
 }
 
 // --- SERVICE WORKER ---
@@ -588,5 +591,64 @@ function registerAdminServiceWorker() {
             })
             .catch(err => console.log("Admin SW Registration Failed:", err));
     }
+}
+
+function printPackingSlip(docId) {
+    const order = state.orders.data.find(o => o.docId === docId);
+    if (!order) return;
+
+    const itemsHtml = order.items.map(i =>
+        `<tr>
+            <td style="padding:5px; border-bottom:1px solid #eee;">${i.name} <br><small>${i.weight}</small></td>
+            <td style="padding:5px; border-bottom:1px solid #eee; text-align:center;">${i.qty}</td>
+        </tr>`
+    ).join('');
+
+    const slipWindow = window.open('', '_blank', 'width=400,height=600');
+    slipWindow.document.write(`
+        <html>
+        <head>
+            <title>Slip #${order.id}</title>
+            <style>
+                body { font-family: monospace; padding: 20px; max-width: 300px; margin: 0 auto; }
+                h2 { margin: 0 0 10px; text-align: center; border-bottom: 2px dashed #000; padding-bottom: 10px; }
+                .meta { margin-bottom: 15px; font-size: 0.9rem; }
+                table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+                .footer { text-align: center; margin-top: 20px; font-size: 0.8rem; border-top: 2px dashed #000; padding-top: 10px; }
+            </style>
+        </head>
+        <body>
+            <h2>NAMO NAMKEEN</h2>
+            <div class="meta">
+                <strong>Order:</strong> #${order.id}<br>
+                <strong>Date:</strong> ${new Date(order.timestamp.seconds * 1000).toLocaleDateString()}<br>
+                <br>
+                <strong>Customer:</strong> ${order.userName}<br>
+                <strong>Phone:</strong> ${order.userPhone}<br>
+                <strong>Address:</strong><br> ${order.userAddress}
+            </div>
+            
+            <table>
+                <thead>
+                    <tr style="border-bottom:2px solid #000;">
+                        <th style="text-align:left;">Item</th>
+                        <th>Qty</th>
+                    </tr>
+                </thead>
+                <tbody>${itemsHtml}</tbody>
+            </table>
+
+            <h3 style="text-align:right;">Total: ₹${order.total}</h3>
+            <div style="text-align:center;">[ ${order.paymentMethod} ]</div>
+
+            <div class="footer">
+                Thank you for your order!<br>
+                www.namonamkeen.shop
+            </div>
+            <script>window.print(); window.onafterprint = function(){ window.close(); }</script>
+        </body>
+        </html>
+    `);
+    slipWindow.document.close();
 }
 registerAdminServiceWorker();
