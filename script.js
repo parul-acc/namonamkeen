@@ -436,48 +436,30 @@ function openProductDetail(id) {
 
 // 1. Add this function to script.js
 async function cancelOrder(orderId) {
+    // 1. Validate ID
+    if (!orderId) return alert("Invalid Order ID");
+    
     if (!confirm("Are you sure you want to cancel this order?")) return;
 
     try {
-        await db.collection("orders").doc(orderId).update({
+        // 2. Direct Update (No 'o' variable needed here)
+        await db.collection("orders").doc(String(orderId)).update({
             status: "Cancelled",
             cancelledBy: "User",
             cancelledAt: new Date()
         });
-
+        
         alert("Order Cancelled Successfully.");
-        showOrderHistory(); // Refresh list
+        showOrderHistory(); // Refresh the list
     } catch (e) {
-        console.error(e);
-        alert("Could not cancel. Please contact support.");
+        console.error("Cancel Error:", e);
+        // Helpful error message if document is missing
+        if (e.code === 'not-found') {
+            alert("Order not found. It may have already been deleted.");
+        } else {
+            alert("Could not cancel. Please contact support.");
+        }
     }
-
-
-    // 2. Update the 'html +=' part inside showOrderHistory()
-    // Add this logic inside the loop before generating 'html':
-
-    let actionButtons = '';
-    if (o.status === 'Pending') {
-        // Show Cancel Button only if Pending
-        actionButtons = `
-        <button onclick="cancelOrder('${o.id}')" style="flex:1; padding:8px; background:#ffebee; color:#c62828; border:1px solid #ef9a9a; border-radius:5px; cursor:pointer;">Cancel</button>
-        <button onclick="openInvoice('${o.id}')" style="flex:1; padding:8px; border:1px solid #e85d04; background:white; color:#e85d04; border-radius:5px; cursor:pointer;">Invoice</button>
-    `;
-    } else {
-        // Show Repeat & Invoice for processed orders
-        actionButtons = `
-        <button onclick="openInvoice('${o.id}')" style="flex:1; padding:8px; border:1px solid #e85d04; background:white; color:#e85d04; border-radius:5px; cursor:pointer;">Invoice</button>
-        <button onclick="repeatOrder('${o.id}')" style="flex:1; padding:8px; background:#e85d04; color:white; border:none; border-radius:5px; cursor:pointer;">Repeat</button>
-    `;
-    }
-
-    // Update the HTML output to use ${actionButtons}
-    html += `
-    <div style="...">
-        <div style="display:flex; gap:10px; margin-top:15px;">
-            ${actionButtons}
-        </div>
-    </div>`;
 }
 
 function updateModalPrice(sel) {
@@ -720,10 +702,19 @@ async function finalizeOrder(paymentMode) {
 
 // Add togglePaymentUI helper if you want to change button text dynamically
 function togglePaymentUI() {
-    const method = document.querySelector('input[name="paymentMethod"]:checked').value;
-    const btn = document.getElementById('btn-final-checkout');
-    if (method === 'UPI') btn.innerHTML = 'Proceed to Pay <i class="fas fa-qrcode"></i>';
-    else btn.innerHTML = 'Place Order <i class="fas fa-check"></i>';
+    const methodElem = document.querySelector('input[name="paymentMethod"]:checked');
+    if (!methodElem) return;
+    
+    const method = methodElem.value;
+    const btn = document.getElementById('btn-main-checkout'); // Updated ID
+    
+    if (btn) {
+        if(method === 'UPI') {
+            btn.innerHTML = 'Proceed to Pay <i class="fas fa-arrow-right"></i>';
+        } else {
+            btn.innerHTML = 'Place Order <i class="fas fa-check"></i>';
+        }
+    }
 }
 
 // --- 11. AUTH & HISTORY ---
@@ -1147,23 +1138,29 @@ async function saveOrderToFirebase(method, paymentStatus, txnId) {
 }
 
 function showSuccessModal(orderId, amount, method) {
-    const note = document.getElementById('delivery-note').value.trim();
-    const noteText = note ? `\n*Note:* ${note}` : '';
+    // FIX: Check if currentUser exists, otherwise use Guest
+    const custName = currentUser ? currentUser.displayName : "Guest";
+    const address = document.getElementById('cust-address').value;
+    
+    // Optional Delivery Note
+    const noteElem = document.getElementById('delivery-note');
+    const noteText = (noteElem && noteElem.value.trim()) ? `\n*Note:* ${noteElem.value.trim()}` : '';
 
-    const msg = `*New Order: ${orderId}*\n*Method:* ${method}\n*Amount:* ₹${amount}\n*Customer:* ${currentUser.displayName}\n*Address:* ${document.getElementById('cust-address').value}${noteText}\n\n*Payment:* ${method === 'Online' ? 'PAID ✅' : 'Cash on Delivery 🚚'}`;
-    document.getElementById('success-order-id').innerText = orderId;
-
-    // Update the WhatsApp Button
-    const waBtn = document.getElementById('wa-link-btn'); // Ensure this ID exists in your success modal HTML
-    if (waBtn) {
+    const msg = `*New Order: ${orderId}*\n*Method:* ${method}\n*Amount:* ₹${amount}\n*Customer:* ${custName}\n*Address:* ${address}${noteText}\n\n*Payment:* ${method === 'Online' ? 'PAID ✅' : 'Cash on Delivery 🚚'}`;
+    
+    const orderIdElem = document.getElementById('success-order-id');
+    if(orderIdElem) orderIdElem.innerText = orderId;
+    
+    const waBtn = document.getElementById('wa-link-btn');
+    if(waBtn) {
         waBtn.onclick = () => {
             window.open(`https://wa.me/${shopConfig.adminPhone}?text=${encodeURIComponent(msg)}`, '_blank');
         };
     }
-
-    document.getElementById('success-modal').style.display = 'flex';
+    
+    const modal = document.getElementById('success-modal');
+    if(modal) modal.style.display = 'flex';
 }
-
 // --- USER REVIEW SYSTEM ---
 
 function openReviewModal(pid, oid, name, img) {
