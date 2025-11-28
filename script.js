@@ -438,7 +438,7 @@ function openProductDetail(id) {
 async function cancelOrder(docId) {
     if (!docId) return showToast("Error: Invalid Order ID", "error");
     
-    if (!confirm("Are you sure you want to cancel this order?")) return;
+    if (!showConfirm("Are you sure you want to cancel this order?")) return;
 
     try {
         // Use the Document ID directly
@@ -552,7 +552,7 @@ function removeFromCart(id) {
     saveCartLocal();
 }
 function clearCart() {
-    if (confirm("Clear?")) {
+    if (showConfirm("Clear?")) {
         cart = [];
         updateCartUI();
     }
@@ -598,7 +598,7 @@ function initiateCheckout() {
         toggleCart(); // Close sidebar so they focus on payment
     } else {
         // COD - Directly Finalize
-        if (confirm("Place order with Cash on Delivery?")) {
+        if (showConfirm("Place order with Cash on Delivery?")) {
             finalizeOrder('COD');
         }
     }
@@ -892,7 +892,7 @@ function printInvoice() { window.print(); }
 function repeatOrder(orderId) {
     const order = historyOrders.find(o => o.id === orderId);
     if (!order) return;
-    if (confirm("Add all items from this order to your cart?")) {
+    if (showConfirm("Add all items from this order to your cart?")) {
         order.items.forEach(item => {
             const cartId = item.cartId || `${item.productId}-${item.weight.replace(/\s/g, '')}`;
             const existing = cart.find(c => c.cartId === cartId);
@@ -1012,7 +1012,7 @@ function initiateRazorpayPayment() {
 
     if (paymentMethod === 'COD') {
         // Cash on Delivery Flow
-        if (confirm(`Place order for ₹${finalAmountINR} via Cash on Delivery?`)) {
+        if (showConfirm(`Place order for ₹${finalAmountINR} via Cash on Delivery?`)) {
             saveOrderToFirebase('COD', 'Pending', null);
         }
     } else {
@@ -1307,4 +1307,50 @@ function loadCartLocal() {
         cart = JSON.parse(saved);
         updateCartUI();
     }
+}
+
+// --- CUSTOM CONFIRMATION HELPER ---
+function showConfirm(message) {
+    return new Promise((resolve) => {
+        // 1. Create Modal HTML if not exists
+        if (!document.getElementById('custom-confirm-modal')) {
+            const modalHtml = `
+            <div id="custom-confirm-modal" class="modal-overlay">
+                <div class="modal-content confirm-box">
+                    <h3 style="margin-bottom:10px; color:var(--text-dark);">Please Confirm</h3>
+                    <p id="custom-confirm-msg" style="color:#666; font-size:0.95rem;"></p>
+                    <div class="confirm-actions">
+                        <button id="btn-confirm-no" class="btn-confirm-no">Cancel</button>
+                        <button id="btn-confirm-yes" class="btn-confirm-yes">Yes, Proceed</button>
+                    </div>
+                </div>
+            </div>`;
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+        }
+
+        // 2. Set Message & Show
+        document.getElementById('custom-confirm-msg').innerText = message;
+        const modal = document.getElementById('custom-confirm-modal');
+        modal.style.display = 'flex';
+
+        // 3. Handle Clicks
+        const btnYes = document.getElementById('btn-confirm-yes');
+        const btnNo = document.getElementById('btn-confirm-no');
+
+        // Clone buttons to remove old event listeners (safety)
+        const newYes = btnYes.cloneNode(true);
+        const newNo = btnNo.cloneNode(true);
+        btnYes.parentNode.replaceChild(newYes, btnYes);
+        btnNo.parentNode.replaceChild(newNo, btnNo);
+
+        newYes.onclick = () => {
+            modal.style.display = 'none';
+            resolve(true);
+        };
+
+        newNo.onclick = () => {
+            modal.style.display = 'none';
+            resolve(false);
+        };
+    });
 }

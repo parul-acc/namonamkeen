@@ -2221,3 +2221,102 @@ textarea {
     margin-top: 15px;
     border-radius: 20px;
 }
+
+/* --- INVOICE MODAL FIXES --- */
+
+/* 1. Force Invoice to be ON TOP of the Sidebar (Z-Index 5001) */
+#invoice-modal {
+    z-index: 6000 !important;
+    background: rgba(0, 0, 0, 0.7) !important;
+    /* Darker backdrop for focus */
+    backdrop-filter: blur(3px);
+    /* Blur effect to hide background distractions */
+}
+
+/* 2. Fix Display Logic (Ensure it shows up smoothly) */
+#invoice-modal[style*="display: flex"] {
+    opacity: 1 !important;
+    visibility: visible !important;
+    display: flex !important;
+}
+
+/* 3. Invoice Container Positioning */
+.invoice-container {
+    position: relative;
+    z-index: 6001;
+    /* Content higher than overlay */
+    margin: auto;
+    transform: scale(1);
+    animation: invoicePop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+/* Animation for nice entry */
+@keyframes invoicePop {
+    from {
+        transform: scale(0.9);
+        opacity: 0;
+    }
+
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+/* 4. Fix Close Button Visibility */
+.close-invoice {
+    position: absolute;
+    top: 15px;
+    right: 20px;
+    font-size: 2rem;
+    color: #333;
+    cursor: pointer;
+    background: none;
+    border: none;
+    line-height: 1;
+    z-index: 6002;
+}
+
+.close-invoice:hover {
+    color: #e85d04;
+    /* Primary Color */
+}
+
+/* --- CUSTOM CONFIRM MODAL --- */
+#custom-confirm-modal {
+    z-index: 9999 !important; /* Always on top */
+}
+
+.confirm-box {
+    text-align: center;
+    max-width: 350px !important; /* Smaller width */
+}
+
+.confirm-actions {
+    display: flex;
+    gap: 15px;
+    margin-top: 20px;
+    justify-content: center;
+}
+
+.btn-confirm-yes {
+    background: var(--primary);
+    color: white;
+    flex: 1;
+    padding: 10px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.btn-confirm-no {
+    background: #f3f4f6;
+    color: #333;
+    flex: 1;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+}

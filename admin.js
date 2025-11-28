@@ -13,7 +13,7 @@ if (typeof firebase !== 'undefined' && !firebase.apps.length) {
 }
 const db = firebase.firestore();
 const auth = firebase.auth();
-const ADMIN_EMAILS = ["parul19.accenture@gmail.com"];
+const ADMIN_EMAILS = ["parul19.accenture@gmail.com", "namonamkeens@gmail.com", "soramjain2297@gmail.com"];
 
 let previousOrderCount = 0;
 const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3'); // Simple notification sound
@@ -434,7 +434,7 @@ function saveCoupon() {
         .catch(err => showToast(err.message, "error"));
 }
 
-function deleteCoupon(id) { if (confirm("Delete?")) db.collection("coupons").doc(id).delete(); }
+function deleteCoupon(id) { if (showConfirm("Delete?")) db.collection("coupons").doc(id).delete(); }
 function toggleCoupon(id, status) { db.collection("coupons").doc(id).update({ isActive: status }); }
 
 // --- HELPER FUNCTIONS ---
@@ -449,7 +449,7 @@ function downloadCSV(csv, filename) {
 function setStatus(id, status) {
     db.collection("orders").doc(id).update({ status: status }).then(() => {
         const order = state.orders.data.find(o => o.docId === id);
-        if (order && confirm(`Updated to ${status}. Notify customer?`)) {
+        if (order && showConfirm(`Updated to ${status}. Notify customer?`)) {
             let msg = `Hello ${escapeHtml(order.userName)}, your Namo Namkeen order #${order.id} is now *${status}*.`;
             window.open(`https://wa.me/91${escapeHtml(order.userPhone.replace(/\D/g, ''))}?text=${encodeURIComponent(msg)}`, '_blank');
         }
@@ -515,7 +515,7 @@ function adminUpdateQty(orderId, itemIdx, change) {
 }
 
 function adminRemoveItem(orderId, itemIdx) {
-    if (!confirm("Remove this item?")) return;
+    if (!showConfirm("Remove this item?")) return;
     const orderDoc = state.orders.data.find(x => x.docId === orderId);
     let newItems = [...orderDoc.items];
 
@@ -566,7 +566,7 @@ function saveSettings() {
 }
 
 function toggleStock(id, s) { db.collection("products").doc(id).update({ in_stock: s }); }
-function delProduct(id) { if (confirm("Delete?")) db.collection("products").doc(id).delete(); }
+function delProduct(id) { if (showConfirm("Delete?")) db.collection("products").doc(id).delete(); }
 function closeModal(id) { document.getElementById(id).style.display = 'none'; }
 function toggleSidebar() { document.getElementById('sidebar').classList.toggle('active'); }
 
@@ -682,7 +682,7 @@ function saveProduct() {
 }
 
 async function importFromSheet() {
-    if (!confirm("Overwrite product data?")) return;
+    if (!showConfirm("Overwrite product data?")) return;
     const u = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRznY2zlF7wuPxkTe1k22gRLVOA9AHtmgZy2LBdEs9LIU3GlO_VxmFyN446vpb9IPspRXMeiBi4Lc29/pub?output=csv";
     try {
         const r = await fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`);
@@ -730,7 +730,7 @@ function registerAdminServiceWorker() {
                     const newWorker = registration.installing;
                     newWorker.onstatechange = () => {
                         if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                            if (confirm("New Admin Dashboard version available! Refresh now?")) {
+                            if (showConfirm("New Admin Dashboard version available! Refresh now?")) {
                                 window.location.reload();
                             }
                         }
@@ -824,7 +824,7 @@ function bulkUpdateStatus(newStatus) {
     const checked = document.querySelectorAll('.order-check:checked');
     if (checked.length === 0) return;
 
-    if (!confirm(`Mark ${checked.length} orders as ${newStatus}?`)) return;
+    if (!showConfirm(`Mark ${checked.length} orders as ${newStatus}?`)) return;
 
     const batch = db.batch();
     checked.forEach(c => {
