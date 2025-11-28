@@ -15,6 +15,9 @@ const db = firebase.firestore();
 const auth = firebase.auth();
 const ADMIN_EMAILS = ["parul19.accenture@gmail.com"];
 
+let previousOrderCount = 0;
+const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3'); // Simple notification sound
+
 let salesChartInstance, productChartInstance;
 const ITEMS_PER_PAGE = 10;
 let state = {
@@ -280,8 +283,15 @@ function renderInventoryRows(tbody, items) {
 
 // --- 3. ORDERS ---
 function loadOrders() {
-    db.collection("orders").orderBy("timestamp", "desc").limit(200).onSnapshot(snap => {
+    db.collection("orders").orderBy("timestamp", "desc").limit(20).onSnapshot(snap => {
         let pending = 0, packed = 0, delivered = 0;
+        // CHECK FOR NEW ORDERS
+        if (previousOrderCount > 0 && snap.size > previousOrderCount) {
+            // New order detected!
+            audio.play().catch(e => console.log("Audio play failed (user interaction needed first)"));
+            showToast("New Order Received!", "success"); // Assuming you have showToast in admin too, or use alert
+        }
+        previousOrderCount = snap.size;
         state.orders.data = [];
         snap.forEach(doc => {
             const o = doc.data(); o.docId = doc.id;
@@ -376,13 +386,17 @@ function saveCoupon() {
     const type = document.getElementById('cpn-type').value;
     const value = document.getElementById('cpn-value').value;
     const dateStr = document.getElementById('cpn-expiry').value;
+    const minOrder = parseInt(document.getElementById('cpn-min').value) || 0; // New Field
 
     if (!code || !value || !dateStr) return alert("Fill all fields");
 
     const expiryDate = new Date(dateStr);
     expiryDate.setHours(23, 59, 59);
 
-    db.collection("coupons").add({ code, type, value: parseInt(value), expiryDate, isActive: true })
+    db.collection("coupons").add({
+        code, type, value: parseInt(value), expiryDate, isActive: true,
+        minOrder: minOrder // Save it
+    })
         .then(() => { alert("Coupon Created!"); document.getElementById('cpn-code').value = ''; })
         .catch(err => alert(err.message));
 }

@@ -418,6 +418,52 @@ function openProductDetail(id) {
     document.getElementById('product-modal').style.display = 'flex';
 }
 
+// 1. Add this function to script.js
+async function cancelOrder(orderId) {
+    if (!confirm("Are you sure you want to cancel this order?")) return;
+
+    try {
+        await db.collection("orders").doc(orderId).update({
+            status: "Cancelled",
+            cancelledBy: "User",
+            cancelledAt: new Date()
+        });
+
+        alert("Order Cancelled Successfully.");
+        showOrderHistory(); // Refresh list
+    } catch (e) {
+        console.error(e);
+        alert("Could not cancel. Please contact support.");
+    }
+
+
+    // 2. Update the 'html +=' part inside showOrderHistory()
+    // Add this logic inside the loop before generating 'html':
+
+    let actionButtons = '';
+    if (o.status === 'Pending') {
+        // Show Cancel Button only if Pending
+        actionButtons = `
+        <button onclick="cancelOrder('${o.id}')" style="flex:1; padding:8px; background:#ffebee; color:#c62828; border:1px solid #ef9a9a; border-radius:5px; cursor:pointer;">Cancel</button>
+        <button onclick="openInvoice('${o.id}')" style="flex:1; padding:8px; border:1px solid #e85d04; background:white; color:#e85d04; border-radius:5px; cursor:pointer;">Invoice</button>
+    `;
+    } else {
+        // Show Repeat & Invoice for processed orders
+        actionButtons = `
+        <button onclick="openInvoice('${o.id}')" style="flex:1; padding:8px; border:1px solid #e85d04; background:white; color:#e85d04; border-radius:5px; cursor:pointer;">Invoice</button>
+        <button onclick="repeatOrder('${o.id}')" style="flex:1; padding:8px; background:#e85d04; color:white; border:none; border-radius:5px; cursor:pointer;">Repeat</button>
+    `;
+    }
+
+    // Update the HTML output to use ${actionButtons}
+    html += `
+    <div style="...">
+        <div style="display:flex; gap:10px; margin-top:15px;">
+            ${actionButtons}
+        </div>
+    </div>`;
+}
+
 function updateModalPrice(sel) {
     document.getElementById('modal-price-display').innerText = `₹${sel.options[sel.selectedIndex].getAttribute('data-price')}`;
 }
@@ -728,12 +774,15 @@ function showOrderHistory() {
                 content.innerHTML = '<p style="padding:20px; text-align:center;">No past orders found.</p>';
                 return;
             }
+
             let html = '';
+
+            // START OF LOOP
             snap.forEach(doc => {
-                const o = doc.data();
+                const o = doc.data(); // <--- 'o' IS DEFINED HERE
                 const date = o.timestamp ? o.timestamp.toDate().toLocaleDateString() : 'N/A';
 
-                // --- TIMELINE LOGIC ---
+                // 1. Timeline Logic
                 let progress = '0%';
                 let s1 = '', s2 = '', s3 = '';
 
@@ -743,12 +792,14 @@ function showOrderHistory() {
                     progress = '50%'; s1 = 'active'; s2 = 'active';
                 } else if (o.status === 'Delivered') {
                     progress = '100%'; s1 = 'active'; s2 = 'active'; s3 = 'active';
+                } else if (o.status === 'Cancelled') {
+                    progress = '0%'; s1 = 'active'; // Minimal style for cancelled
                 }
 
                 const timelineHTML = `
                 <div class="timeline-container">
                     <div class="timeline-line-bg"></div>
-                    <div class="timeline-line-fill" style="width: ${progress}"></div>
+                    <div class="timeline-line-fill" style="width: ${progress}; background: ${o.status === 'Cancelled' ? 'red' : '#2ecc71'};"></div>
                     
                     <div class="timeline-step ${s1}">
                         <div class="step-dot"><i class="fas fa-clipboard-check"></i></div>
@@ -763,8 +814,24 @@ function showOrderHistory() {
                         <div class="step-label">Delivered</div>
                     </div>
                 </div>`;
-                // ----------------------
 
+                // 2. Buttons Logic (The part that was causing error)
+                let actionButtons = '';
+                if (o.status === 'Pending') {
+                    // Show Cancel Button only if Pending
+                    actionButtons = `
+                        <button onclick="cancelOrder('${o.id}')" style="flex:1; padding:8px; background:#ffebee; color:#c62828; border:1px solid #ef9a9a; border-radius:5px; cursor:pointer;">Cancel</button>
+                        <button onclick="openInvoice('${o.id}')" style="flex:1; padding:8px; border:1px solid #e85d04; background:white; color:#e85d04; border-radius:5px; cursor:pointer;">Invoice</button>
+                    `;
+                } else {
+                    // Show Repeat & Invoice for processed orders
+                    actionButtons = `
+                        <button onclick="openInvoice('${o.id}')" style="flex:1; padding:8px; border:1px solid #e85d04; background:white; color:#e85d04; border-radius:5px; cursor:pointer;">Invoice</button>
+                        <button onclick="repeatOrder('${o.id}')" style="flex:1; padding:8px; background:#e85d04; color:white; border:none; border-radius:5px; cursor:pointer;">Repeat</button>
+                    `;
+                }
+
+                // 3. Items List
                 const itemsList = o.items.map(i =>
                     `<div style="display:flex; justify-content:space-between; align-items:center; font-size:0.9rem; color:#555; margin-bottom:8px; border-bottom:1px solid #f0f0f0; padding-bottom:5px;">
                         <div style="display:flex; align-items:center;">
@@ -775,25 +842,27 @@ function showOrderHistory() {
                     </div>`
                 ).join('');
 
+                // 4. Final HTML Construction
                 html += `
                     <div style="background:white; border:1px solid #eee; border-radius:10px; padding:15px; margin-bottom:15px; box-shadow:0 2px 5px rgba(0,0,0,0.05);">
                         <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
                             <div><strong style="color:#333;">${date}</strong><div style="font-size:0.75rem; color:#999;">#${o.id}</div></div>
-                            <span style="font-weight:bold; color:var(--primary); font-size:0.9rem;">₹${o.total}</span>
+                            <span style="font-weight:bold; color:var(--primary); font-size:0.9rem;">${o.status === 'Cancelled' ? '<span style="color:red">Cancelled</span>' : '₹' + o.total}</span>
                         </div>
                         
-                        ${timelineHTML}
+                        ${o.status !== 'Cancelled' ? timelineHTML : ''}
                         
                         <div style="margin-top:25px; border-top:1px dashed #ddd; padding-top:10px;">
                             ${itemsList}
                         </div>
                         
                         <div style="display:flex; gap:10px; margin-top:15px;">
-                            <button onclick="openInvoice('${o.id}')" style="flex:1; padding:8px; border:1px solid #e85d04; background:white; color:#e85d04; border-radius:5px; cursor:pointer;">Invoice</button>
-                            <button onclick="repeatOrder('${o.id}')" style="flex:1; padding:8px; background:#e85d04; color:white; border:none; border-radius:5px; cursor:pointer;">Repeat</button>
+                            ${actionButtons}
                         </div>
                     </div>`;
             });
+            // END OF LOOP
+
             content.innerHTML = html;
         })
         .catch(err => {
@@ -847,9 +916,20 @@ function applyPromo() {
     const input = document.getElementById('promo-code').value.toUpperCase().trim();
     if (!input) { appliedDiscount = { type: 'none', value: 0, code: null }; document.getElementById('promo-msg').innerText = ""; updateCartUI(); return; }
     const coupon = activeCoupons.find(c => c.code === input);
-    if (coupon) { appliedDiscount = { code: coupon.code, type: coupon.type, value: coupon.value }; document.getElementById('promo-msg').innerText = "Code Applied!"; document.getElementById('promo-msg').style.color = "green"; }
-    else { appliedDiscount = { type: 'none', value: 0, code: null }; document.getElementById('promo-msg').innerText = "Invalid Code"; document.getElementById('promo-msg').style.color = "red"; }
-    updateCartUI();
+    if (coupon) {
+        // NEW CHECK: Minimum Order Value
+        let currentTotal = cart.reduce((sum, i) => sum + (i.price * i.qty), 0);
+        if (coupon.minOrder && currentTotal < coupon.minOrder) {
+            document.getElementById('promo-msg').innerText = `Add items worth ₹${coupon.minOrder} to use this!`;
+            document.getElementById('promo-msg').style.color = "orange";
+            appliedDiscount = { type: 'none', value: 0 };
+            updateCartUI();
+            return;
+        }
+
+        else { appliedDiscount = { type: 'none', value: 0, code: null }; document.getElementById('promo-msg').innerText = "Invalid Code"; document.getElementById('promo-msg').style.color = "red"; }
+        updateCartUI();
+    }
 }
 function openProfileModal() { document.getElementById('profile-modal').style.display = 'flex'; document.getElementById('profile-menu').classList.remove('active'); }
 function closeProfileModal() { document.getElementById('profile-modal').style.display = 'none'; }
@@ -906,303 +986,304 @@ function toggleBtnLoading(btnId, isLoading) {
         btn.disabled = false;
         btn.style.opacity = "1";
     }
-
-    // --- NEW RAZORPAY PAYMENT LOGIC ---
-
-    function initiateRazorpayPayment() {
-        if (cart.length === 0) return showToast("Your cart is empty!", "error");
-
-        const phone = document.getElementById('cust-phone').value.trim();
-        const address = document.getElementById('cust-address').value.trim();
-
-        // Basic Validation
-        if (!/^[0-9]{10}$/.test(phone)) return showToast("Please enter a valid 10-digit mobile number.", "error");
-        if (address.length < 5) return showToast("Please enter a complete address.", "error");
-
-        // Check Payment Method (Assuming you added the radio buttons from previous step)
-        // If you haven't added radio buttons, we default to Online Payment
-        const methodElem = document.querySelector('input[name="paymentMethod"]:checked');
-        const paymentMethod = methodElem ? methodElem.value : 'Online';
-
-        // Calculate Amount
-        let total = cart.reduce((sum, i) => sum + (i.price * i.qty), 0);
-        let discount = 0;
-        if (appliedDiscount.type === 'percent') discount = Math.round(total * (appliedDiscount.value / 100));
-        else if (appliedDiscount.type === 'flat') discount = appliedDiscount.value;
-
-        const finalAmountINR = Math.max(0, total - discount); // Amount in Rupees
-        const amountPaise = finalAmountINR * 100; // Razorpay takes amount in Paise
-
-        if (paymentMethod === 'COD') {
-            // Cash on Delivery Flow
-            if (confirm(`Place order for ₹${finalAmountINR} via Cash on Delivery?`)) {
-                saveOrderToFirebase('COD', 'Pending', null);
-            }
-        } else {
-            // Online Payment Flow (Razorpay)
-            openRazorpayModal(amountPaise, finalAmountINR, phone);
-        }
-    }
-
-    function openRazorpayModal(amountPaise, amountINR, userPhone) {
-        // Determine User Details (Guest or Logged In)
-        const userName = currentUser ? currentUser.displayName : "Guest User";
-        const userEmail = currentUser ? currentUser.email : "guest@namonamkeen.com";
-
-        var options = {
-            "key": razorpayKeyId,
-            "amount": amountPaise,
-            "currency": "INR",
-            "name": "Namo Namkeen",
-            "description": "Order Payment",
-            "image": "logo.jpg",
-            "handler": function (response) {
-                console.log("Payment ID: ", response.razorpay_payment_id);
-                saveOrderToFirebase('Online', 'Paid', response.razorpay_payment_id);
-            },
-            "prefill": {
-                "name": userName,
-                "email": userEmail,
-                "contact": userPhone
-            },
-            "theme": { "color": "#e85d04" },
-            "modal": {
-                "ondismiss": function () { showToast("Payment cancelled.", "error"); }
-            }
-        };
-
-        var rzp1 = new Razorpay(options);
-        rzp1.on('payment.failed', function (response) {
-            showToast("Payment Failed: " + response.error.description);
-        });
-        rzp1.open();
-    }
-
-    async function saveOrderToFirebase(method, paymentStatus, txnId) {
-        toggleBtnLoading('btn-main-checkout', true);
-
-        const phone = document.getElementById('cust-phone').value;
-        const address = document.getElementById('cust-address').value;
-        const orderId = 'ORD-' + Date.now().toString().slice(-6);
-
-        // Determine User ID (Use Auth UID or generate a Guest ID based on phone)
-        const uid = currentUser ? currentUser.uid : ("guest_" + phone);
-        const uName = currentUser ? currentUser.displayName : "Guest";
-
-        let total = cart.reduce((sum, i) => sum + (i.price * i.qty), 0);
-        // ... (rest of discount calc logic remains same) ...
-        let discount = 0;
-        if (appliedDiscount.type === 'percent') discount = Math.round(total * (appliedDiscount.value / 100));
-        else if (appliedDiscount.type === 'flat') discount = appliedDiscount.value;
-        const finalAmount = Math.max(0, total - discount);
-
-        try {
-            await db.collection("orders").add({
-                id: orderId,
-                userId: uid,          // Save as Guest ID if not logged in
-                userName: uName,
-                userPhone: phone,
-                userAddress: address,
-                items: cart,
-                total: finalAmount,
-                discount: appliedDiscount,
-                paymentMethod: method,
-                status: 'Pending',
-                paymentStatus: paymentStatus,
-                transactionId: txnId || '',
-                timestamp: new Date()
-            });
-
-            // Update UI
-            showSuccessModal(orderId, finalAmount, method);
-            cart = [];
-            updateCartUI();
-            if (document.getElementById('cart-sidebar').classList.contains('active')) toggleCart();
-
-        } catch (error) {
-            console.error("DB Error:", error);
-            showToast("Error saving order.", "error");
-        } finally {
-            toggleBtnLoading('btn-main-checkout', false);
-        }
-    }
-
-    function showSuccessModal(orderId, amount, method) {
-        const msg = `*New Order: ${orderId}*\n*Method:* ${method}\n*Amount:* ₹${amount}\n*Customer:* ${currentUser.displayName}\n*Address:* ${document.getElementById('cust-address').value}\n\n*Payment:* ${method === 'Online' ? 'PAID ✅' : 'Cash on Delivery 🚚'}`;
-
-        document.getElementById('success-order-id').innerText = orderId;
-
-        // Update the WhatsApp Button
-        const waBtn = document.getElementById('wa-link-btn'); // Ensure this ID exists in your success modal HTML
-        if (waBtn) {
-            waBtn.onclick = () => {
-                window.open(`https://wa.me/${shopConfig.adminPhone}?text=${encodeURIComponent(msg)}`, '_blank');
-            };
-        }
-
-        document.getElementById('success-modal').style.display = 'flex';
-    }
-
-    // --- USER REVIEW SYSTEM ---
-
-    function openReviewModal(pid, oid, name, img) {
-        document.getElementById('review-modal').style.display = 'flex';
-        document.getElementById('review-pid').value = pid;
-        document.getElementById('review-oid').value = oid;
-        document.getElementById('review-p-name').innerText = decodeURIComponent(name);
-        document.getElementById('review-p-img').src = decodeURIComponent(img);
-        document.getElementById('review-comment').value = '';
-
-        // Reset stars
-        document.querySelectorAll('input[name="rating"]').forEach(r => r.checked = false);
-    }
-
-    async function submitReview() {
-        const pid = parseInt(document.getElementById('review-pid').value); // ID is integer in your DB
-        const oid = document.getElementById('review-oid').value;
-        const comment = document.getElementById('review-comment').value.trim();
-        const ratingElem = document.querySelector('input[name="rating"]:checked');
-
-        if (!ratingElem) return showToast("Please select a star rating!", "error");
-        const rating = parseInt(ratingElem.value);
-
-        toggleBtnLoading('btn-submit-review', true);
-
-        try {
-            // 1. Check if user already reviewed this item in this order to prevent duplicates
-            const check = await db.collection("reviews")
-                .where("orderId", "==", oid)
-                .where("productId", "==", pid)
-                .get();
-
-            if (!check.empty) {
-                showToast("You have already reviewed this item!", "error");
-                toggleBtnLoading('btn-submit-review', false);
-                return;
-            }
-
-            // 2. Add Review to 'reviews' collection
-            await db.collection("reviews").add({
-                productId: pid,
-                orderId: oid,
-                userId: currentUser.uid,
-                userName: currentUser.displayName,
-                rating: rating,
-                comment: comment,
-                timestamp: new Date()
-            });
-
-            // 3. Update Product Stats (Rating Sum & Count) using Atomic Increment
-            // Note: product IDs are numbers in your system, stored as document IDs (strings)
-            const productRef = db.collection("products").doc(String(pid));
-
-            await productRef.update({
-                ratingSum: firebase.firestore.FieldValue.increment(rating),
-                ratingCount: firebase.firestore.FieldValue.increment(1)
-            });
-
-            showToast("Thanks for your feedback!", "success");
-            closeModal('review-modal');
-
-            // Refresh data to show new stars on menu
-            fetchData();
-
-        } catch (error) {
-            console.error("Review Error:", error);
-            showToast("Failed to submit review. Try again.", "error");
-        } finally {
-            toggleBtnLoading('btn-submit-review', false);
-        }
-    }
-
-    // --- TOAST FUNCTION ---
-    function showToast(message, type = 'neutral') {
-        const container = document.getElementById('toast-container');
-        const toast = document.createElement('div');
-        toast.className = `toast ${type}`;
-
-        let icon = '';
-        if (type === 'success') icon = '<i class="fas fa-check-circle" style="color:#2ecc71"></i>';
-        if (type === 'error') icon = '<i class="fas fa-exclamation-circle" style="color:#e74c3c"></i>';
-
-        toast.innerHTML = `${icon} <span>${message}</span>`;
-        container.appendChild(toast);
-
-        // Remove after 3 seconds
-        setTimeout(() => {
-            toast.style.opacity = '0';
-            setTimeout(() => toast.remove(), 400);
-        }, 3000);
-    }
-
-    // --- SEO HELPER ---
-    function updateSchema(p) {
-        // 1. Remove old schema if exists
-        const oldSchema = document.getElementById('json-ld-product');
-        if (oldSchema) oldSchema.remove();
-
-        // 2. Create new Schema JSON
-        const schemaData = {
-            "@context": "https://schema.org/",
-            "@type": "Product",
-            "name": p.name,
-            "image": ["https://namonamkeen.shop/" + p.image],
-            "description": p.desc || "Authentic Indore Namkeen",
-            "brand": {
-                "@type": "Brand",
-                "name": "Namo Namkeen"
-            },
-            "offers": {
-                "@type": "Offer",
-                "url": "https://namonamkeen.shop",
-                "priceCurrency": "INR",
-                "price": p.price,
-                "availability": p.in_stock ? "https://schema.org/InStock" : "https://schema.org/OutOfStock"
-            }
-        };
-
-        // 3. Inject into Head
-        const script = document.createElement('script');
-        script.id = "json-ld-product";
-        script.type = "application/ld+json";
-        script.text = JSON.stringify(schemaData);
-        document.head.appendChild(script);
-    }
-
-    // --- PWA INSTALLATION LOGIC ---
-    let deferredPrompt;
-
-    window.addEventListener('beforeinstallprompt', (e) => {
-        // 1. Prevent Chrome 67 and earlier from automatically showing the prompt
-        e.preventDefault();
-        // 2. Stash the event so it can be triggered later.
-        deferredPrompt = e;
-        // 3. Update UI notify the user they can add to home screen
-        const installBtn = document.getElementById('pwa-install-btn');
-        if (installBtn) {
-            installBtn.style.display = 'block'; // Show the button
-
-            installBtn.addEventListener('click', () => {
-                // Hide our user interface that shows our A2HS button
-                installBtn.style.display = 'none';
-                // Show the prompt
-                deferredPrompt.prompt();
-                // Wait for the user to respond to the prompt
-                deferredPrompt.userChoice.then((choiceResult) => {
-                    if (choiceResult.outcome === 'accepted') {
-                        console.log('User accepted the A2HS prompt');
-                    } else {
-                        console.log('User dismissed the A2HS prompt');
-                    }
-                    deferredPrompt = null;
-                });
-            });
-        }
-    });
-
-    // Optional: Analytics to track if app was installed successfully
-    window.addEventListener('appinstalled', () => {
-        console.log('PWA was installed');
-        // You could save this event to Firestore to track how many users installed the app
-    });
 }
+
+// --- NEW RAZORPAY PAYMENT LOGIC ---
+
+function initiateRazorpayPayment() {
+    if (cart.length === 0) return showToast("Your cart is empty!", "error");
+
+    const phone = document.getElementById('cust-phone').value.trim();
+    const address = document.getElementById('cust-address').value.trim();
+
+    // Basic Validation
+    if (!/^[0-9]{10}$/.test(phone)) return showToast("Please enter a valid 10-digit mobile number.", "error");
+    if (address.length < 5) return showToast("Please enter a complete address.", "error");
+
+    // Check Payment Method (Assuming you added the radio buttons from previous step)
+    // If you haven't added radio buttons, we default to Online Payment
+    const methodElem = document.querySelector('input[name="paymentMethod"]:checked');
+    const paymentMethod = methodElem ? methodElem.value : 'Online';
+
+    // Calculate Amount
+    let total = cart.reduce((sum, i) => sum + (i.price * i.qty), 0);
+    let discount = 0;
+    if (appliedDiscount.type === 'percent') discount = Math.round(total * (appliedDiscount.value / 100));
+    else if (appliedDiscount.type === 'flat') discount = appliedDiscount.value;
+
+    const finalAmountINR = Math.max(0, total - discount); // Amount in Rupees
+    const amountPaise = finalAmountINR * 100; // Razorpay takes amount in Paise
+
+    if (paymentMethod === 'COD') {
+        // Cash on Delivery Flow
+        if (confirm(`Place order for ₹${finalAmountINR} via Cash on Delivery?`)) {
+            saveOrderToFirebase('COD', 'Pending', null);
+        }
+    } else {
+        // Online Payment Flow (Razorpay)
+        openRazorpayModal(amountPaise, finalAmountINR, phone);
+    }
+}
+
+function openRazorpayModal(amountPaise, amountINR, userPhone) {
+    // Determine User Details (Guest or Logged In)
+    const userName = currentUser ? currentUser.displayName : "Guest User";
+    const userEmail = currentUser ? currentUser.email : "guest@namonamkeen.com";
+
+    var options = {
+        "key": razorpayKeyId,
+        "amount": amountPaise,
+        "currency": "INR",
+        "name": "Namo Namkeen",
+        "description": "Order Payment",
+        "image": "logo.jpg",
+        "handler": function (response) {
+            console.log("Payment ID: ", response.razorpay_payment_id);
+            saveOrderToFirebase('Online', 'Paid', response.razorpay_payment_id);
+        },
+        "prefill": {
+            "name": userName,
+            "email": userEmail,
+            "contact": userPhone
+        },
+        "theme": { "color": "#e85d04" },
+        "modal": {
+            "ondismiss": function () { showToast("Payment cancelled.", "error"); }
+        }
+    };
+
+    var rzp1 = new Razorpay(options);
+    rzp1.on('payment.failed', function (response) {
+        showToast("Payment Failed: " + response.error.description);
+    });
+    rzp1.open();
+}
+
+async function saveOrderToFirebase(method, paymentStatus, txnId) {
+    toggleBtnLoading('btn-main-checkout', true);
+
+    const phone = document.getElementById('cust-phone').value;
+    const address = document.getElementById('cust-address').value;
+    const orderId = 'ORD-' + Date.now().toString().slice(-6);
+
+    // Determine User ID (Use Auth UID or generate a Guest ID based on phone)
+    const uid = currentUser ? currentUser.uid : ("guest_" + phone);
+    const uName = currentUser ? currentUser.displayName : "Guest";
+
+    let total = cart.reduce((sum, i) => sum + (i.price * i.qty), 0);
+    // ... (rest of discount calc logic remains same) ...
+    let discount = 0;
+    if (appliedDiscount.type === 'percent') discount = Math.round(total * (appliedDiscount.value / 100));
+    else if (appliedDiscount.type === 'flat') discount = appliedDiscount.value;
+    const finalAmount = Math.max(0, total - discount);
+
+    try {
+        await db.collection("orders").add({
+            id: orderId,
+            userId: uid,          // Save as Guest ID if not logged in
+            userName: uName,
+            userPhone: phone,
+            userAddress: address,
+            items: cart,
+            total: finalAmount,
+            discount: appliedDiscount,
+            paymentMethod: method,
+            status: 'Pending',
+            paymentStatus: paymentStatus,
+            transactionId: txnId || '',
+            timestamp: new Date()
+        });
+
+        // Update UI
+        showSuccessModal(orderId, finalAmount, method);
+        cart = [];
+        updateCartUI();
+        if (document.getElementById('cart-sidebar').classList.contains('active')) toggleCart();
+
+    } catch (error) {
+        console.error("DB Error:", error);
+        showToast("Error saving order.", "error");
+    } finally {
+        toggleBtnLoading('btn-main-checkout', false);
+    }
+}
+
+function showSuccessModal(orderId, amount, method) {
+    const msg = `*New Order: ${orderId}*\n*Method:* ${method}\n*Amount:* ₹${amount}\n*Customer:* ${currentUser.displayName}\n*Address:* ${document.getElementById('cust-address').value}\n\n*Payment:* ${method === 'Online' ? 'PAID ✅' : 'Cash on Delivery 🚚'}`;
+
+    document.getElementById('success-order-id').innerText = orderId;
+
+    // Update the WhatsApp Button
+    const waBtn = document.getElementById('wa-link-btn'); // Ensure this ID exists in your success modal HTML
+    if (waBtn) {
+        waBtn.onclick = () => {
+            window.open(`https://wa.me/${shopConfig.adminPhone}?text=${encodeURIComponent(msg)}`, '_blank');
+        };
+    }
+
+    document.getElementById('success-modal').style.display = 'flex';
+}
+
+// --- USER REVIEW SYSTEM ---
+
+function openReviewModal(pid, oid, name, img) {
+    document.getElementById('review-modal').style.display = 'flex';
+    document.getElementById('review-pid').value = pid;
+    document.getElementById('review-oid').value = oid;
+    document.getElementById('review-p-name').innerText = decodeURIComponent(name);
+    document.getElementById('review-p-img').src = decodeURIComponent(img);
+    document.getElementById('review-comment').value = '';
+
+    // Reset stars
+    document.querySelectorAll('input[name="rating"]').forEach(r => r.checked = false);
+}
+
+async function submitReview() {
+    const pid = parseInt(document.getElementById('review-pid').value); // ID is integer in your DB
+    const oid = document.getElementById('review-oid').value;
+    const comment = document.getElementById('review-comment').value.trim();
+    const ratingElem = document.querySelector('input[name="rating"]:checked');
+
+    if (!ratingElem) return showToast("Please select a star rating!", "error");
+    const rating = parseInt(ratingElem.value);
+
+    toggleBtnLoading('btn-submit-review', true);
+
+    try {
+        // 1. Check if user already reviewed this item in this order to prevent duplicates
+        const check = await db.collection("reviews")
+            .where("orderId", "==", oid)
+            .where("productId", "==", pid)
+            .get();
+
+        if (!check.empty) {
+            showToast("You have already reviewed this item!", "error");
+            toggleBtnLoading('btn-submit-review', false);
+            return;
+        }
+
+        // 2. Add Review to 'reviews' collection
+        await db.collection("reviews").add({
+            productId: pid,
+            orderId: oid,
+            userId: currentUser.uid,
+            userName: currentUser.displayName,
+            rating: rating,
+            comment: comment,
+            timestamp: new Date()
+        });
+
+        // 3. Update Product Stats (Rating Sum & Count) using Atomic Increment
+        // Note: product IDs are numbers in your system, stored as document IDs (strings)
+        const productRef = db.collection("products").doc(String(pid));
+
+        await productRef.update({
+            ratingSum: firebase.firestore.FieldValue.increment(rating),
+            ratingCount: firebase.firestore.FieldValue.increment(1)
+        });
+
+        showToast("Thanks for your feedback!", "success");
+        closeModal('review-modal');
+
+        // Refresh data to show new stars on menu
+        fetchData();
+
+    } catch (error) {
+        console.error("Review Error:", error);
+        showToast("Failed to submit review. Try again.", "error");
+    } finally {
+        toggleBtnLoading('btn-submit-review', false);
+    }
+}
+
+// --- TOAST FUNCTION ---
+function showToast(message, type = 'neutral') {
+    const container = document.getElementById('toast-container');
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+
+    let icon = '';
+    if (type === 'success') icon = '<i class="fas fa-check-circle" style="color:#2ecc71"></i>';
+    if (type === 'error') icon = '<i class="fas fa-exclamation-circle" style="color:#e74c3c"></i>';
+
+    toast.innerHTML = `${icon} <span>${message}</span>`;
+    container.appendChild(toast);
+
+    // Remove after 3 seconds
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        setTimeout(() => toast.remove(), 400);
+    }, 3000);
+}
+
+// --- SEO HELPER FUNCTION ---
+function updateSchema(p) {
+    // 1. Remove old schema if exists to prevent duplicates
+    const oldSchema = document.getElementById('json-ld-product');
+    if (oldSchema) oldSchema.remove();
+
+    // 2. Create new Schema JSON
+    const schemaData = {
+        "@context": "https://schema.org/",
+        "@type": "Product",
+        "name": p.name,
+        "image": ["https://namonamkeen.shop/" + p.image],
+        "description": p.desc || "Authentic Indore Namkeen",
+        "brand": {
+            "@type": "Brand",
+            "name": "Namo Namkeen"
+        },
+        "offers": {
+            "@type": "Offer",
+            "url": "https://namonamkeen.shop",
+            "priceCurrency": "INR",
+            "price": p.price,
+            "availability": p.in_stock ? "https://schema.org/InStock" : "https://schema.org/OutOfStock"
+        }
+    };
+
+    // 3. Inject into Head
+    const script = document.createElement('script');
+    script.id = "json-ld-product";
+    script.type = "application/ld+json";
+    script.text = JSON.stringify(schemaData);
+    document.head.appendChild(script);
+}
+
+// --- SEO HELPER ---
+// --- PWA INSTALLATION LOGIC ---
+let deferredPrompt;
+
+window.addEventListener('beforeinstallprompt', (e) => {
+    // 1. Prevent Chrome 67 and earlier from automatically showing the prompt
+    e.preventDefault();
+    // 2. Stash the event so it can be triggered later.
+    deferredPrompt = e;
+    // 3. Update UI notify the user they can add to home screen
+    const installBtn = document.getElementById('pwa-install-btn');
+    if (installBtn) {
+        installBtn.style.display = 'block'; // Show the button
+
+        installBtn.addEventListener('click', () => {
+            // Hide our user interface that shows our A2HS button
+            installBtn.style.display = 'none';
+            // Show the prompt
+            deferredPrompt.prompt();
+            // Wait for the user to respond to the prompt
+            deferredPrompt.userChoice.then((choiceResult) => {
+                if (choiceResult.outcome === 'accepted') {
+                    console.log('User accepted the A2HS prompt');
+                } else {
+                    console.log('User dismissed the A2HS prompt');
+                }
+                deferredPrompt = null;
+            });
+        });
+    }
+});
+
+// Optional: Analytics to track if app was installed successfully
+window.addEventListener('appinstalled', () => {
+    console.log('PWA was installed');
+    // You could save this event to Firestore to track how many users installed the app
+});
