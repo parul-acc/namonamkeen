@@ -19,6 +19,7 @@ let previousOrderCount = 0;
 const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3'); // Simple notification sound
 
 let adminCart = []; // Store items for POS
+let dashboardUnsubscribe = null; // To stop old listeners when changing filters
 
 let salesChartInstance, productChartInstance;
 const ITEMS_PER_PAGE = 10;
@@ -54,12 +55,14 @@ function logout() { auth.signOut().then(() => location.reload()); }
 
 function initDashboard() {
     console.log("Initializing Dashboard...");
-    loadDashboardData();
+    loadDashboardData('All'); // Default call
     loadInventory();
     loadOrders();
-    loadCustomers(); // This triggers the customer fetch
+    loadCustomers();
     loadSettings();
     loadCoupons();
+    loadReviews();
+    loadStoreConfig();
 }
 
 // --- PAGINATION ---
@@ -107,6 +110,7 @@ function loadCustomers() {
 
         snap.forEach(doc => {
             const u = doc.data();
+            u.uid = doc.id;
             count++;
 
             let last = null;
@@ -175,7 +179,10 @@ function renderCustomerRows(tbody, items) {
                 <td>${phone}</td>
                 <td>${address}</td>
                 <td>${date}</td>
-                <td>${waBtn}</td>
+               <td>
+    <button class="icon-btn btn-blue" onclick="viewCustomer('${u.uid}')" title="View History"><i class="fas fa-history"></i></button>
+    ${waBtn}
+</td>
             </tr>`;
     });
 }
@@ -205,49 +212,178 @@ function exportCustomersToCSV() {
 }
 
 // --- 1. DASHBOARD ---
-function loadDashboardData() {
-    db.collection("orders").orderBy("timestamp", "desc").limit(100).onSnapshot(snap => {
-        let rev = 0, count = 0, pending = 0, salesMap = {}, prodMap = {};
+// --- DASHBOARD WITH FILTERS ---
+
+function updateDashboardFilter(timeframe) {
+    loadDashboardData(timeframe);
+}
+
+function loadDashboardData(timeframe = 'All') {
+    // 1. Determine Start Date based on Timeframe
+    let startDate = null;
+    const now = new Date();
+
+    if (timeframe === 'Today') {
+        startDate = new Date(now.setHours(0, 0, 0, 0));
+    } else if (timeframe === 'Week') {
+        // Start of current week (assuming Sunday start)
+        const day = now.getDay();
+        const diff = now.getDate() - day; // adjust when day is sunday
+        startDate = new Date(now.setDate(diff));
+        startDate.setHours(0, 0, 0, 0);
+    } else if (timeframe === 'Month') {
+        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+    } else if (timeframe === 'Year') {
+        startDate = new Date(now.getFullYear(), 0, 1);
+    }
+
+    // 2. Build Query
+    let query = db.collection("orders");
+
+    if (startDate) {
+        query = query.where("timestamp", ">=", startDate);
+    }
+
+    // Default ordering
+    query = query.orderBy("timestamp", "asc"); // Ascending for charts looks better
+
+    // 3. Manage Listener (Unsubscribe previous to avoid duplicates)
+    if (dashboardUnsubscribe) {
+        dashboardUnsubscribe();
+    }
+
+    // 4. Start Listening
+    dashboardUnsubscribe = query.onSnapshot(snap => {
+        let rev = 0, count = 0, pending = 0;
+        let salesMap = {}, prodMap = {};
+        let paymentStats = { 'Online': 0, 'COD': 0 };
+
         snap.forEach(doc => {
             const o = doc.data();
-            // --- LOGIC CHANGE: Skip Cancelled Orders for Revenue ---
+
+            // Skip Cancelled orders from stats
             if (o.status === 'Cancelled') return;
+
             const d = o.timestamp ? o.timestamp.toDate() : new Date();
-            rev += o.total; count++;
+
+            // Stats Calculation
+            rev += o.total;
+            count++;
             if (o.status === 'Pending') pending++;
-            // Chart Data
-            const dateStr = d.toLocaleDateString();
-            salesMap[dateStr] = (salesMap[dateStr] || 0) + o.total;
-            if (o.items) o.items.forEach(i => prodMap[i.name] = (prodMap[i.name] || 0) + i.qty);
+
+            // Chart Data Prep
+            let label;
+            if (timeframe === 'Today') {
+                // For Today, show Hour (e.g., "10 AM")
+                label = d.toLocaleString('en-US', { hour: 'numeric', hour12: true });
+            } else if (timeframe === 'Year') {
+                // For Year, show Month (e.g., "Jan")
+                label = d.toLocaleString('default', { month: 'short' });
+            } else {
+                // Default: Date (e.g., "28/11")
+                label = `${d.getDate()}/${d.getMonth() + 1}`;
+            }
+
+            salesMap[label] = (salesMap[label] || 0) + o.total;
+
+            if (o.items) {
+                o.items.forEach(i => {
+                    prodMap[i.name] = (prodMap[i.name] || 0) + i.qty;
+                });
+            }
+
+            // Payment Stats
+            const method = (o.paymentMethod === 'COD') ? 'COD' : 'Online';
+            paymentStats[method] += o.total;
         });
 
-        document.getElementById('today-rev').innerText = '₹' + rev;
+        // 5. Update UI Stats
+        document.getElementById('today-rev').innerText = '₹' + rev.toLocaleString('en-IN');
         document.getElementById('total-orders').innerText = count;
         document.getElementById('pending-count').innerText = pending;
         document.getElementById('avg-order').innerText = '₹' + (count ? Math.round(rev / count) : 0);
 
-        if (salesChartInstance) salesChartInstance.destroy();
-        const ctx1 = document.getElementById('salesChart').getContext('2d');
-        salesChartInstance = new Chart(ctx1, {
-            type: 'line',
-            data: {
-                labels: Object.keys(salesMap),
-                datasets: [{ label: 'Revenue', data: Object.values(salesMap), borderColor: '#e85d04', backgroundColor: 'rgba(232,93,4,0.1)', fill: true }]
-            },
-            options: { maintainAspectRatio: false }
-        });
+        // 6. Update Charts
+        updateCharts(salesMap, prodMap, timeframe, paymentStats);
+    });
+}
 
-        if (productChartInstance) productChartInstance.destroy();
-        const topP = Object.entries(prodMap).sort((a, b) => b[1] - a[1]).slice(0, 5);
-        const ctx2 = document.getElementById('productChart').getContext('2d');
-        productChartInstance = new Chart(ctx2, {
-            type: 'doughnut',
-            data: {
-                labels: topP.map(x => x[0]),
-                datasets: [{ data: topP.map(x => x[1]), backgroundColor: ['#e85d04', '#2980b9', '#27ae60', '#f1c40f', '#8e44ad'] }]
-            },
-            options: { maintainAspectRatio: false }
-        });
+function updateCharts(salesMap, prodMap, timeframe, paymentStats) {
+    // --- Sales Chart (Line) ---
+    const ctx1 = document.getElementById('salesChart').getContext('2d');
+
+    // Destroy old instance if exists
+    if (window.salesChartInstance) window.salesChartInstance.destroy();
+
+    window.salesChartInstance = new Chart(ctx1, {
+        type: 'line',
+        data: {
+            labels: Object.keys(salesMap),
+            datasets: [{
+                label: `Revenue (${timeframe})`,
+                data: Object.values(salesMap),
+                borderColor: '#e85d04',
+                backgroundColor: 'rgba(232,93,4,0.1)',
+                fill: true,
+                tension: 0.3
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: { y: { beginAtZero: true } }
+        }
+    });
+
+    // --- Product Chart (Doughnut) ---
+    const ctx2 = document.getElementById('productChart').getContext('2d');
+
+    if (window.productChartInstance) window.productChartInstance.destroy();
+
+    // Sort products by popularity (Top 5)
+    const topP = Object.entries(prodMap)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5);
+
+    window.productChartInstance = new Chart(ctx2, {
+        type: 'doughnut',
+        data: {
+            labels: topP.map(x => x[0]),
+            datasets: [{
+                data: topP.map(x => x[1]),
+                backgroundColor: ['#e85d04', '#2980b9', '#27ae60', '#f1c40f', '#8e44ad']
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'bottom' }
+            }
+        }
+    });
+
+    // --- NEW: Payment Chart ---
+    const ctx3 = document.getElementById('paymentChart').getContext('2d');
+    if (window.paymentChartInstance) window.paymentChartInstance.destroy();
+
+    window.paymentChartInstance = new Chart(ctx3, {
+        type: 'pie',
+        data: {
+            labels: ['Online (Paid)', 'Cash (COD)'],
+            datasets: [{
+                data: [paymentStats['Online'], paymentStats['COD']],
+                backgroundColor: ['#2ecc71', '#e74c3c']
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                title: { display: true, text: 'Revenue Source' },
+                legend: { position: 'bottom' }
+            }
+        }
     });
 }
 
@@ -256,16 +392,54 @@ function loadInventory() {
     db.collection("products").orderBy("id").onSnapshot(snap => {
         let total = 0, inStock = 0, outStock = 0;
         state.inventory.data = [];
+
+        // Arrays for Low Stock Logic
+        const lowStockItems = [];
+
         snap.forEach(doc => {
-            const p = doc.data(); p.docId = doc.id;
-            total++; p.in_stock ? inStock++ : outStock++;
+            const p = doc.data();
+            p.docId = doc.id;
+            total++;
+
+            if (p.in_stock) {
+                inStock++;
+                // Optional: If you had a 'stockQty' field, you would check it here.
+                // For now, we only check if it is explicitly marked OUT of stock via the toggle
+            } else {
+                outStock++;
+                lowStockItems.push(p.name);
+            }
             state.inventory.data.push(p);
         });
+
+        // Update Stats
         document.getElementById('inv-total').innerText = total;
         document.getElementById('inv-stock').innerText = inStock;
         document.getElementById('inv-out').innerText = outStock;
+
+        // Update Table
         renderTable('inventory');
+
+        // --- NEW: UPDATE DASHBOARD ALERT ---
+        updateLowStockUI(lowStockItems);
     });
+}
+
+// Add this helper function
+function updateLowStockUI(items) {
+    const alertBox = document.getElementById('low-stock-alert');
+    const list = document.getElementById('low-stock-list');
+
+    if (!alertBox || !list) return; // In case we are not on dashboard view
+
+    if (items.length > 0) {
+        alertBox.style.display = 'flex';
+        list.innerHTML = items.map(name =>
+            `<span style="background:white; padding:4px 10px; border-radius:15px; font-weight:600; border:1px solid #ddd; font-size:0.8rem;">${name}</span>`
+        ).join('');
+    } else {
+        alertBox.style.display = 'none';
+    }
 }
 
 function renderInventoryRows(tbody, items) {
@@ -317,11 +491,17 @@ function renderOrderRows(tbody, items) {
         const d = o.timestamp ? new Date(o.timestamp.seconds * 1000).toLocaleDateString() : '-';
         const statusClass = `status-${o.status.toLowerCase()}`;
         const itemCount = o.items.length;
+        // 1. Check High Value (> ₹350)
+        const isHighValue = o.total > 350 ? 'high-value-row' : '';
+
+        // 2. Create Clickable Address
+        const addressHtml = `<span class="copy-addr" onclick="copyToClipboard('${escapeHtml(o.userAddress)}')" title="Click to Copy">${escapeHtml(o.userAddress)}</span>`;
+
         // Add Cancel Button to Actions if Pending
         const cancelBtn = (o.status === 'Pending') ?
             `<button class="icon-btn btn-danger" onclick="adminCancelOrder('${o.docId}')" title="Cancel/Spam"><i class="fas fa-ban"></i></button>` : '';
         tbody.innerHTML += `
-            <tr>
+            <tr class="${isHighValue}">
                 <td><input type="checkbox" class="order-check" value="${o.docId}" onchange="updateBulkUI()"></td>
                 <td><strong>#${o.id}</strong><br><small style="color:#888">${d}</small></td>
                 <td>
@@ -330,6 +510,7 @@ function renderOrderRows(tbody, items) {
                 </td>
                 <td>${itemCount} Items</td>
                 <td style="font-weight:bold;">₹${o.total}</td>
+                <td>${addressHtml}</td>
                 <td><span class="status-pill ${statusClass}">${o.status}</span></td>
                 <td>
                     <button class="icon-btn btn-blue" onclick="viewOrder('${o.docId}')" title="View"><i class="fas fa-eye"></i></button>
@@ -342,6 +523,18 @@ function renderOrderRows(tbody, items) {
                 : ''}
                 </td>
             </tr>`;
+    });
+}
+
+// 3. Add Helper Function (Bottom of file)
+function copyToClipboard(text) {
+    navigator.clipboard.writeText(text).then(() => {
+        // Simple visual feedback
+        const oldActive = document.querySelector(':focus');
+        if (oldActive) oldActive.blur(); // Remove focus
+
+        // Show a mini toast/alert (or use your existing showToast if available in admin)
+        alert("Address Copied! ✅");
     });
 }
 
@@ -383,13 +576,25 @@ function filterOrders() {
 }
 
 function exportOrdersToCSV() {
-    let csv = "Date,Order ID,Customer,Phone,Address,Items,Total,Status\n";
-    state.orders.data.forEach(o => {
+    // 1. Use Filtered Data if active, otherwise All Data
+    const dataToExport = state.orders.filteredData || state.orders.data;
+
+    if (!dataToExport || dataToExport.length === 0) return alert("No data to export");
+
+    let csv = "Date,Order ID,Customer,Phone,Address,Items,Total,Payment,Status\n";
+
+    dataToExport.forEach(o => {
         const d = o.timestamp ? new Date(o.timestamp.seconds * 1000).toLocaleDateString() : '-';
-        const items = o.items.map(i => `${i.name} x ${i.qty}`).join(' | ');
-        csv += `"${d}","${o.id}","${escapeHtml(o.userName)}","${escapeHtml(o.userPhone)}","${escapeHtml(o.userAddress.replace(/\n/g, ' '))}","${items}",${o.total},${o.status}\n`;
+        // Clean up strings for CSV (remove commas/newlines)
+        const addr = o.userAddress ? o.userAddress.replace(/(\r\n|\n|\r|,)/gm, " ") : "";
+        const items = o.items.map(i => `${i.name} (${i.qty})`).join(' | ');
+
+        csv += `"${d}","${o.id}","${escapeHtml(o.userName)}","${o.userPhone}","${addr}","${items}",${o.total},"${o.paymentMethod}",${o.status}\n`;
     });
-    downloadCSV(csv, "namo_orders.csv");
+
+    // 2. Generate Filename with Date
+    const dateStr = new Date().toLocaleDateString().replace(/\//g, '-');
+    downloadCSV(csv, `Namo_Orders_${dateStr}.csv`);
 }
 
 // --- 5. COUPONS ---
@@ -569,7 +774,7 @@ async function adminRemoveItem(orderId, itemIdx) {
     const orderDoc = state.orders.data.find(x => x.docId === orderId);
     if (!orderDoc) {
         console.error("Error: Order not found in local state", orderId);
-        alert("Error: Order data missing. Please refresh the page.");
+        showToast("Error: Order data missing. Please refresh the page.", "error");
         return;
     }
 
@@ -584,7 +789,7 @@ async function adminRemoveItem(orderId, itemIdx) {
         console.error("Error: Invalid Item Index", itemIdx);
         return;
     }
-    
+
     // 5. Remove & Save
     newItems.splice(itemIdx, 1); // Remove item at index
     recalculateAndSave(orderId, newItems, orderDoc);
@@ -1104,6 +1309,201 @@ async function adminCancelOrder(docId) {
     } catch (e) {
         showToast("Error: " + e.message);
     }
+}
+
+// --- REVIEW MANAGEMENT ---
+
+function loadReviews() {
+    db.collection("reviews").orderBy("timestamp", "desc").limit(50).onSnapshot(snap => {
+        const tbody = document.getElementById('reviews-body');
+        if (!tbody) return;
+        tbody.innerHTML = '';
+
+        if (snap.empty) {
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:20px;">No reviews yet</td></tr>';
+            return;
+        }
+
+        snap.forEach(doc => {
+            const r = doc.data();
+            const date = r.timestamp ? r.timestamp.toDate().toLocaleDateString() : '-';
+
+            // Get Product Name (from Inventory state for speed)
+            const product = state.inventory.data.find(p => p.id === r.productId);
+            const pName = product ? product.name : `ID: ${r.productId}`;
+            const pImg = product ? product.image : 'logo.jpg';
+
+            // Star Visuals
+            let stars = '';
+            for (let i = 0; i < 5; i++) {
+                stars += `<i class="fas fa-star" style="color: ${i < r.rating ? '#ffc107' : '#ddd'}; font-size:0.8rem;"></i>`;
+            }
+
+            tbody.innerHTML += `
+            <tr>
+                <td><small>${date}</small></td>
+                <td>
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <img src="${pImg}" style="width:30px; height:30px; border-radius:4px; object-fit:cover;" onerror="this.src='logo.jpg'">
+                        <span>${pName}</span>
+                    </div>
+                </td>
+                <td>${escapeHtml(r.userName)}</td>
+                <td>${stars}</td>
+                <td style="max-width:300px; white-space:normal; color:#555;">${escapeHtml(r.comment)}</td>
+                <td>
+                    <button class="icon-btn btn-danger" onclick="deleteReview('${doc.id}', ${r.productId}, ${r.rating})" title="Delete Review">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </td>
+            </tr>`;
+        });
+    });
+}
+
+async function deleteReview(reviewId, productId, rating) {
+    if (!await showConfirm("Delete this review permanently?")) return;
+
+    try {
+        // 1. Delete the Review Document
+        await db.collection("reviews").doc(reviewId).delete();
+
+        // 2. Update Product Stats (Atomic Decrement)
+        // We need to remove this rating from the product's average
+        const productRef = db.collection("products").doc(String(productId));
+
+        await productRef.update({
+            ratingSum: firebase.firestore.FieldValue.increment(-rating),
+            ratingCount: firebase.firestore.FieldValue.increment(-1)
+        });
+
+        showToast("Review Deleted", "success");
+    } catch (e) {
+        console.error(e);
+        showToast("Error deleting review: " + e.message);
+    }
+}
+
+// --- MASTER SETTINGS ---
+
+function loadStoreConfig() {
+    db.collection("settings").doc("config").onSnapshot(doc => {
+        if (doc.exists) {
+            const data = doc.data();
+            if (document.getElementById('conf-phone')) {
+                document.getElementById('conf-phone').value = data.adminPhone || '';
+                document.getElementById('conf-upi').value = data.upiId || '';
+                document.getElementById('conf-del-charge').value = data.deliveryCharge || 0;
+                document.getElementById('conf-free-ship').value = data.minFreeShipping || 0;
+            }
+        }
+    });
+
+    // NEW: Load Layout
+    db.collection("settings").doc("layout").onSnapshot(doc => {
+        if (doc.exists) {
+            const data = doc.data();
+            if (document.getElementById('layout-title')) {
+                document.getElementById('layout-title').value = data.heroTitle || '';
+                document.getElementById('layout-subtitle').value = data.heroSubtitle || '';
+                document.getElementById('layout-bg').value = data.heroImage || '';
+            }
+        }
+    });
+}
+
+function saveStoreConfig() {
+    const adminPhone = document.getElementById('conf-phone').value.trim();
+    const upiId = document.getElementById('conf-upi').value.trim();
+    const deliveryCharge = parseInt(document.getElementById('conf-del-charge').value) || 0;
+    const minFreeShipping = parseInt(document.getElementById('conf-free-ship').value) || 0;
+
+    if (!adminPhone || !upiId) return showToast("Phone and UPI ID are required.", "error");
+
+    db.collection("settings").doc("config").set({
+        adminPhone, upiId, deliveryCharge, minFreeShipping
+    }, { merge: true })
+        .then(() => showToast("Store Configuration Saved!", "success"))
+        .catch(e => showToast("Error: " + e.message));
+}
+
+// --- CUSTOMER INSIGHTS ---
+
+function viewCustomer(uid) {
+    const user = state.customers.data.find(u => u.uid === uid);
+    if (!user) return;
+
+    const content = document.getElementById('cust-profile-content');
+    content.innerHTML = '<p>Loading order history...</p>';
+    document.getElementById('customer-modal').style.display = 'flex';
+
+    // Fetch Orders for this user
+    db.collection("orders").where("userId", "==", uid).orderBy("timestamp", "desc").get().then(snap => {
+        let totalSpent = 0;
+        let orderCount = 0;
+        let ordersHtml = '';
+
+        snap.forEach(doc => {
+            const o = doc.data();
+            // Ignore Cancelled in Total
+            if (o.status !== 'Cancelled') {
+                totalSpent += o.total;
+                orderCount++;
+            }
+
+            const date = o.timestamp ? o.timestamp.toDate().toLocaleDateString() : '-';
+            const statusColor = o.status === 'Delivered' ? 'green' : (o.status === 'Cancelled' ? 'red' : 'orange');
+
+            ordersHtml += `
+            <div style="display:flex; justify-content:space-between; padding:10px; border-bottom:1px solid #eee; align-items:center;">
+                <div>
+                    <strong>#${o.id}</strong> <span style="font-size:0.8rem; color:#888;">(${date})</span><br>
+                    <small>${o.items.length} Items</small>
+                </div>
+                <div style="text-align:right;">
+                    <div style="font-weight:bold;">₹${o.total}</div>
+                    <span style="font-size:0.75rem; color:${statusColor}; font-weight:600;">${o.status}</span>
+                </div>
+            </div>`;
+        });
+
+        if (ordersHtml === '') ordersHtml = '<p style="text-align:center; padding:20px; color:#999;">No orders found.</p>';
+
+        // Render Profile
+        content.innerHTML = `
+            <div style="display:flex; gap:20px; align-items:center; background:#f9f9f9; padding:20px; border-radius:10px; margin-bottom:20px;">
+                <div style="width:60px; height:60px; background:#e85d04; color:white; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:1.5rem; font-weight:bold;">
+                    ${user.name ? user.name.charAt(0).toUpperCase() : 'U'}
+                </div>
+                <div>
+                    <h2 style="margin:0;">${user.name || 'Guest'}</h2>
+                    <p style="margin:5px 0; color:#666;"><i class="fas fa-phone"></i> ${user.phone || '-'} <br> <i class="fas fa-envelope"></i> ${user.email || '-'}</p>
+                </div>
+                <div style="margin-left:auto; text-align:right;">
+                    <div style="font-size:0.9rem; color:#666;">Lifetime Value</div>
+                    <h2 style="margin:0; color:#2ecc71;">₹${totalSpent}</h2>
+                    <small>${orderCount} Orders</small>
+                </div>
+            </div>
+            
+            <h4>Order History</h4>
+            <div style="max-height:300px; overflow-y:auto; border:1px solid #eee; border-radius:8px;">
+                ${ordersHtml}
+            </div>
+        `;
+    });
+}
+
+function saveLayoutConfig() {
+    const heroTitle = document.getElementById('layout-title').value.trim();
+    const heroSubtitle = document.getElementById('layout-subtitle').value.trim();
+    const heroImage = document.getElementById('layout-bg').value.trim();
+
+    db.collection("settings").doc("layout").set({
+        heroTitle, heroSubtitle, heroImage
+    }, { merge: true })
+        .then(() => showToast("Storefront Updated!", "success"))
+        .catch(e => showToast("Error: " + e.message));
 }
 
 registerAdminServiceWorker();

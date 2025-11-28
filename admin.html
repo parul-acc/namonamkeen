@@ -45,6 +45,7 @@
             <li><a onclick="switchView('orders')" id="nav-orders"><i class="fas fa-shopping-bag"></i> Orders</a></li>
             <li><a onclick="switchView('customers')" id="nav-customers"><i class="fas fa-users"></i> Customers</a></li>
             <li><a onclick="switchView('coupons')" id="nav-coupons"><i class="fas fa-ticket-alt"></i> Coupons</a></li>
+            <li><a onclick="switchView('reviews')" id="nav-reviews"><i class="fas fa-star"></i> Reviews</a></li>
             <li><a onclick="switchView('settings')" id="nav-settings"><i class="fas fa-cog"></i> Settings</a></li>
         </ul>
         <div class="sidebar-footer">
@@ -62,6 +63,18 @@
         </header>
 
         <div id="view-dashboard" class="view-section active">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2 style="margin:0; color:var(--dark);">Overview</h2>
+                <select id="dashboard-filter" class="form-control" style="width: auto; font-weight:600;"
+                    onchange="updateDashboardFilter(this.value)">
+                    <option value="All">All Time</option>
+                    <option value="Today">Today</option>
+                    <option value="Week">This Week</option>
+                    <option value="Month">This Month</option>
+                    <option value="Year">This Year</option>
+                </select>
+            </div>
+
             <div class="stats-grid">
                 <div class="stat-card border-green">
                     <h3>Revenue</h3>
@@ -80,9 +93,22 @@
                     <h1 id="avg-order">₹0</h1>
                 </div>
             </div>
+
+            <div id="low-stock-alert"
+                style="display:none; background:#fff3cd; border:1px solid #ffeeba; color:#856404; padding:15px; border-radius:10px; margin-bottom:20px; align-items:center; gap:15px;">
+                <div style="font-size:1.5rem;"><i class="fas fa-exclamation-triangle"></i></div>
+                <div style="flex:1;">
+                    <h4 style="margin:0;">Low Stock Alert</h4>
+                    <p style="margin:5px 0 0; font-size:0.9rem;">The following items are running low or out of stock:
+                    </p>
+                    <div id="low-stock-list" style="display:flex; gap:10px; flex-wrap:wrap; margin-top:10px;"></div>
+                </div>
+            </div>
+
             <div class="charts-grid">
                 <div class="chart-box"><canvas id="salesChart"></canvas></div>
-                <div class="chart-box"><canvas id="productChart"></canvas></div>
+<div class="chart-box"><canvas id="productChart"></canvas></div>
+<div class="chart-box"><canvas id="paymentChart"></canvas></div>
             </div>
         </div>
 
@@ -332,19 +358,101 @@
             </div>
         </div>
 
-        <div id="view-settings" class="view-section">
-            <div class="card" style="max-width:600px;">
+        <div id="view-reviews" class="view-section">
+            <div class="card">
                 <div class="card-header">
-                    <h3>Settings</h3>
+                    <h3>Customer Reviews</h3>
                 </div>
-                <label class="form-label">Announcement Bar</label>
-                <input type="text" id="setting-announce" class="form-control" placeholder="e.g. Shop Closed Today">
-                <label class="form-label">Status</label>
-                <select id="setting-announce-active" class="form-control">
-                    <option value="true">Show</option>
-                    <option value="false">Hide</option>
-                </select>
-                <button class="btn btn-primary" onclick="saveSettings()" style="margin-top:15px;">Save Changes</button>
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Product</th>
+                                <th>Customer</th>
+                                <th>Rating</th>
+                                <th>Comment</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="reviews-body"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div id="view-settings" class="view-section">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Store Configuration</h3>
+                    </div>
+                    <div style="padding: 20px;">
+                        <label class="form-label">Admin WhatsApp Number</label>
+                        <input type="text" id="conf-phone" class="form-control" placeholder="919826698822">
+
+                        <label class="form-label">UPI ID (for QR Codes)</label>
+                        <input type="text" id="conf-upi" class="form-control" placeholder="yourname@bank">
+
+                        <div style="display: flex; gap: 15px; margin-top: 10px;">
+                            <div style="flex:1">
+                                <label class="form-label">Delivery Charge (₹)</label>
+                                <input type="number" id="conf-del-charge" class="form-control" placeholder="0">
+                            </div>
+                            <div style="flex:1">
+                                <label class="form-label">Free Ship Above (₹)</label>
+                                <input type="number" id="conf-free-ship" class="form-control" placeholder="500">
+                            </div>
+                        </div>
+
+                        <button class="btn btn-primary full-width" onclick="saveStoreConfig()"
+                            style="margin-top: 20px;">Save Configuration</button>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Homepage Banner</h3>
+                    </div>
+                    <div style="padding: 20px;">
+                        <label class="form-label">Hero Title</label>
+                        <input type="text" id="layout-title" class="form-control"
+                            placeholder="e.g. Crunchy. Spicy. Authentic.">
+
+                        <label class="form-label">Hero Subtitle</label>
+                        <input type="text" id="layout-subtitle" class="form-control"
+                            placeholder="e.g. The Royal Taste of Indore">
+
+                        <label class="form-label">Background Image URL</label>
+                        <input type="text" id="layout-bg" class="form-control" placeholder="https://...">
+                        <small style="color:#666;">Tip: Use a wide image (1920x600px)</small>
+
+                        <button class="btn btn-primary full-width" onclick="saveLayoutConfig()"
+                            style="margin-top: 20px;">Update Storefront</button>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Announcement Bar</h3>
+                    </div>
+                    <div style="padding: 20px;">
+                        <label class="form-label">Message Text</label>
+                        <input type="text" id="setting-announce" class="form-control"
+                            placeholder="e.g. Shop Closed Today">
+
+                        <label class="form-label">Visibility</label>
+                        <select id="setting-announce-active" class="form-control">
+                            <option value="true">Show</option>
+                            <option value="false">Hide</option>
+                        </select>
+
+                        <button class="btn btn-primary full-width" onclick="saveSettings()"
+                            style="margin-top: 20px;">Update Announcement</button>
+                    </div>
+                </div>
+
             </div>
         </div>
 
@@ -391,6 +499,17 @@
                 <button onclick="closeModal('order-modal')" class="close-btn">&times;</button>
             </div>
             <div id="order-detail-content"></div>
+        </div>
+    </div>
+
+    <div id="customer-modal" class="modal">
+        <div class="modal-content" style="max-width: 700px;">
+            <div class="modal-header">
+                <h3>Customer Profile</h3>
+                <button class="close-btn" onclick="closeModal('customer-modal')">&times;</button>
+            </div>
+            <div id="cust-profile-content">
+            </div>
         </div>
     </div>
 

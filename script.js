@@ -41,6 +41,7 @@ let appliedDiscount = { type: 'none', value: 0, code: null };
 document.addEventListener('DOMContentLoaded', () => {
     loadCartLocal();
     fetchData();
+    loadStorefront();
     if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
 
     auth.onAuthStateChanged(user => {
@@ -1485,4 +1486,18 @@ function downloadPDF() {
         btn.innerHTML = originalText;
         showToast("Failed to generate PDF", "error");
     });
+}
+
+// Add function to bottom of script.js
+function loadStorefront() {
+    db.collection("settings").doc("layout").get().then(doc => {
+        if (doc.exists) {
+            const data = doc.data();
+            if (data.heroTitle) document.getElementById('hero-title').innerHTML = data.heroTitle.replace(/\n/g, '<br>');
+            if (data.heroSubtitle) document.getElementById('hero-subtitle').innerText = data.heroSubtitle;
+            if (data.heroImage) {
+                document.getElementById('home').style.backgroundImage = `url('${data.heroImage}')`;
+            }
+        }
+    }).catch(e => console.log("Layout load error (using default)", e));
 }
