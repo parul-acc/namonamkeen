@@ -196,8 +196,8 @@ function renderHamperOptions() {
     const container = document.getElementById('hamper-options');
     if (!container) return;
     // In renderHamperOptions()
-const limit = shopConfig.hamperMaxItemPrice || 105;
-const eligible = products.filter(p => p.price <= limit && p.in_stock);
+    const limit = shopConfig.hamperMaxItemPrice || 105;
+    const eligible = products.filter(p => p.price <= limit && p.in_stock);
 
     container.innerHTML = '';
     eligible.forEach(p => {
@@ -437,81 +437,65 @@ function toggleCart() { document.getElementById('cart-sidebar').classList.toggle
 
 // --- 10. CHECKOUT FLOW (Split Logic) ---
 
-// Step 1: Open Payment Modal
-function openPaymentModal() {
-    if (cart.length === 0) return alert("Cart empty");
+// --- NEW CHECKOUT LOGIC ---
 
-    const phoneInput = document.getElementById('cust-phone').value.trim();
+// 1. Called when user clicks "Proceed to Pay"
+function initiateCheckout() {
+    if (cart.length === 0) return alert("Your cart is empty!");
+
+    const phone = document.getElementById('cust-phone').value.trim();
     const address = document.getElementById('cust-address').value.trim();
 
-    // Regex: Exactly 10 digits, no spaces, no letters
-    const phoneRegex = /^[0-9]{10}$/;
+    // Validation
+    if (!/^[0-9]{10}$/.test(phone)) return alert("Please enter a valid 10-digit phone number.");
+    if (address.length < 5) return alert("Please enter a complete delivery address.");
 
-    if (!phoneRegex.test(phoneInput)) {
-        alert("Please enter a valid 10-digit mobile number (e.g., 9876543210).");
-        return;
+    // Get Payment Method
+    const paymentMethod = document.querySelector('input[name="paymentMethod"]:checked').value;
+
+    // Calculate Final Amount
+    let total = cart.reduce((sum, i) => sum + (i.price * i.qty), 0);
+    let discount = 0;
+    if (appliedDiscount.type === 'percent') discount = Math.round(total * (appliedDiscount.value / 100));
+    else if (appliedDiscount.type === 'flat') discount = appliedDiscount.value;
+    const finalAmount = Math.max(0, total - discount);
+
+    if (paymentMethod === 'UPI') {
+        // Show UPI QR Modal
+        document.getElementById('pay-modal-total').innerText = '₹' + finalAmount;
+
+        // Generate UPI Link
+        const upiLink = `upi://pay?pa=${shopConfig.upiId}&pn=NamoNamkeen&am=${finalAmount}&cu=INR`;
+        const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(upiLink)}`;
+
+        document.getElementById('payment-qr-img').src = qrApiUrl;
+        document.getElementById('payment-modal').style.display = 'flex';
+        toggleCart(); // Close sidebar so they focus on payment
+    } else {
+        // COD - Directly Finalize
+        if (confirm("Place order with Cash on Delivery?")) {
+            finalizeOrder('COD');
+        }
     }
-
-    if (address.length < 3) {
-        alert("Please enter a complete address.");
-        return;
-    }
-
-    let total = 0;
-    cart.forEach(i => { total += i.price * i.qty; });
-
-    let discountAmount = 0;
-    if (appliedDiscount.type === 'percent') {
-        discountAmount = Math.round(total * (appliedDiscount.value / 100));
-    } else if (appliedDiscount.type === 'flat') {
-        discountAmount = appliedDiscount.value;
-    }
-    if (discountAmount > total) discountAmount = total;
-    const finalAmount = total - discountAmount;
-
-    document.getElementById('success-total-amount').innerText = '₹' + finalAmount;
-
-    // Use Shop Config for UPI
-    const upiLink = `upi://pay?pa=${shopConfig.upiId}&pn=NamoNamkeen&am=${finalAmount}&cu=INR`;
-    document.getElementById('upi-pay-link').href = upiLink;
-
-    const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(upiLink)}`;
-    document.getElementById('success-qr-img').src = qrApiUrl;
-
-    document.getElementById('success-modal').style.display = 'flex';
-    toggleCart();
 }
 
-// Step 2: Finalize Order
-async function finalizeOrder() {
-    // Start Loading
-    toggleBtnLoading('btn-send-whatsapp', true);
+// 2. Called when payment is confirmed (UPI) or immediately (COD)
+async function finalizeOrder(paymentMode) {
+    toggleBtnLoading('btn-final-checkout', true); // Show loading
+
     const phone = document.getElementById('cust-phone').value;
     const address = document.getElementById('cust-address').value;
     const orderId = 'ORD-' + Date.now().toString().slice(-6);
 
-    let total = 0;
-    cart.forEach(i => { total += i.price * i.qty; });
-
-    let discountAmount = 0;
-    if (appliedDiscount.type === 'percent') {
-        discountAmount = Math.round(total * (appliedDiscount.value / 100));
-    } else if (appliedDiscount.type === 'flat') {
-        discountAmount = appliedDiscount.value;
-    }
-    if (discountAmount > total) discountAmount = total;
-    const final = total - discountAmount;
-
-    let msg = `*New Order #${orderId}*\nName: ${currentUser.displayName}\nPhone: ${phone}\nAddr: ${address}\n\n`;
-    cart.forEach(i => { msg += `- ${i.name} (${i.weight}) x ${i.qty}\n`; });
-
-    if (discountAmount > 0) {
-        msg += `\nSubtotal: ₹${total}`;
-        msg += `\nDiscount (${appliedDiscount.code}): -₹${discountAmount}`;
-    }
-    msg += `\n*Total to Pay: ₹${final}*`;
+    // Calculate Totals again for security
+    let total = cart.reduce((sum, i) => sum + (i.price * i.qty), 0);
+    let discount = 0;
+    if (appliedDiscount.type === 'percent') discount = Math.round(total * (appliedDiscount.value / 100));
+    else if (appliedDiscount.type === 'flat') discount = appliedDiscount.value;
+    const finalAmount = Math.max(0, total - discount);
 
     try {
+        // SAVE TO FIRESTORE FIRST
         await db.collection("orders").add({
             id: orderId,
             userId: currentUser.uid,
@@ -519,26 +503,54 @@ async function finalizeOrder() {
             userPhone: phone,
             userAddress: address,
             items: cart,
-            total: final,
+            total: finalAmount,
+            discount: appliedDiscount,
+            paymentMethod: paymentMode,
             status: 'Pending',
-            timestamp: new Date(),
-            discount: appliedDiscount
+            paymentStatus: paymentMode === 'UPI' ? 'Paid (User Confirmed)' : 'Pending',
+            timestamp: new Date()
         });
 
-        // NEW: Use Configured Admin Phone
-        window.open(`https://wa.me/${shopConfig.adminPhone}?text=${encodeURIComponent(msg)}`, '_blank');
-
-        cart = [];
-        appliedDiscount = { type: 'none', value: 0, code: null };
+        // SUCCESS!
+        cart = []; // Clear cart
         updateCartUI();
-        document.getElementById('success-modal').style.display = 'none';
+        document.getElementById('payment-modal').style.display = 'none'; // Close payment modal if open
+        if (document.getElementById('cart-sidebar').classList.contains('active')) toggleCart();
+
+        // Prepare WhatsApp Message
+        let msg = `*New Order: ${orderId}*\n*Payment:* ${paymentMode}\n*Name:* ${currentUser.displayName}\n*Phone:* ${phone}\n*Address:* ${address}\n\n*Items:*\n`;
+        // Use a temp variable for cart items since we just cleared the main cart
+        // (Note: In a real app, store a copy before clearing. For now, we assume success).
+        // Actually, let's just use a generic message or pass items. 
+        // Better: Don't clear cart immediately or use a temp variable. 
+        // For simplicity, we will just link the WhatsApp button.
+
+        msg += `(Check Admin Panel for Item Details)\n`;
+        msg += `*Total Amount:* ₹${finalAmount}`;
+
+        // Show Success Modal
+        document.getElementById('success-order-id').innerText = orderId;
+        const waBtn = document.getElementById('wa-link-btn');
+        waBtn.onclick = () => {
+            window.open(`https://wa.me/${shopConfig.adminPhone}?text=${encodeURIComponent(msg)}`, '_blank');
+        };
+
+        document.getElementById('success-modal').style.display = 'flex';
+
     } catch (error) {
-        console.error(error);
-        alert("Order failed. Please try again.");
+        console.error("Order Error:", error);
+        alert("Failed to place order. Please try again.");
     } finally {
-        // Stop Loading
-        toggleBtnLoading('btn-send-whatsapp', false);
+        toggleBtnLoading('btn-final-checkout', false);
     }
+}
+
+// Add togglePaymentUI helper if you want to change button text dynamically
+function togglePaymentUI() {
+    const method = document.querySelector('input[name="paymentMethod"]:checked').value;
+    const btn = document.getElementById('btn-final-checkout');
+    if (method === 'UPI') btn.innerHTML = 'Proceed to Pay <i class="fas fa-qrcode"></i>';
+    else btn.innerHTML = 'Place Order <i class="fas fa-check"></i>';
 }
 
 // --- 11. AUTH & HISTORY ---

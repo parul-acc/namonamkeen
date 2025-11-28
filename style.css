@@ -729,21 +729,27 @@ h4 {
     position: fixed;
     top: 0;
     right: -450px;
-    width: 100%;       /* Default to full width for safety */
-    max-width: 400px;  /* Cap it at 400px for desktops */
+    /* Start hidden off-screen */
+
+    /* FIX: Explicit width for desktop, constrained by screen size for mobile */
+    width: 400px;
+    max-width: 100%;
+
     height: 100%;
     background: #f9f9f9;
-    /* Slightly off-white background for contrast */
     z-index: 5001;
-    /* Higher than overlay */
-    transition: cubic-bezier(0.4, 0, 0.2, 1) 0.4s;
+    /* High z-index ensures it sits ON TOP, not mixing with content */
+    transition: right 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    /* Smooth slide */
     display: flex;
     flex-direction: column;
     box-shadow: -10px 0 30px rgba(0, 0, 0, 0.15);
+    /* Shadow adds depth so it looks like a layer */
 }
 
 .cart-sidebar.active {
     right: 0;
+    /* Slides in to the edge of the screen */
 }
 
 .cart-header {
@@ -1526,8 +1532,9 @@ h4 {
 
 /* Print Media Query */
 @media print {
+
     /* 1. Hide ALL direct children of the body by default */
-    body > * {
+    body>* {
         display: none !important;
     }
 
@@ -1551,7 +1558,8 @@ h4 {
         max-width: 100% !important;
         box-shadow: none !important;
         border: none !important;
-        padding: 20px !important; /* Slight padding for paper margins */
+        padding: 20px !important;
+        /* Slight padding for paper margins */
         margin: 0 !important;
         height: auto !important;
         overflow: visible !important;
@@ -1559,14 +1567,15 @@ h4 {
     }
 
     /* 4. Hide buttons and close icons inside the invoice */
-    .invoice-actions, 
-    .close-invoice, 
+    .invoice-actions,
+    .close-invoice,
     .no-print {
         display: none !important;
     }
 
     /* 5. Ensure the body height doesn't force extra blank pages */
-    html, body {
+    html,
+    body {
         height: auto !important;
         overflow: visible !important;
         background: white !important;
@@ -1579,12 +1588,85 @@ h4 {
     animation: fadeInUp 0.8s forwards;
 }
 
-.delay-1 { animation-delay: 0.2s; }
-.delay-2 { animation-delay: 0.4s; }
+.delay-1 {
+    animation-delay: 0.2s;
+}
+
+.delay-2 {
+    animation-delay: 0.4s;
+}
 
 @keyframes fadeInUp {
     to {
         opacity: 1;
         transform: translateY(0);
     }
+}
+
+/* Add to style.css */
+.input-label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #555;
+    margin-bottom: 5px;
+    display: block;
+}
+
+.phone-input-group {
+    display: flex;
+    align-items: center;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 0 10px;
+    margin-bottom: 15px;
+    background: white;
+}
+
+.phone-input-group input {
+    border: none;
+    outline: none;
+    padding: 10px;
+    width: 100%;
+    font-size: 1rem;
+}
+
+.payment-options {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.payment-card {
+    cursor: pointer;
+    position: relative;
+}
+
+.payment-card input {
+    position: absolute;
+    opacity: 0;
+}
+
+.pay-content {
+    border: 2px solid #eee;
+    border-radius: 10px;
+    padding: 15px 10px;
+    text-align: center;
+    transition: 0.2s;
+    background: white;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.pay-content span {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #555;
+}
+
+/* Highlight selected payment method */
+.payment-card input:checked+.pay-content {
+    border-color: var(--primary);
+    background-color: #fff3e0;
 }

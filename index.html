@@ -12,7 +12,8 @@
 
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#e85d04">
-    <meta name="description" content="Order authentic Indore Namkeen, Sev, Mixtures, and Sweets online. Freshly homemade, 100% natural ingredients, and fast delivery in Mhow & Indore.">
+    <meta name="description"
+        content="Order authentic Indore Namkeen, Sev, Mixtures, and Sweets online. Freshly homemade, 100% natural ingredients, and fast delivery in Mhow & Indore.">
     <link rel="icon" href="logo.jpg" type="image/jpeg">
 
     <link rel="stylesheet" href="style.css">
@@ -226,8 +227,8 @@
                             All</small>
                     </div>
                     <div style="display:flex; gap:5px;">
-                        <input type="text" id="promo-code" placeholder="Enter Code"
-                            style="flex-grow:1; padding:8px; border:1px solid #ddd; border-radius:5px; text-transform:uppercase; font-size:0.9rem;">
+                        <input type="text" id="promo-code" placeholder="Enter Code" class="form-control"
+                            style="text-transform:uppercase;">
                         <button onclick="applyPromo()"
                             style="background:var(--dark); color:white; border:none; padding:8px 15px; border-radius:5px; cursor:pointer;">Apply</button>
                     </div>
@@ -237,25 +238,40 @@
                     </div>
                 </div>
 
-                <div class="total-row">
-                    <span>Total Estimate:</span>
-                    <span id="cart-total">₹0</span>
-                </div>
-
                 <div id="customer-details-inputs">
-                    <label style="font-size:0.8rem; font-weight:bold; color:#555;">Mobile Number <span
-                            style="color:red">*</span></label>
-                    <div
-                        style="display:flex; align-items:center; border:1px solid #ddd; border-radius:8px; padding:0 10px; margin-bottom:10px; background:white;">
-                        <span style="color:#555; font-weight:bold;">+91</span>
-                        <input type="tel" id="cust-phone" maxlength="10"
-                            style="border:none; outline:none; padding:10px; width:100%; font-size:1rem;">
+                    <label class="input-label">Mobile Number <span style="color:red">*</span></label>
+                    <div class="phone-input-group">
+                        <span>+91</span>
+                        <input type="tel" id="cust-phone" maxlength="10" placeholder="9876543210">
                     </div>
 
-                    <label style="font-size:0.8rem; font-weight:bold; color:#555;">Delivery Address <span
-                            style="color:red">*</span></label>
-                    <textarea id="cust-address" placeholder="House No, Street, Area, City..." rows="2"
-                        style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px; font-family:inherit; resize:none; margin-bottom:10px;"></textarea>
+                    <label class="input-label">Delivery Address <span style="color:red">*</span></label>
+                    <textarea id="cust-address" placeholder="House No, Street, Area, City..." rows="2"></textarea>
+                </div>
+
+                <div class="payment-section" style="margin-top: 20px;">
+                    <label class="input-label">Select Payment Method</label>
+                    <div class="payment-options">
+                        <label class="payment-card">
+                            <input type="radio" name="paymentMethod" value="UPI" checked onchange="togglePaymentUI()">
+                            <div class="pay-content">
+                                <i class="fas fa-qrcode" style="color: var(--primary); font-size: 1.2rem;"></i>
+                                <span>Pay via UPI</span>
+                            </div>
+                        </label>
+                        <label class="payment-card">
+                            <input type="radio" name="paymentMethod" value="COD" onchange="togglePaymentUI()">
+                            <div class="pay-content">
+                                <i class="fas fa-money-bill-wave" style="color: #27ae60; font-size: 1.2rem;"></i>
+                                <span>Cash on Delivery</span>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="total-row" style="margin-top: 20px; border-top: 1px dashed #ddd; padding-top: 15px;">
+                    <span>Total Amount:</span>
+                    <span id="cart-total">₹0</span>
                 </div>
             </div>
         </div>
@@ -265,10 +281,10 @@
                 style="background: #4285F4;">
                 <i class="fab fa-google"></i> Login to Order
             </button>
-
-           <button id="btn-final-checkout" class="btn-whatsapp-checkout" onclick="openPaymentModal()" style="display: none;">
-    <i class="fab fa-whatsapp"></i> Confirm & Order
-</button>
+            <button id="btn-final-checkout" class="btn-whatsapp-checkout" onclick="initiateCheckout()"
+                style="display: none;">
+                Proceed to Pay <i class="fas fa-arrow-right"></i>
+            </button>
         </div>
     </div>
 
@@ -309,41 +325,39 @@
         </div>
     </div>
 
-    <div id="success-modal" class="modal-overlay"
-    style="z-index: 9999; display: none; align-items: center; justify-content: center;">
-        <div class="modal-content mobile-modal"
-            style="text-align: center; background: white; border-radius: 15px; position: relative;">
-            <div
-                style="width: 60px; height: 60px; background: #e8f5e9; color: #2ecc71; font-size: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 15px;">
-                <i class="fas fa-check"></i>
-            </div>
-            <h2 style="color:#e85d04; margin-bottom: 5px; font-size: 1.5rem;">Order Placed!</h2>
-            <p style="color: #666; margin-bottom: 15px; font-size: 0.9rem;">Total: <span id="success-total-amount"
-                    style="color:black; font-weight:bold;">₹0</span></p>
-
-            <div
-                style="background: #fff8e1; border: 2px dashed #e85d04; border-radius: 10px; padding: 15px; margin-bottom: 15px;">
-                <p style="margin: 0 0 10px; font-size: 0.85rem; font-weight: bold; color: #d35400;">👇 Tap QR to Pay via
-                    UPI 👇</p>
-                <a id="upi-pay-link" href="#" style="display: block; text-decoration: none; color: inherit;">
-                    <img id="success-qr-img" src="" alt="Payment QR"
-                        style="width: 130px; height: 130px; display: block; margin: 0 auto; mix-blend-mode: multiply;">
-                    <button
-                        style="background: #2c3e50; color: white; border: none; padding: 8px 20px; border-radius: 20px; margin-top: 10px; font-size: 0.8rem; cursor: pointer;">
-                        <i class="fas fa-mobile-alt"></i> Click to Pay App
-                    </button>
-                </a>
-            </div>
-
-            <p style="font-weight: 600; margin-bottom: 8px; font-size: 0.85rem;">Final Step: Send Order to Shop</p>
-            <button id="btn-send-whatsapp" onclick="finalizeOrder()" class="btn-whatsapp-checkout" style="width: 100%; padding: 12px; font-size: 1rem; justify-content: center; display: flex; align-items: center; gap: 8px; background: #25D366; color: white; border: none; border-radius: 8px; cursor: pointer;">
-    <i class="fab fa-whatsapp"></i> Send on WhatsApp
-</button>
-            <button onclick="closeSuccessModal()"
-                style="background: none; border: none; margin-top: 15px; color: #999; cursor: pointer; text-decoration: underline; font-size: 0.85rem; padding: 10px;">Close
-                Window</button>
+<div id="payment-modal" class="modal-overlay">
+    <div class="modal-content mobile-modal text-center">
+        <button class="close-modal" onclick="closeModal('payment-modal')">&times;</button>
+        <h3 style="color:var(--primary);">Scan & Pay</h3>
+        <p>Total Amount: <strong id="pay-modal-total">₹0</strong></p>
+        
+        <div style="background: #fff8e1; padding: 15px; border-radius: 10px; border: 2px dashed var(--primary); display: inline-block; margin: 10px 0;">
+            <img id="payment-qr-img" src="" alt="QR Code" style="width: 150px; height: 150px; mix-blend-mode: multiply;">
         </div>
+        
+        <p style="font-size: 0.85rem; color: #555;">Scan with GPay, PhonePe, or Paytm</p>
+        
+        <button class="btn-primary full-width" onclick="finalizeOrder('UPI')" style="margin-top: 15px; width: 100%;">
+            <i class="fas fa-check-circle"></i> I Have Paid
+        </button>
     </div>
+</div>
+
+<div id="success-modal" class="modal-overlay">
+    <div class="modal-content mobile-modal text-center">
+        <div style="width: 60px; height: 60px; background: #e8f5e9; color: #2ecc71; font-size: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 15px;">
+            <i class="fas fa-check"></i>
+        </div>
+        <h2>Order Placed!</h2>
+        <p>Your order has been received successfully.</p>
+        <p style="font-size: 0.9rem; color: #666;">Order ID: <strong id="success-order-id">#</strong></p>
+        
+        <button id="wa-link-btn" class="btn-whatsapp-checkout" style="background: #25D366; color: white; margin-top: 15px;">
+            <i class="fab fa-whatsapp"></i> Send Confirmation
+        </button>
+        <button onclick="closeSuccessModal()" style="background:none; border:none; margin-top:10px; color:#999; text-decoration:underline;">Close</button>
+    </div>
+</div>
 
     <div id="quiz-modal" class="quiz-overlay">
         <div class="quiz-container">
@@ -352,16 +366,16 @@
         </div>
     </div>
 
-        <div id="invoice-modal" class="modal-overlay" style="z-index: 4000;">
+    <div id="invoice-modal" class="modal-overlay" style="z-index: 4000;">
         <div class="invoice-container">
-            
+
             <div class="invoice-actions no-print">
                 <button onclick="printInvoice()" class="btn-primary"><i class="fas fa-print"></i> Print / PDF</button>
                 <button onclick="closeInvoice()" class="close-invoice" style="font-size: 2rem;">&times;</button>
             </div>
 
             <div id="invoice-print-area">
-                
+
                 <div class="inv-header">
                     <img src="logo.jpg" alt="Namo Namkeen" class="inv-logo">
                     <div class="inv-company text-right">
@@ -396,22 +410,25 @@
                         </tr>
                     </thead>
                     <tbody id="inv-items-body">
-                        </tbody>
+                    </tbody>
                 </table>
 
                 <div class="inv-total">
                     <h3>Grand Total: <span id="inv-grand-total">₹0</span></h3>
                 </div>
 
-                <div id="inv-qr-section" style="text-align:center; margin-top:30px; padding:20px; border:2px dashed #e85d04; border-radius:10px; background:#fff8e1;">
+                <div id="inv-qr-section"
+                    style="text-align:center; margin-top:30px; padding:20px; border:2px dashed #e85d04; border-radius:10px; background:#fff8e1;">
                     <p style="margin:0 0 10px; font-weight:bold; color:#d35400;">Scan to Pay Instantly</p>
-                    <img id="inv-qr-img" src="" alt="QR Code" style="width:120px; height:120px; mix-blend-mode: multiply;">
+                    <img id="inv-qr-img" src="" alt="QR Code"
+                        style="width:120px; height:120px; mix-blend-mode: multiply;">
                     <p style="margin:10px 0 0; font-size:0.8rem; color:#555;">Accepted: GPay, PhonePe, Paytm</p>
                 </div>
 
                 <div class="inv-footer" style="text-align: center; margin-top: 40px; font-size: 0.8rem; color: #888;">
                     <p>Thank you for your order!</p>
-                    <p>Visit: <a href="https://www.namonamkeen.shop" style="color: inherit;">www.namonamkeen.shop</a></p>
+                    <p>Visit: <a href="https://www.namonamkeen.shop" style="color: inherit;">www.namonamkeen.shop</a>
+                    </p>
                 </div>
             </div>
         </div>
