@@ -607,6 +607,11 @@ function initiateCheckout() {
 
 // --- UNIFIED CHECKOUT HANDLER ---
 function handleCheckout() {
+    // 1. Check Connectivity
+    if (!navigator.onLine) {
+        showToast("No Internet Connection", "error");
+        return;
+    }
     // 1. Get Elements safely
     const phoneInput = document.getElementById('cust-phone');
     const addressInput = document.getElementById('cust-address');
@@ -1319,14 +1324,34 @@ window.addEventListener('appinstalled', () => {
 
 function saveCartLocal() {
     localStorage.setItem('namoCart', JSON.stringify(cart));
+    // NEW: Save the discount object
+    localStorage.setItem('namoDiscount', JSON.stringify(appliedDiscount));
 }
 
 function loadCartLocal() {
-    const saved = localStorage.getItem('namoCart');
-    if (saved) {
-        cart = JSON.parse(saved);
-        updateCartUI();
+    const savedCart = localStorage.getItem('namoCart');
+    const savedDiscount = localStorage.getItem('namoDiscount');
+
+    if (savedCart) {
+        cart = JSON.parse(savedCart);
     }
+
+    // NEW: Restore the discount
+    if (savedDiscount) {
+        appliedDiscount = JSON.parse(savedDiscount);
+        // Visual feedback if a code is applied
+        if (appliedDiscount.code) {
+            const input = document.getElementById('promo-code');
+            const msg = document.getElementById('promo-msg');
+            if (input) input.value = appliedDiscount.code;
+            if (msg) {
+                msg.innerText = "Code Applied!";
+                msg.style.color = "green";
+            }
+        }
+    }
+
+    updateCartUI();
 }
 
 // --- CUSTOM CONFIRMATION HELPER ---

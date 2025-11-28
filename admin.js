@@ -799,13 +799,26 @@ function recalculateAndSave(orderId, newItems, orderDoc) {
     // 1. Calculate New Item Total
     let newItemTotal = newItems.reduce((sum, i) => sum + (i.price * i.qty), 0);
 
-    // 2. Re-apply Discount logic (if any)
+    // 2. Re-apply Discount logic
     let discountVal = 0;
-    if (orderDoc.discount) {
-        if (orderDoc.discount.type === 'percent') {
+
+    if (orderDoc.discount && orderDoc.discount.value > 0) {
+        // Validation: If new total is 0 or very low, remove discount
+        if (newItemTotal === 0) {
+            discountVal = 0; // No discount on empty order
+        } else if (orderDoc.discount.type === 'percent') {
             discountVal = Math.round(newItemTotal * (orderDoc.discount.value / 100));
         } else {
+            // Flat discount
             discountVal = orderDoc.discount.value;
+
+            // LOGIC FIX: Don't let flat discount exceed 50% of the order value 
+            // (Prevents giving free items if admin reduces qty drastically)
+            if (discountVal > (newItemTotal * 0.5)) {
+                discountVal = Math.floor(newItemTotal * 0.5);
+                // Optional: Alert admin that discount was adjusted
+                console.log("Discount capped at 50% of value");
+            }
         }
     }
 
@@ -815,14 +828,13 @@ function recalculateAndSave(orderId, newItems, orderDoc) {
     db.collection("orders").doc(orderId).update({
         items: newItems,
         total: finalTotal
+        // Note: We don't update the 'discount' object itself, just the final math
     }).then(() => {
-        // Since we have a real-time listener (onSnapshot), the state.orders.data 
-        // will update automatically, but we need to re-render the modal to show changes immediately.
-        // We manually update local state briefly to make UI snappy before DB confirms
+        // ... (existing update UI logic)
         orderDoc.items = newItems;
         orderDoc.total = finalTotal;
-        viewOrder(orderId); // Re-render modal
-    }).catch(err => showToast("Update failed: " + err.message));
+        viewOrder(orderId);
+    }).catch(err => alert("Update failed: " + err.message));
 }
 
 // 3. The Notification Function
@@ -1505,5 +1517,28 @@ function saveLayoutConfig() {
         .then(() => showToast("Storefront Updated!", "success"))
         .catch(e => showToast("Error: " + e.message));
 }
+
+// --- ADMIN PWA INSTALLATION ---
+let adminPrompt;
+
+window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault(); // Prevent automatic browser banner
+    adminPrompt = e;
+
+    const btn = document.getElementById('admin-install-btn');
+    if (btn) {
+        btn.style.display = 'flex'; // Show the button
+        btn.onclick = () => {
+            btn.style.display = 'none';
+            adminPrompt.prompt();
+            adminPrompt.userChoice.then((result) => {
+                if (result.outcome === 'accepted') {
+                    console.log('Admin App Installed');
+                }
+                adminPrompt = null;
+            });
+        };
+    }
+});
 
 registerAdminServiceWorker();

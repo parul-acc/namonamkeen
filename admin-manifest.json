@@ -1,10 +1,12 @@
 {
-  "name": "Namo Namkeen Admin",
-  "short_name": "Admin",
+  "name": "Namo Admin Panel",
+  "short_name": "Namo Admin",
+  "id": "/admin.html",
   "start_url": "/admin.html",
   "display": "standalone",
-  "background_color": "#2c1810",
-  "theme_color": "#e85d04",
+  "background_color": "#1a1a1a",
+  "theme_color": "#2c1810",
+  "orientation": "portrait",
   "icons": [
     {
       "src": "logo.jpg",

@@ -11,6 +11,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <link rel="stylesheet" href="admin.css">
+    <link rel="manifest" href="admin-manifest.json">
 
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
@@ -49,6 +50,11 @@
             <li><a onclick="switchView('settings')" id="nav-settings"><i class="fas fa-cog"></i> Settings</a></li>
         </ul>
         <div class="sidebar-footer">
+            <button id="admin-install-btn" class="logout-btn"
+                style="display:none; margin-bottom:10px; background:#2ecc71; color:white; border:none;">
+                <i class="fas fa-download"></i> Install App
+            </button>
+
             <button onclick="logout()" class="btn logout-btn">Logout</button>
         </div>
     </nav>
@@ -107,8 +113,8 @@
 
             <div class="charts-grid">
                 <div class="chart-box"><canvas id="salesChart"></canvas></div>
-<div class="chart-box"><canvas id="productChart"></canvas></div>
-<div class="chart-box"><canvas id="paymentChart"></canvas></div>
+                <div class="chart-box"><canvas id="productChart"></canvas></div>
+                <div class="chart-box"><canvas id="paymentChart"></canvas></div>
             </div>
         </div>
 
