@@ -1116,7 +1116,7 @@ async function saveOrderToFirebase(method, paymentStatus, txnId) {
     try {
         await db.collection("orders").add({
             id: orderId,
-            userId: uid,          // Save as Guest ID if not logged in
+            userId: uid,
             userName: uName,
             userPhone: phone,
             userAddress: address,
