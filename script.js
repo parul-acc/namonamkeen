@@ -191,7 +191,7 @@ function renderMenu() {
         grid.innerHTML += `
         <div class="product-card ${cardClass}" onclick="openProductDetail(${p.id})">
             ${ribbonHTML}
-            <img src="${p.image}" class="product-img" loading="lazy" onerror="this.src='logo.jpg'">
+           <img src="${p.image}" class="product-img" loading="lazy" onload="this.classList.add('loaded')" onerror="this.src='logo.jpg'">
             <div class="product-info">
                 <h3>${name}</h3>
                 ${starHTML} <p class="product-desc">${desc}</p>
@@ -483,6 +483,7 @@ function addToCart(p, v) {
     updateCartUI();
     toggleCart();
     saveCartLocal();
+    vibrate(50);
 }
 
 function updateCartUI() {
@@ -546,6 +547,7 @@ function changeQty(id, d) {
         updateCartUI();
     }
     saveCartLocal();
+    vibrate(30);
 }
 
 function removeFromCart(id) {
@@ -632,6 +634,7 @@ function handleCheckout() {
 
     // 3. PROCEED DIRECTLY (Do not force login)
     // We will handle "Guest" status inside the payment functions
+    vibrate(50);
     initiateRazorpayPayment();
 }
 // 2. Called when payment is confirmed (UPI) or immediately (COD)
@@ -957,7 +960,20 @@ function closeProfileModal() { document.getElementById('profile-modal').style.di
 function saveProfile() { db.collection("users").doc(currentUser.uid).set({ phone: document.getElementById('edit-phone').value, address: document.getElementById('edit-address').value }, { merge: true }).then(() => closeProfileModal()); }
 function playVideo(w) { const v = w.querySelector('video'); document.querySelectorAll('.video-wrapper.playing video').forEach(o => { if (o !== v) { o.pause(); o.closest('.video-wrapper').classList.remove('playing'); } }); if (v.paused) { w.classList.add('playing'); v.play(); } else { w.classList.remove('playing'); v.pause(); } }
 function closeAnnouncement() { document.getElementById('announcement-bar').style.display = 'none'; }
-function filterMenu(c) { currentCategory = c; document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active')); event.target.classList.add('active'); renderMenu(); }
+function filterMenu(c) {
+    currentCategory = c;
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    event.target.classList.add('active');
+
+    renderMenu();
+    vibrate(30); // Haptic feedback on filter click
+
+    // Scroll to top of grid
+    const grid = document.getElementById('menu-grid');
+    const yOffset = -130; // Offset for Sticky Header + Sticky Filter
+    const y = grid.getBoundingClientRect().top + window.pageYOffset + yOffset;
+    window.scrollTo({ top: y, behavior: 'smooth' });
+}
 function searchMenu() { searchQuery = document.getElementById('menu-search').value; renderMenu(); }
 function toggleLanguage() { currentLang = currentLang === 'en' ? 'hi' : 'en'; renderMenu(); updateCartUI(); }
 function toggleMobileMenu() {
@@ -1102,26 +1118,35 @@ function openRazorpayModal(amountPaise, amountINR, userPhone) {
 async function saveOrderToFirebase(method, paymentStatus, txnId) {
     toggleBtnLoading('btn-main-checkout', true);
 
-    // 1. Get value
-    const deliveryNote = document.getElementById('delivery-note') ? document.getElementById('delivery-note').value.trim() : '';
-
-    const phone = document.getElementById('cust-phone').value;
-    const address = document.getElementById('cust-address').value;
+    const phone = document.getElementById('cust-phone').value.trim();
+    const address = document.getElementById('cust-address').value.trim();
     const orderId = 'ORD-' + Date.now().toString().slice(-6);
 
-    // Determine User ID (Use Auth UID or generate a Guest ID based on phone)
-    const uid = currentUser ? currentUser.uid : ("guest_" + phone);
-    const uName = currentUser ? currentUser.displayName : "Guest";
+    // 1. Determine User ID (Guest or Registered)
+    let uid = currentUser ? currentUser.uid : `guest_${phone}`;
+    let uName = currentUser ? currentUser.displayName : "Guest";
 
+    // 2. Calculate Totals (Missing part fixed here)
     let total = cart.reduce((sum, i) => sum + (i.price * i.qty), 0);
-    // ... (rest of discount calc logic remains same) ...
-    let discount = 0;
-    if (appliedDiscount.type === 'percent') discount = Math.round(total * (appliedDiscount.value / 100));
-    else if (appliedDiscount.type === 'flat') discount = appliedDiscount.value;
+
+    let discount = 0; // <--- Defined here
+    if (appliedDiscount.type === 'percent') {
+        discount = Math.round(total * (appliedDiscount.value / 100));
+    } else if (appliedDiscount.type === 'flat') {
+        discount = appliedDiscount.value;
+    }
+
     const finalAmount = Math.max(0, total - discount);
 
+    // 3. Optional: Capture Delivery Note
+    const deliveryNote = document.getElementById('delivery-note') ? document.getElementById('delivery-note').value.trim() : '';
+
     try {
-        await db.collection("orders").add({
+        const batch = db.batch();
+
+        // A. Create Order Document
+        const orderRef = db.collection("orders").doc(String(orderId));
+        batch.set(orderRef, {
             id: orderId,
             userId: uid,
             userName: uName,
@@ -1138,16 +1163,32 @@ async function saveOrderToFirebase(method, paymentStatus, txnId) {
             timestamp: new Date()
         });
 
-        // Update UI
+        // B. Update/Create User Profile (Sync Guest Data)
+        const userRef = db.collection("users").doc(String(uid));
+        batch.set(userRef, {
+            name: uName,
+            phone: phone,
+            address: address, // Updates to latest address used
+            lastOrder: new Date(),
+            type: currentUser ? 'Registered' : 'Guest'
+        }, { merge: true });
+
+        // Commit both updates
+        await batch.commit();
+
+        // C. Success UI
         showSuccessModal(orderId, finalAmount, method);
+
+        // D. Cleanup
         cart = [];
+        appliedDiscount = { type: 'none', value: 0, code: null }; // Reset discount
         saveCartLocal();
         updateCartUI();
         if (document.getElementById('cart-sidebar').classList.contains('active')) toggleCart();
 
     } catch (error) {
-        console.error("DB Error:", error);
-        showToast("Error saving order.", "error");
+        console.error("Order Error:", error);
+        alert("Error placing order. Please try again.");
     } finally {
         toggleBtnLoading('btn-main-checkout', false);
     }
@@ -1175,7 +1216,19 @@ function showSuccessModal(orderId, amount, method) {
     }
 
     const modal = document.getElementById('success-modal');
-    if (modal) modal.style.display = 'flex';
+    if (modal) {
+        modal.style.display = 'flex';
+
+        // TRIGGER CONFETTI
+        if (typeof confetti === 'function') {
+            confetti({
+                particleCount: 150,
+                spread: 70,
+                origin: { y: 0.6 },
+                colors: ['#e85d04', '#faa307', '#ffffff'] // Your brand colors
+            });
+        }
+    }
 }
 // --- USER REVIEW SYSTEM ---
 
@@ -1542,4 +1595,10 @@ function loadStorefront() {
             }
         }
     }).catch(e => console.log("Layout load error (using default)", e));
+}
+
+function vibrate(ms = 50) {
+    if (navigator.vibrate) {
+        navigator.vibrate(ms);
+    }
 }

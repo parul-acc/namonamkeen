@@ -497,9 +497,9 @@ function renderOrderRows(tbody, items) {
         // 2. Create Clickable Address
         const addressHtml = `<span class="copy-addr" onclick="copyToClipboard('${escapeHtml(o.userAddress)}')" title="Click to Copy">${escapeHtml(o.userAddress)}</span>`;
 
-        // Add Cancel Button to Actions if Pending
-        const cancelBtn = (o.status === 'Pending') ?
-            `<button class="icon-btn btn-danger" onclick="adminCancelOrder('${o.docId}')" title="Cancel/Spam"><i class="fas fa-ban"></i></button>` : '';
+        // To this (Allow Pending OR Packed):
+        const cancelBtn = (o.status === 'Pending' || o.status === 'Packed') ?
+            `<button class="icon-btn btn-danger" onclick="adminCancelOrder('${o.docId}')" title="Cancel Order"><i class="fas fa-ban"></i></button>` : '';
         tbody.innerHTML += `
             <tr class="${isHighValue}">
                 <td><input type="checkbox" class="order-check" value="${o.docId}" onchange="updateBulkUI()"></td>
@@ -890,21 +890,32 @@ function switchView(v) {
         targetSection.classList.add('active');
     } else {
         console.error("View not found:", v);
+        // Fallback: If view ID is wrong, don't break the UI
+        return;
     }
+
     // 4. Activate target nav link
     const targetNav = document.getElementById('nav-' + v);
     if (targetNav) {
         targetNav.classList.add('active');
     }
 
-    // 5. Update Header Title
-    document.getElementById('page-title').innerText = v.charAt(0).toUpperCase() + v.slice(1);
+    // 5. Update Header Title (Safety check added)
+    const titleEl = document.getElementById('page-title');
+    if (titleEl) {
+        titleEl.innerText = v === 'pos' ? 'New Order (POS)' : v.charAt(0).toUpperCase() + v.slice(1);
+    }
 
-    // 6. Mobile: Close sidebar after click
-    document.getElementById('sidebar').classList.remove('active');
+    // 6. MOBILE FIX: Close sidebar after click
+    const sidebar = document.getElementById('sidebar');
+    if (sidebar) {
+        sidebar.classList.remove('active');
+    }
 
     // 7. Load specific data if needed
     if (v === 'orders') loadOrders();
+    if (v === 'pos' && typeof renderPosProducts === 'function') renderPosProducts();
+    if (v === 'reviews' && typeof loadReviews === 'function') loadReviews();
 }
 
 // --- PRODUCT MANAGEMENT ---
@@ -1266,6 +1277,8 @@ async function submitPosOrder() {
     const phone = document.getElementById('pos-phone').value.trim();
     const address = document.getElementById('pos-address').value.trim() || "Walk-in Customer";
     const status = document.getElementById('pos-status').value;
+    // Generate Guest ID
+    const uid = `guest_${phone}`;
 
     if (!name || !phone) return showToast("Please enter Name and Phone Number", "error");
     if (adminCart.length === 0) return showToast("Cart is empty", "error");
@@ -1275,9 +1288,14 @@ async function submitPosOrder() {
     const orderId = 'POS-' + Date.now().toString().slice(-6);
 
     try {
-        await db.collection("orders").add({
+        const batch = db.batch();
+
+        // 1. Order
+        const orderRef = db.collection("orders").doc(orderId);
+        batch.set(orderRef, {
             id: orderId,
             userId: 'admin_entry', // Mark as internally created
+            userId: uid,
             userName: name,
             userPhone: phone,
             userAddress: address,
@@ -1289,6 +1307,18 @@ async function submitPosOrder() {
             timestamp: new Date(),
             source: 'Admin POS'
         });
+
+        // 2. NEW: Save Customer to Database
+        const userRef = db.collection("users").doc(uid);
+        batch.set(userRef, {
+            name: name,
+            phone: phone,
+            address: address,
+            lastOrder: new Date(),
+            type: 'POS Customer'
+        }, { merge: true });
+
+        await batch.commit();
 
         showToast("Order Placed Successfully!", "success");
 
@@ -1547,6 +1577,35 @@ function debouncedPosSearch() {
     searchTimeout = setTimeout(() => {
         renderPosProducts();
     }, 300); // Waits 300ms after you stop typing to run the search
+}
+
+// Add this function to admin.js
+function filterInventory() {
+    const query = document.getElementById('inv-search').value.toLowerCase();
+
+    // Filter data based on Name or Category
+    const filtered = state.inventory.data.filter(p =>
+        (p.name && p.name.toLowerCase().includes(query)) ||
+        (p.category && p.category.toLowerCase().includes(query))
+    );
+
+    // We reuse the existing render logic but pass the filtered list
+    // Note: We need to temporarily modify renderTable to accept data or handle filtered state
+    // Easiest way: Update state.inventory.filteredData (similar to orders)
+
+    state.inventory.filteredData = filtered;
+    state.inventory.page = 1; // Reset to page 1
+    renderTable('inventory');
+}
+
+// Update renderTable in admin.js to check for filteredData
+// Find the renderTable function and modify the first few lines:
+function renderTable(type) {
+    const s = state[type];
+    // Check if filteredData exists, otherwise use main data
+    const dataToRender = s.filteredData ? s.filteredData : s.data;
+
+    // ... rest of the function remains the same ...
 }
 
 registerAdminServiceWorker();

@@ -525,12 +525,29 @@ h4 {
 }
 
 /* --- 6. MENU & FILTERS --- */
+/* --- STICKY FILTERS --- */
 .menu-filters {
-    display: flex;
-    justify-content: center;
-    gap: 10px;
-    margin-bottom: 25px;
-    flex-wrap: wrap;
+    position: sticky;
+    top: 70px;
+    /* Height of your Navbar */
+    z-index: 990;
+    /* Below Navbar (1001) but above content */
+    background: var(--cream-bg);
+    /* Match section background to hide content behind */
+    padding: 10px 0;
+    margin-bottom: 20px;
+
+    /* Hide scrollbar if it overflows horizontally */
+    overflow-x: auto;
+    white-space: nowrap;
+
+    /* Add a subtle shadow only when sticking (optional, browsers handle this differently) */
+    box-shadow: 0 4px 10px -5px rgba(0, 0, 0, 0.1);
+}
+
+/* Ensure container allows sticking */
+#menu-section .container {
+    overflow: visible;
 }
 
 .filter-btn {
@@ -597,6 +614,14 @@ h4 {
     height: 220px;
     width: 100%;
     object-fit: cover;
+    opacity: 0;
+    /* Start hidden */
+    transition: opacity 0.5s ease-in-out;
+}
+
+.product-img.loaded {
+    opacity: 1;
+    /* Fade in */
 }
 
 .product-info {

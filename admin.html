@@ -123,9 +123,14 @@
 
                 <div class="card pos-left">
                     <div class="card-header">
-                        <h3>Select Products</h3>
-                        <input type="text" id="pos-search" class="search-input" placeholder="Search product..."
-                            onkeyup="debouncedPosSearch()">
+                        <h3>Product List</h3>
+                        <div class="header-actions">
+                            <input type="text" id="inv-search" class="search-input" placeholder="Search products..."
+                                onkeyup="filterInventory()">
+
+                            <button class="btn btn-blue" onclick="importFromSheet()">Import</button>
+                            <button class="btn btn-primary" onclick="openProductModal()">+ Add</button>
+                        </div>
                     </div>
                     <div class="pos-product-grid" id="pos-grid">
                     </div>
