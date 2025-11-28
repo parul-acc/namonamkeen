@@ -41,7 +41,7 @@ if (window.location.pathname.endsWith('admin-local.html')) {
             document.getElementById('admin-user-info').innerText = user.displayName;
             initDashboard();
         } else if (user) {
-            alert("Access Denied. Admin Only.");
+            showToast("Access Denied. Admin Only.", "error");
             auth.signOut();
         }
     });
@@ -132,7 +132,7 @@ function loadCustomers() {
 
     }).catch(err => {
         console.error("Error loading customers:", err);
-        alert("Failed to load customers. Check console.");
+        showToast("Failed to load customers. Check console.", "error");
     });
 }
 
@@ -191,7 +191,7 @@ function filterCustomers() {
 }
 
 function exportCustomersToCSV() {
-    if (!state.customers.data || state.customers.data.length === 0) return alert("No data to export");
+    if (!state.customers.data || state.customers.data.length === 0) return showToast("No data to export","error");
 
     let csv = "Name,Email,Phone,Address,Last Login\n";
     state.customers.data.forEach(u => {
@@ -289,7 +289,7 @@ function loadOrders() {
         if (previousOrderCount > 0 && snap.size > previousOrderCount) {
             // New order detected!
             audio.play().catch(e => console.log("Audio play failed (user interaction needed first)"));
-            showToast("New Order Received!", "success"); // Assuming you have showToast in admin too, or use alert
+            showToast("New Order Received!", "success");
         }
         previousOrderCount = snap.size;
         state.orders.data = [];
@@ -421,7 +421,7 @@ function saveCoupon() {
     const dateStr = document.getElementById('cpn-expiry').value;
     const minOrder = parseInt(document.getElementById('cpn-min').value) || 0; // New Field
 
-    if (!code || !value || !dateStr) return alert("Fill all fields");
+    if (!code || !value || !dateStr) return showToast("Fill all fields", "error");
 
     const expiryDate = new Date(dateStr);
     expiryDate.setHours(23, 59, 59);
@@ -430,8 +430,8 @@ function saveCoupon() {
         code, type, value: parseInt(value), expiryDate, isActive: true,
         minOrder: minOrder // Save it
     })
-        .then(() => { alert("Coupon Created!"); document.getElementById('cpn-code').value = ''; })
-        .catch(err => alert(err.message));
+        .then(() => { showToast("Coupon Created!", "success"); document.getElementById('cpn-code').value = ''; })
+        .catch(err => showToast(err.message, "error"));
 }
 
 function deleteCoupon(id) { if (confirm("Delete?")) db.collection("coupons").doc(id).delete(); }
@@ -507,7 +507,7 @@ function adminUpdateQty(orderId, itemIdx, change) {
     // Clone items array
     let newItems = [...orderDoc.items];
     let item = newItems[itemIdx];
-    
+
     item.qty += change;
     if (item.qty < 1) return adminRemoveItem(orderId, itemIdx); // Remove if 0
 
@@ -515,10 +515,10 @@ function adminUpdateQty(orderId, itemIdx, change) {
 }
 
 function adminRemoveItem(orderId, itemIdx) {
-    if(!confirm("Remove this item?")) return;
+    if (!confirm("Remove this item?")) return;
     const orderDoc = state.orders.data.find(x => x.docId === orderId);
     let newItems = [...orderDoc.items];
-    
+
     newItems.splice(itemIdx, 1); // Remove item
     recalculateAndSave(orderId, newItems, orderDoc);
 }
@@ -526,7 +526,7 @@ function adminRemoveItem(orderId, itemIdx) {
 function recalculateAndSave(orderId, newItems, orderDoc) {
     // 1. Calculate New Total
     let newTotal = newItems.reduce((sum, i) => sum + (i.price * i.qty), 0);
-    
+
     // 2. Re-apply Discount if exists
     let discountVal = 0;
     if (orderDoc.discount) {
@@ -562,7 +562,7 @@ function loadSettings() {
 function saveSettings() {
     const text = document.getElementById('setting-announce').value;
     const active = document.getElementById('setting-announce-active').value === 'true';
-    db.collection("settings").doc("announcement").set({ text, active }, { merge: true }).then(() => alert("Saved"));
+    db.collection("settings").doc("announcement").set({ text, active }, { merge: true }).then(() => showToast("Saved", "success"));
 }
 
 function toggleStock(id, s) { db.collection("products").doc(id).update({ in_stock: s }); }
@@ -571,12 +571,32 @@ function closeModal(id) { document.getElementById(id).style.display = 'none'; }
 function toggleSidebar() { document.getElementById('sidebar').classList.toggle('active'); }
 
 function switchView(v) {
+    // 1. Hide all sections
     document.querySelectorAll('.view-section').forEach(e => e.classList.remove('active'));
+
+    // 2. Deactivate all nav links
     document.querySelectorAll('.nav-links a').forEach(e => e.classList.remove('active'));
-    document.getElementById('view-' + v).classList.add('active');
-    document.getElementById('nav-' + v).classList.add('active');
+
+    // 3. Show target section
+    const targetSection = document.getElementById('view-' + v);
+    if (targetSection) {
+        targetSection.classList.add('active');
+    } else {
+        console.error("View not found:", v);
+    }
+    // 4. Activate target nav link
+    const targetNav = document.getElementById('nav-' + v);
+    if (targetNav) {
+        targetNav.classList.add('active');
+    }
+
+    // 5. Update Header Title
     document.getElementById('page-title').innerText = v.charAt(0).toUpperCase() + v.slice(1);
+
+    // 6. Mobile: Close sidebar after click
     document.getElementById('sidebar').classList.remove('active');
+
+    // 7. Load specific data if needed
     if (v === 'orders') loadOrders();
 }
 
@@ -686,8 +706,8 @@ async function importFromSheet() {
             }, { merge: true });
         });
         await b.commit();
-        alert("Import Done");
-    } catch (e) { alert("Import Failed: " + e.message); }
+        showToast("Import Done", "success");
+    } catch (e) { showToast("Import Failed: " + e.message); }
 }
 
 function escapeHtml(text) {
@@ -813,11 +833,11 @@ function bulkUpdateStatus(newStatus) {
     });
 
     batch.commit().then(() => {
-        alert("Bulk Update Successful");
+        showToast("Bulk Update Successful", "success");
         // Clear selection
         document.querySelectorAll('.order-check').forEach(c => c.checked = false);
         updateBulkUI();
-    }).catch(err => alert("Error: " + err.message));
+    }).catch(err => showToast("Error: " + err.message));
 }
 
 function bulkPrintSlips() {
@@ -826,7 +846,26 @@ function bulkPrintSlips() {
 
     // In a real app, you might bundle these into one PDF.
     // For now, we open them sequentially or just the first one as a demo.
-    alert("Printing " + checked.length + " slips...");
+    showToast("Printing " + checked.length + " slips...", "success");
     checked.forEach(c => printPackingSlip(c.value));
+}
+
+function showToast(message, type = 'neutral') {
+    const container = document.getElementById('toast-container');
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+
+    let icon = '';
+    if (type === 'success') icon = '<i class="fas fa-check-circle" style="color:#2ecc71"></i>';
+    if (type === 'error') icon = '<i class="fas fa-exclamation-circle" style="color:#e74c3c"></i>';
+
+    toast.innerHTML = `${icon} <span>${message}</span>`;
+    container.appendChild(toast);
+
+    // Remove after 3 seconds
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        setTimeout(() => toast.remove(), 400);
+    }, 3000);
 }
 registerAdminServiceWorker();

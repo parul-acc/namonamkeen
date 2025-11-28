@@ -435,30 +435,24 @@ function openProductDetail(id) {
 }
 
 // 1. Add this function to script.js
-async function cancelOrder(orderId) {
-    // 1. Validate ID
-    if (!orderId) return alert("Invalid Order ID");
+async function cancelOrder(docId) {
+    if (!docId) return showToast("Error: Invalid Order ID", "error");
     
     if (!confirm("Are you sure you want to cancel this order?")) return;
 
     try {
-        // 2. Direct Update (No 'o' variable needed here)
-        await db.collection("orders").doc(String(orderId)).update({
+        // Use the Document ID directly
+        await db.collection("orders").doc(docId).update({
             status: "Cancelled",
             cancelledBy: "User",
             cancelledAt: new Date()
         });
         
-        alert("Order Cancelled Successfully.");
-        showOrderHistory(); // Refresh the list
+        showToast("Order Cancelled Successfully.", "success");
+        showOrderHistory(); // Refresh to see status change
     } catch (e) {
         console.error("Cancel Error:", e);
-        // Helpful error message if document is missing
-        if (e.code === 'not-found') {
-            alert("Order not found. It may have already been deleted.");
-        } else {
-            alert("Could not cancel. Please contact support.");
-        }
+        showToast("Could not cancel order. It might already be processed.", "error");
     }
 }
 
@@ -798,64 +792,51 @@ function showOrderHistory() {
                 content.innerHTML = '<p style="padding:20px; text-align:center;">No past orders found.</p>';
                 return;
             }
-
+            
             let html = '';
+            historyOrders = []; // 1. FIX: Reset the global array for Invoices
 
-            // START OF LOOP
             snap.forEach(doc => {
-                const o = doc.data(); // <--- 'o' IS DEFINED HERE
-                const date = o.timestamp ? o.timestamp.toDate().toLocaleDateString() : 'N/A';
+                const o = doc.data();
+                o.docId = doc.id; // 2. FIX: Save the REAL Document ID for Cancellation
+                historyOrders.push(o); // 3. FIX: Store data so Invoice works
 
-                // 1. Timeline Logic
+                const date = o.timestamp ? o.timestamp.toDate().toLocaleDateString() : 'N/A';
+                
+                // Timeline Status
                 let progress = '0%';
                 let s1 = '', s2 = '', s3 = '';
-
-                if (o.status === 'Pending') {
-                    progress = '0%'; s1 = 'active';
-                } else if (o.status === 'Packed') {
-                    progress = '50%'; s1 = 'active'; s2 = 'active';
-                } else if (o.status === 'Delivered') {
-                    progress = '100%'; s1 = 'active'; s2 = 'active'; s3 = 'active';
-                } else if (o.status === 'Cancelled') {
-                    progress = '0%'; s1 = 'active'; // Minimal style for cancelled
-                }
+                
+                if (o.status === 'Pending') { progress = '0%'; s1 = 'active'; } 
+                else if (o.status === 'Packed') { progress = '50%'; s1 = 'active'; s2 = 'active'; } 
+                else if (o.status === 'Delivered') { progress = '100%'; s1 = 'active'; s2 = 'active'; s3 = 'active'; }
+                else if (o.status === 'Cancelled') { progress = '0%'; s1 = 'active'; }
 
                 const timelineHTML = `
                 <div class="timeline-container">
                     <div class="timeline-line-bg"></div>
                     <div class="timeline-line-fill" style="width: ${progress}; background: ${o.status === 'Cancelled' ? 'red' : '#2ecc71'};"></div>
-                    
-                    <div class="timeline-step ${s1}">
-                        <div class="step-dot"><i class="fas fa-clipboard-check"></i></div>
-                        <div class="step-label">Placed</div>
-                    </div>
-                    <div class="timeline-step ${s2}">
-                        <div class="step-dot"><i class="fas fa-box-open"></i></div>
-                        <div class="step-label">Packed</div>
-                    </div>
-                    <div class="timeline-step ${s3}">
-                        <div class="step-dot"><i class="fas fa-truck"></i></div>
-                        <div class="step-label">Delivered</div>
-                    </div>
+                    <div class="timeline-step ${s1}"><div class="step-dot"><i class="fas fa-clipboard-check"></i></div><div class="step-label">Placed</div></div>
+                    <div class="timeline-step ${s2}"><div class="step-dot"><i class="fas fa-box-open"></i></div><div class="step-label">Packed</div></div>
+                    <div class="timeline-step ${s3}"><div class="step-dot"><i class="fas fa-truck"></i></div><div class="step-label">Delivered</div></div>
                 </div>`;
 
-                // 2. Buttons Logic (The part that was causing error)
+                // Buttons
                 let actionButtons = '';
-                if (o.status === 'Pending') {
-                    // Show Cancel Button only if Pending
+                if(o.status === 'Pending') {
+                    // 4. FIX: Use 'o.docId' for Cancel, 'o.id' for Invoice
                     actionButtons = `
-                        <button onclick="cancelOrder('${o.id}')" style="flex:1; padding:8px; background:#ffebee; color:#c62828; border:1px solid #ef9a9a; border-radius:5px; cursor:pointer;">Cancel</button>
+                        <button onclick="cancelOrder('${o.docId}')" style="flex:1; padding:8px; background:#ffebee; color:#c62828; border:1px solid #ef9a9a; border-radius:5px; cursor:pointer;">Cancel</button>
                         <button onclick="openInvoice('${o.id}')" style="flex:1; padding:8px; border:1px solid #e85d04; background:white; color:#e85d04; border-radius:5px; cursor:pointer;">Invoice</button>
                     `;
                 } else {
-                    // Show Repeat & Invoice for processed orders
                     actionButtons = `
                         <button onclick="openInvoice('${o.id}')" style="flex:1; padding:8px; border:1px solid #e85d04; background:white; color:#e85d04; border-radius:5px; cursor:pointer;">Invoice</button>
                         <button onclick="repeatOrder('${o.id}')" style="flex:1; padding:8px; background:#e85d04; color:white; border:none; border-radius:5px; cursor:pointer;">Repeat</button>
                     `;
                 }
 
-                // 3. Items List
+                // Items List
                 const itemsList = o.items.map(i =>
                     `<div style="display:flex; justify-content:space-between; align-items:center; font-size:0.9rem; color:#555; margin-bottom:8px; border-bottom:1px solid #f0f0f0; padding-bottom:5px;">
                         <div style="display:flex; align-items:center;">
@@ -866,26 +847,17 @@ function showOrderHistory() {
                     </div>`
                 ).join('');
 
-                // 4. Final HTML Construction
                 html += `
                     <div style="background:white; border:1px solid #eee; border-radius:10px; padding:15px; margin-bottom:15px; box-shadow:0 2px 5px rgba(0,0,0,0.05);">
                         <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
                             <div><strong style="color:#333;">${date}</strong><div style="font-size:0.75rem; color:#999;">#${o.id}</div></div>
-                            <span style="font-weight:bold; color:var(--primary); font-size:0.9rem;">${o.status === 'Cancelled' ? '<span style="color:red">Cancelled</span>' : '₹' + o.total}</span>
+                            <span style="font-weight:bold; color:var(--primary); font-size:0.9rem;">${o.status === 'Cancelled' ? '<span style="color:red">Cancelled</span>' : '₹'+o.total}</span>
                         </div>
-                        
                         ${o.status !== 'Cancelled' ? timelineHTML : ''}
-                        
-                        <div style="margin-top:25px; border-top:1px dashed #ddd; padding-top:10px;">
-                            ${itemsList}
-                        </div>
-                        
-                        <div style="display:flex; gap:10px; margin-top:15px;">
-                            ${actionButtons}
-                        </div>
+                        <div style="margin-top:25px; border-top:1px dashed #ddd; padding-top:10px;">${itemsList}</div>
+                        <div style="display:flex; gap:10px; margin-top:15px;">${actionButtons}</div>
                     </div>`;
             });
-            // END OF LOOP
 
             content.innerHTML = html;
         })
