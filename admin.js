@@ -16,10 +16,10 @@ const auth = firebase.auth();
 const ADMIN_EMAILS = ["parul19.accenture@gmail.com", "namonamkeens@gmail.com", "soramjain2297@gmail.com"];
 
 let previousOrderCount = 0;
-const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3'); // Simple notification sound
+const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
 
-let adminCart = []; // Store items for POS
-let dashboardUnsubscribe = null; // To stop old listeners when changing filters
+let adminCart = [];
+let dashboardUnsubscribe = null;
 
 let salesChartInstance, productChartInstance, paymentChartInstance;
 const ITEMS_PER_PAGE = 10;
@@ -55,13 +55,14 @@ function logout() { auth.signOut().then(() => location.reload()); }
 
 function initDashboard() {
     console.log("Initializing Dashboard...");
-    loadDashboardData('All'); // Default call
+    loadDashboardData('All');
     loadInventory();
     loadOrders();
     loadCustomers();
     loadSettings();
     loadCoupons();
-    loadReviews();
+    // FIX: Ensure this function is defined below
+    if (typeof loadReviews === 'function') loadReviews();
     loadStoreConfig();
 }
 
@@ -70,7 +71,6 @@ function renderTable(type) {
     const s = state[type];
     const dataToRender = s.filteredData ? s.filteredData : s.data;
 
-    // Safety check
     if (!dataToRender) return;
 
     const totalItems = dataToRender.length;
@@ -103,6 +103,76 @@ function changePage(type, diff) {
     if ((s.page + diff) >= 1 && (s.page + diff) <= maxPage) {
         s.page += diff;
         renderTable(type);
+    }
+}
+
+// --- REVIEW MANAGEMENT (FIXED: Added missing function) ---
+function loadReviews() {
+    db.collection("reviews").orderBy("timestamp", "desc").limit(50).onSnapshot(snap => {
+        const tbody = document.getElementById('reviews-body');
+        if (!tbody) return;
+        tbody.innerHTML = '';
+
+        if (snap.empty) {
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:20px;">No reviews yet</td></tr>';
+            return;
+        }
+
+        snap.forEach(doc => {
+            const r = doc.data();
+            const date = r.timestamp ? r.timestamp.toDate().toLocaleDateString() : '-';
+
+            // Get Product Name (from Inventory state for speed)
+            const product = state.inventory.data.find(p => p.id === r.productId);
+            const pName = product ? product.name : `ID: ${r.productId}`;
+            const pImg = product ? product.image : 'logo.jpg';
+
+            // Star Visuals
+            let stars = '';
+            for (let i = 0; i < 5; i++) {
+                stars += `<i class="fas fa-star" style="color: ${i < r.rating ? '#ffc107' : '#ddd'}; font-size:0.8rem;"></i>`;
+            }
+
+            tbody.innerHTML += `
+            <tr>
+                <td><small>${date}</small></td>
+                <td>
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <img src="${pImg}" style="width:30px; height:30px; border-radius:4px; object-fit:cover;" onerror="this.src='logo.jpg'">
+                        <span>${pName}</span>
+                    </div>
+                </td>
+                <td>${escapeHtml(r.userName)}</td>
+                <td>${stars}</td>
+                <td style="max-width:300px; white-space:normal; color:#555;">${escapeHtml(r.comment)}</td>
+                <td>
+                    <button class="icon-btn btn-danger" onclick="deleteReview('${doc.id}', ${r.productId}, ${r.rating})" title="Delete Review">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </td>
+            </tr>`;
+        });
+    });
+}
+
+async function deleteReview(reviewId, productId, rating) {
+    if (!await showConfirm("Delete this review permanently?")) return;
+
+    try {
+        await db.collection("reviews").doc(reviewId).delete();
+
+        // Update Product Stats
+        const productRef = db.collection("products").doc(String(productId));
+
+        await productRef.update({
+            ratingSum: firebase.firestore.FieldValue.increment(-rating),
+            ratingCount: firebase.firestore.FieldValue.increment(-1)
+        });
+
+        showToast("Review Deleted", "success");
+    } catch (e) {
+        console.error(e);
+        showToast("Error deleting review: " + e.message, "error");
     }
 }
 
@@ -697,6 +767,7 @@ function closeModal(id) { document.getElementById(id).style.display = 'none'; }
 function toggleSidebar() { document.getElementById('sidebar').classList.toggle('active'); }
 
 function switchView(v) {
+    console.log("Switching view to:", v);
     // 1. Hide all sections
     document.querySelectorAll('.view-section').forEach(e => {
         e.style.display = 'none';

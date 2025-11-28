@@ -842,3 +842,46 @@ tr.high-value-row td {
     flex-shrink: 0;
     /* Ensures button doesn't shrink if space is tight */
 }
+
+@media (max-width: 900px) {
+
+    /* 1. Stats Cards: Force 2 per row on tablets, 1 per row on very small screens */
+    .stats-grid {
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 10px;
+    }
+
+    /* 2. Charts: Stack vertically */
+    .charts-grid {
+        grid-template-columns: 1fr;
+    }
+
+    /* 3. Table: Allow horizontal scroll */
+    .table-responsive {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* 4. POS Layout: Stack vertically */
+    .pos-layout {
+        flex-direction: column-reverse;
+        /* Cart on top, products below */
+    }
+
+    .pos-right {
+        margin-bottom: 20px;
+        border-bottom: 2px dashed #eee;
+    }
+}
+
+/* Very Small Screens (Phones) */
+@media (max-width: 480px) {
+    .stats-grid {
+        grid-template-columns: 1fr;
+        /* 1 Card per row for very small screens */
+    }
+
+    .brand h3 {
+        font-size: 1rem;
+    }
+}
