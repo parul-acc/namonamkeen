@@ -845,7 +845,6 @@ function bulkPrintSlips() {
     if (checked.length === 0) return;
 
     // In a real app, you might bundle these into one PDF.
-    // For now, we open them sequentially or just the first one as a demo.
     showToast("Printing " + checked.length + " slips...", "success");
     checked.forEach(c => printPackingSlip(c.value));
 }
