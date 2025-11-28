@@ -26,6 +26,7 @@ let selectedHamperItems = [];
 let historyOrders = [];
 
 // NEW: Add this Shop Config
+const razorpayKeyId = "YOUR_RAZORPAY_KEY_ID_HERE"; // <--- PASTE YOUR KEY ID HERE
 let shopConfig = {
     upiId: "8103276050@ybl", // Default fallback if DB fails
     adminPhone: "919826698822",
@@ -153,24 +154,41 @@ function renderMenu() {
         let btnText = isAvailable ? (currentLang === 'en' ? 'Add' : 'जोड़ें') : 'Sold Out';
         let cardClass = isAvailable ? '' : 'sold-out';
 
+        // NEW: Calculate Rating
+        const avgRating = p.ratingCount ? (p.ratingSum / p.ratingCount).toFixed(1) : 0;
+        const reviewCount = p.ratingCount || 0;
+
+        // Generate Star HTML
+        let starHTML = '';
+        if (reviewCount > 0) {
+            starHTML = `<div class="star-display">`;
+            for (let i = 1; i <= 5; i++) {
+                if (i <= Math.round(avgRating)) starHTML += '★';
+                else starHTML += '<span style="color:#ddd">★</span>';
+            }
+            starHTML += `<span class="rating-count">(${reviewCount})</span></div>`;
+        } else {
+            starHTML = `<div class="star-display" style="opacity:0.5; filter:grayscale(1)"><small>No reviews yet</small></div>`;
+        }
+
         grid.innerHTML += `
-            <div class="product-card ${cardClass}" onclick="openProductDetail(${p.id})">
-                ${ribbonHTML}
-                <img src="${p.image}" class="product-img" loading="lazy" onerror="this.src='logo.jpg'">
-                <div class="product-info">
-                    <h3>${name}</h3>
-                    <p class="product-desc">${desc}</p>
-                    <div style="margin-bottom:10px; min-height:30px;">${variantHtml}</div>
-                    <div class="price-row">
-                        <span class="price" id="price-${p.id}">₹${displayPrice}</span>
-                      <button class="add-btn" 
-    onclick="event.stopPropagation(); ${btnAction}" 
-    ${!isAvailable ? 'disabled style="background:#ccc; cursor:not-allowed;"' : ''}>
-    ${btnText}
-</button>
-                    </div>
+        <div class="product-card ${cardClass}" onclick="openProductDetail(${p.id})">
+            ${ribbonHTML}
+            <img src="${p.image}" class="product-img" loading="lazy" onerror="this.src='logo.jpg'">
+            <div class="product-info">
+                <h3>${name}</h3>
+                ${starHTML} <p class="product-desc">${desc}</p>
+                <div style="margin-bottom:10px; min-height:30px;">${variantHtml}</div>
+                <div class="price-row">
+                    <span class="price" id="price-${p.id}">₹${displayPrice}</span>
+                    <button class="add-btn" 
+                        onclick="event.stopPropagation(); ${btnAction}" 
+                        ${!isAvailable ? 'disabled style="background:#ccc; cursor:not-allowed;"' : ''}>
+                        ${btnText}
+                    </button>
                 </div>
-            </div>`;
+            </div>
+        </div>`;
     });
 }
 
@@ -308,43 +326,85 @@ function openProductDetail(id) {
     const name = currentLang === 'en' ? p.name : (p.nameHi || p.name);
     const desc = currentLang === 'en' ? p.desc : (p.descHi || p.desc);
 
+    const ingredients = p.ingredients || "Gram Flour, Spices, Oil";
+    const shelfLife = p.shelfLife || "3 Months";
+    const category = p.category ? p.category.charAt(0).toUpperCase() + p.category.slice(1) : "Snacks";
+
     let variantHtml = '';
     let initialPrice = p.price;
     let isAvailable = p.in_stock;
 
+    // Variant Logic
     if (p.variants && p.variants.length > 0) {
         const firstActive = p.variants.find(v => v.inStock !== false);
         initialPrice = firstActive ? firstActive.price : p.variants[0].price;
         if (!firstActive) isAvailable = false;
 
-        variantHtml = `<select id="modal-variant-select" class="variant-select" onchange="updateModalPrice(this)">`;
+        variantHtml = `<select id="modal-variant-select" class="pm-select" onchange="updateModalPrice(this)">`;
         p.variants.forEach((v, idx) => {
             const stockStatus = (v.inStock !== false);
             const disabledAttr = stockStatus ? '' : 'disabled';
-            const label = v.weight + (stockStatus ? '' : ' (Out of Stock)');
-            const optionText = `${label} - ₹${v.price}`;
+            const label = v.weight + (stockStatus ? '' : '');
             const selectedAttr = (v.price === initialPrice && stockStatus) ? 'selected' : '';
-            variantHtml += `<option value="${idx}" data-price="${v.price}" ${disabledAttr} ${selectedAttr}>${optionText}</option>`;
+            variantHtml += `<option value="${idx}" data-price="${v.price}" ${disabledAttr} ${selectedAttr}>${label}</option>`;
         });
         variantHtml += `</select>`;
+    } else {
+        variantHtml = `<div style="padding:8px; background:#f9f9f9; border-radius:5px; font-weight:600; font-size:0.85rem; text-align:center;">Standard</div>`;
     }
 
-    let btnHtml = `<button class="btn-primary" style="padding:10px 20px;" onclick="addToCartFromModal(${p.id})">Add to Cart</button>`;
+    // Button Logic - REMOVED INLINE STYLES, ADDED CLASS 'pm-btn'
+    let btnHtml = `<button class="btn-primary pm-btn" onclick="addToCartFromModal(${p.id})">Add <i class="fas fa-shopping-bag"></i></button>`;
     if (!isAvailable) {
-        btnHtml = `<button class="btn-primary" style="padding:10px 20px; background:#999; cursor:not-allowed;" disabled>Out of Stock</button>`;
+        btnHtml = `<button class="btn-primary pm-btn" style="background:#ccc; cursor:not-allowed;" disabled>Sold Out</button>`;
     }
 
-    const html = `
-        <img src="${p.image}" class="p-detail-img" onerror="this.src='logo.jpg'">
-        <h2>${name}</h2>
-        <p class="p-detail-desc">${desc}</p>
-        ${variantHtml}
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:15px;">
-            <h3 id="modal-price-display" style="color:var(--primary); margin:0;">₹${initialPrice}</h3>
-            ${btnHtml}
+    let html = `
+        <div class="pm-grid">
+            <div class="pm-image-container">
+                <img src="${p.image}" class="pm-img" onerror="this.src='logo.jpg'">
+            </div>
+
+            <div class="pm-details">
+                <span class="pm-category">${category}</span>
+                <h2 class="pm-title">${name}</h2>
+                <p class="pm-desc">${desc}</p>
+
+                <div class="pm-meta-box">
+                    <div class="pm-meta-item">
+                        <i class="fas fa-utensils"></i> 
+                        <span><strong>Ing:</strong> ${ingredients}</span>
+                    </div>
+                    <div class="pm-meta-item">
+                        <i class="fas fa-clock"></i> 
+                        <span><strong>Shelf:</strong> ${shelfLife}</span>
+                    </div>
+                </div>
+
+                <div class="pm-controls">
+                    <div class="pm-price-row">
+                        <span class="pm-price" id="modal-price-display">₹${initialPrice}</span>
+                    </div>
+                    
+                    <div class="pm-variant-wrapper">
+                        ${variantHtml}
+                    </div>
+                    
+                    ${btnHtml}
+                </div>
+            </div>
         </div>`;
 
     document.getElementById('p-modal-body').innerHTML = html;
+
+    // Ensure modal isn't too tall on mobile
+    const modalContent = document.querySelector('#product-modal .modal-content');
+    if (modalContent) {
+        modalContent.style.maxWidth = "800px";
+        modalContent.style.width = "90%";
+        // Remove fixed height if set previously to allow content to flow
+    }
+
     document.getElementById('product-modal').style.display = 'flex';
 }
 
@@ -448,7 +508,7 @@ function initiateCheckout() {
 
     // Validation
     if (!/^[0-9]{10}$/.test(phone)) return alert("Please enter a valid 10-digit phone number.");
-    if (address.length < 5) return alert("Please enter a complete delivery address.");
+    if (address.length < 3) return alert("Please enter a complete delivery address.");
 
     // Get Payment Method
     const paymentMethod = document.querySelector('input[name="paymentMethod"]:checked').value;
@@ -477,6 +537,28 @@ function initiateCheckout() {
             finalizeOrder('COD');
         }
     }
+}
+
+// --- UNIFIED CHECKOUT HANDLER ---
+function handleCheckout() {
+    // 1. Validate Inputs First (So user feels they are making progress)
+    const phone = document.getElementById('cust-phone').value.trim();
+    const address = document.getElementById('cust-address').value.trim();
+
+    if (cart.length === 0) return alert("Your cart is empty!");
+    if (!/^[0-9]{10}$/.test(phone)) return alert("Please enter a valid 10-digit mobile number.");
+    if (address.length < 5) return alert("Please enter a complete delivery address.");
+
+    // 2. Check Login Status
+    if (!currentUser) {
+        // If Guest: Trigger Login
+        // We pass 'true' to googleLogin to signal it should resume checkout if possible
+        googleLogin(true);
+        return;
+    }
+
+    // 3. If Logged In: Proceed to Payment (Razorpay/COD)
+    initiateRazorpayPayment();
 }
 
 // 2. Called when payment is confirmed (UPI) or immediately (COD)
@@ -559,22 +641,30 @@ function validateAndLogin() {
     googleLogin();
 }
 
-function googleLogin() {
-    toggleBtnLoading('login-btn', true); // Sidebar login
-    toggleBtnLoading('btn-login-checkout', true); // Cart login
+function googleLogin(isCheckoutFlow = false) {
+    // Show loading on the main checkout button if in checkout flow
+    if (isCheckoutFlow) toggleBtnLoading('btn-main-checkout', true);
+    else toggleBtnLoading('login-btn', true);
 
     auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()).then(res => {
+        // Save User Data
         db.collection("users").doc(res.user.uid).set({
-            name: res.user.displayName, email: res.user.email,
-            phone: document.getElementById('cust-phone').value,
-            address: document.getElementById('cust-address').value,
+            name: res.user.displayName,
+            email: res.user.email,
+            phone: document.getElementById('cust-phone').value, // Auto-save phone if entered
+            address: document.getElementById('cust-address').value, // Auto-save address
             lastLogin: new Date()
         }, { merge: true });
-        // UI updates automatically via onAuthStateChanged, so we don't need to manually stop loading here
+
+        // If this was triggered from Checkout, auto-start payment after login
+        if (isCheckoutFlow) {
+            initiateRazorpayPayment();
+        }
+
     }).catch(e => {
         alert(e.message);
-        toggleBtnLoading('login-btn', false);
-        toggleBtnLoading('btn-login-checkout', false);
+        if (isCheckoutFlow) toggleBtnLoading('btn-main-checkout', false);
+        else toggleBtnLoading('login-btn', false);
     });
 }
 
@@ -584,13 +674,9 @@ function updateUserUI(loggedIn) {
         document.getElementById('user-profile').style.display = 'block';
         document.getElementById('user-pic').src = currentUser.photoURL;
         document.getElementById('user-name').innerText = currentUser.displayName;
-        document.getElementById('btn-login-checkout').style.display = 'none';
-        document.getElementById('btn-final-checkout').style.display = 'flex';
     } else {
         document.getElementById('login-btn').style.display = 'block';
         document.getElementById('user-profile').style.display = 'none';
-        document.getElementById('btn-login-checkout').style.display = 'flex';
-        document.getElementById('btn-final-checkout').style.display = 'none';
     }
 }
 
@@ -626,12 +712,27 @@ function showOrderHistory() {
                 if (o.status === 'Packed') statusColor = '#3498db';
                 if (o.status === 'Delivered') statusColor = '#2ecc71';
 
-                const itemsList = o.items.map(i =>
-                    `<div style="display:flex; justify-content:space-between; font-size:0.9rem; color:#555; margin-bottom:4px;">
-                        <span>${i.name} x ${i.qty}</span>
-                        <span>₹${i.price * i.qty}</span>
-                    </div>`
-                ).join('');
+                // NEW Code:
+                const itemsList = o.items.map(i => {
+                    // Check if this item allows rating (only standard products, not custom hampers if logic gets complex)
+                    // We pass ID, Name, Image to the function
+                    return `
+    <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.9rem; color:#555; margin-bottom:8px; border-bottom:1px solid #f0f0f0; padding-bottom:5px;">
+        <div style="display:flex; align-items:center;">
+            <img src="${i.image}" style="width:30px; height:30px; border-radius:4px; margin-right:8px; object-fit:cover;">
+            <div>
+                <div>${i.name} (${i.weight})</div>
+                <small>Qty: ${i.qty}</small>
+            </div>
+        </div>
+        <div style="display:flex; align-items:center;">
+            <span style="margin-right:5px;">₹${i.price * i.qty}</span>
+            <button class="btn-rate" onclick="openReviewModal('${i.productId}', '${o.id}', '${encodeURIComponent(i.name)}', '${encodeURIComponent(i.image)}')">
+                <i class="far fa-star"></i> Rate
+            </button>
+        </div>
+    </div>`;
+                }).join('');
 
                 html += `
                     <div style="background:white; border:1px solid #eee; border-radius:10px; padding:15px; margin-bottom:15px; box-shadow:0 2px 5px rgba(0,0,0,0.05);">
@@ -760,5 +861,211 @@ function toggleBtnLoading(btnId, isLoading) {
         if (btn.dataset.originalText) btn.innerHTML = btn.dataset.originalText; // Restore
         btn.disabled = false;
         btn.style.opacity = "1";
+    }
+
+    // --- NEW RAZORPAY PAYMENT LOGIC ---
+
+    function initiateRazorpayPayment() {
+        if (cart.length === 0) return alert("Your cart is empty!");
+
+        const phone = document.getElementById('cust-phone').value.trim();
+        const address = document.getElementById('cust-address').value.trim();
+
+        // Basic Validation
+        if (!/^[0-9]{10}$/.test(phone)) return alert("Please enter a valid 10-digit mobile number.");
+        if (address.length < 5) return alert("Please enter a complete address.");
+
+        // Check Payment Method (Assuming you added the radio buttons from previous step)
+        // If you haven't added radio buttons, we default to Online Payment
+        const methodElem = document.querySelector('input[name="paymentMethod"]:checked');
+        const paymentMethod = methodElem ? methodElem.value : 'Online';
+
+        // Calculate Amount
+        let total = cart.reduce((sum, i) => sum + (i.price * i.qty), 0);
+        let discount = 0;
+        if (appliedDiscount.type === 'percent') discount = Math.round(total * (appliedDiscount.value / 100));
+        else if (appliedDiscount.type === 'flat') discount = appliedDiscount.value;
+
+        const finalAmountINR = Math.max(0, total - discount); // Amount in Rupees
+        const amountPaise = finalAmountINR * 100; // Razorpay takes amount in Paise
+
+        if (paymentMethod === 'COD') {
+            // Cash on Delivery Flow
+            if (confirm(`Place order for ₹${finalAmountINR} via Cash on Delivery?`)) {
+                saveOrderToFirebase('COD', 'Pending', null);
+            }
+        } else {
+            // Online Payment Flow (Razorpay)
+            openRazorpayModal(amountPaise, finalAmountINR, phone);
+        }
+    }
+
+    function openRazorpayModal(amountPaise, amountINR, userPhone) {
+        var options = {
+            "key": razorpayKeyId,
+            "amount": amountPaise,
+            "currency": "INR",
+            "name": "Namo Namkeen",
+            "description": "Order Payment",
+            "image": "logo.jpg", // Ensure this path is correct
+            "handler": function (response) {
+                // SUCCESS! Payment verified by Razorpay client
+                console.log("Payment ID: ", response.razorpay_payment_id);
+                saveOrderToFirebase('Online', 'Paid', response.razorpay_payment_id);
+            },
+            "prefill": {
+                "name": currentUser ? currentUser.displayName : "Guest",
+                "email": currentUser ? currentUser.email : "",
+                "contact": userPhone
+            },
+            "theme": {
+                "color": "#e85d04"
+            },
+            "modal": {
+                "ondismiss": function () {
+                    alert('Payment cancelled. Order was not placed.');
+                }
+            }
+        };
+
+        var rzp1 = new Razorpay(options);
+        rzp1.on('payment.failed', function (response) {
+            alert("Payment Failed: " + response.error.description);
+        });
+        rzp1.open();
+    }
+
+    async function saveOrderToFirebase(method, paymentStatus, txnId) {
+        toggleBtnLoading('btn-final-checkout', true);
+
+        const phone = document.getElementById('cust-phone').value;
+        const address = document.getElementById('cust-address').value;
+        const orderId = 'ORD-' + Date.now().toString().slice(-6);
+
+        let total = cart.reduce((sum, i) => sum + (i.price * i.qty), 0);
+        let discount = 0;
+        if (appliedDiscount.type === 'percent') discount = Math.round(total * (appliedDiscount.value / 100));
+        else if (appliedDiscount.type === 'flat') discount = appliedDiscount.value;
+        const finalAmount = Math.max(0, total - discount);
+
+        try {
+            await db.collection("orders").add({
+                id: orderId,
+                userId: currentUser.uid,
+                userName: currentUser.displayName,
+                userPhone: phone,
+                userAddress: address,
+                items: cart,
+                total: finalAmount,
+                discount: appliedDiscount,
+                paymentMethod: method,       // 'Online' or 'COD'
+                status: 'Pending',           // Order status
+                paymentStatus: paymentStatus, // 'Paid' or 'Pending'
+                transactionId: txnId || '',   // Razorpay Payment ID
+                timestamp: new Date()
+            });
+
+            // Order Saved Successfully
+            showSuccessModal(orderId, finalAmount, method);
+
+            // Reset Cart
+            cart = [];
+            updateCartUI();
+            if (document.getElementById('cart-sidebar').classList.contains('active')) toggleCart();
+
+        } catch (error) {
+            console.error("DB Error:", error);
+            alert("Error saving order. Please contact support.");
+        } finally {
+            toggleBtnLoading('btn-final-checkout', false);
+        }
+    }
+
+    function showSuccessModal(orderId, amount, method) {
+        const msg = `*New Order: ${orderId}*\n*Method:* ${method}\n*Amount:* ₹${amount}\n*Customer:* ${currentUser.displayName}\n*Address:* ${document.getElementById('cust-address').value}\n\n*Payment:* ${method === 'Online' ? 'PAID ✅' : 'Cash on Delivery 🚚'}`;
+
+        document.getElementById('success-order-id').innerText = orderId;
+
+        // Update the WhatsApp Button
+        const waBtn = document.getElementById('wa-link-btn'); // Ensure this ID exists in your success modal HTML
+        if (waBtn) {
+            waBtn.onclick = () => {
+                window.open(`https://wa.me/${shopConfig.adminPhone}?text=${encodeURIComponent(msg)}`, '_blank');
+            };
+        }
+
+        document.getElementById('success-modal').style.display = 'flex';
+    }
+
+    // --- USER REVIEW SYSTEM ---
+
+    function openReviewModal(pid, oid, name, img) {
+        document.getElementById('review-modal').style.display = 'flex';
+        document.getElementById('review-pid').value = pid;
+        document.getElementById('review-oid').value = oid;
+        document.getElementById('review-p-name').innerText = decodeURIComponent(name);
+        document.getElementById('review-p-img').src = decodeURIComponent(img);
+        document.getElementById('review-comment').value = '';
+
+        // Reset stars
+        document.querySelectorAll('input[name="rating"]').forEach(r => r.checked = false);
+    }
+
+    async function submitReview() {
+        const pid = parseInt(document.getElementById('review-pid').value); // ID is integer in your DB
+        const oid = document.getElementById('review-oid').value;
+        const comment = document.getElementById('review-comment').value.trim();
+        const ratingElem = document.querySelector('input[name="rating"]:checked');
+
+        if (!ratingElem) return alert("Please select a star rating!");
+        const rating = parseInt(ratingElem.value);
+
+        toggleBtnLoading('btn-submit-review', true);
+
+        try {
+            // 1. Check if user already reviewed this item in this order to prevent duplicates
+            const check = await db.collection("reviews")
+                .where("orderId", "==", oid)
+                .where("productId", "==", pid)
+                .get();
+
+            if (!check.empty) {
+                alert("You have already reviewed this item!");
+                toggleBtnLoading('btn-submit-review', false);
+                return;
+            }
+
+            // 2. Add Review to 'reviews' collection
+            await db.collection("reviews").add({
+                productId: pid,
+                orderId: oid,
+                userId: currentUser.uid,
+                userName: currentUser.displayName,
+                rating: rating,
+                comment: comment,
+                timestamp: new Date()
+            });
+
+            // 3. Update Product Stats (Rating Sum & Count) using Atomic Increment
+            // Note: product IDs are numbers in your system, stored as document IDs (strings)
+            const productRef = db.collection("products").doc(String(pid));
+
+            await productRef.update({
+                ratingSum: firebase.firestore.FieldValue.increment(rating),
+                ratingCount: firebase.firestore.FieldValue.increment(1)
+            });
+
+            alert("Thanks for your feedback!");
+            closeModal('review-modal');
+
+            // Refresh data to show new stars on menu
+            fetchData();
+
+        } catch (error) {
+            console.error("Review Error:", error);
+            alert("Failed to submit review. Try again.");
+        } finally {
+            toggleBtnLoading('btn-submit-review', false);
+        }
     }
 }

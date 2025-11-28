@@ -725,63 +725,62 @@ h4 {
     align-items: center;
 }
 
+/* --- 1. SIDEBAR LAYOUT (Fixes Structure) --- */
 .cart-sidebar {
     position: fixed;
     top: 0;
     right: -450px;
-    /* Start hidden off-screen */
-
-    /* FIX: Explicit width for desktop, constrained by screen size for mobile */
     width: 400px;
     max-width: 100%;
-
-    height: 100%;
-    background: #f9f9f9;
+    height: 100vh;
+    /* Force full viewport height */
+    background: #f4f6f8;
+    /* Slightly gray background for contrast */
     z-index: 5001;
-    /* High z-index ensures it sits ON TOP, not mixing with content */
     transition: right 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-    /* Smooth slide */
     display: flex;
     flex-direction: column;
+    /* Stack: Header -> Content -> Footer */
     box-shadow: -10px 0 30px rgba(0, 0, 0, 0.15);
-    /* Shadow adds depth so it looks like a layer */
 }
 
 .cart-sidebar.active {
     right: 0;
-    /* Slides in to the edge of the screen */
 }
 
 .cart-header {
+    background: white;
     padding: 20px;
-    background: #fff;
     border-bottom: 1px solid #eee;
+    flex-shrink: 0;
+    /* Never shrink */
     display: flex;
     justify-content: space-between;
     align-items: center;
-    flex-shrink: 0;
-    /* Prevents header from shrinking */
 }
 
-/* NEW: The main scrollable area containing items + forms */
+/* This is the middle part that scrolls */
 .cart-scrollable-content {
     flex-grow: 1;
+    /* Fills remaining space */
     overflow-y: auto;
+    /* Enables scrolling */
     padding: 20px;
-    padding-bottom: 100px;
-    /* Extra padding so content isn't hidden behind footer */
+    padding-bottom: 40px;
+    /* Extra space at bottom so content isn't hidden */
 }
 
 .cart-items-list {
     margin-bottom: 20px;
 }
 
-/* Block for Inputs and Totals inside the scroll area */
+/* --- 3. FORM INPUT STYLING (Fixes "Generic" Look) --- */
 .cart-details-block {
     background: white;
     padding: 20px;
-    border-radius: 15px;
+    border-radius: 12px;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+    margin-bottom: 20px;
 }
 
 .cart-header h3 {
@@ -879,13 +878,12 @@ h4 {
 
 /* NEW: Footer is now just the button area */
 .cart-footer {
-    padding: 15px 20px;
-    background: #ffffff;
+    background: white;
+    padding: 20px;
     border-top: 1px solid #eee;
-    box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.05);
-    flex-shrink: 0;
-    position: relative;
     z-index: 10;
+    flex-shrink: 0;
+    /* Prevents squashing */
 }
 
 .total-row {
@@ -1603,70 +1601,443 @@ h4 {
     }
 }
 
-/* Add to style.css */
 .input-label {
     font-size: 0.85rem;
-    font-weight: 600;
-    color: #555;
-    margin-bottom: 5px;
+    font-weight: 700;
+    color: #444;
+    margin-bottom: 8px;
     display: block;
+    margin-top: 15px;
+    /* Spacing between fields */
 }
 
+.input-label:first-child {
+    margin-top: 0;
+}
+
+/* Phone Input Specifics */
 .phone-input-group {
     display: flex;
     align-items: center;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    padding: 0 10px;
-    margin-bottom: 15px;
-    background: white;
+    padding: 0;
+    /* Reset padding */
+    overflow: hidden;
+}
+
+.phone-input-group span {
+    background: #f9f9f9;
+    padding: 12px 15px;
+    color: #666;
+    font-weight: 600;
+    border-right: 1px solid #eee;
 }
 
 .phone-input-group input {
     border: none;
     outline: none;
-    padding: 10px;
+    padding: 12px;
     width: 100%;
     font-size: 1rem;
+}
+
+textarea {
+    padding: 12px;
+    resize: none;
+    font-family: inherit;
+}
+
+/* --- 4. PAYMENT OPTIONS (Fixes Alignment) --- */
+.payment-section {
+    margin-top: 25px;
 }
 
 .payment-options {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 10px;
+    gap: 15px;
 }
 
 .payment-card {
     cursor: pointer;
     position: relative;
+    user-select: none;
 }
 
 .payment-card input {
     position: absolute;
     opacity: 0;
+    width: 0;
+    height: 0;
 }
 
 .pay-content {
     border: 2px solid #eee;
     border-radius: 10px;
-    padding: 15px 10px;
+    padding: 15px 5px;
     text-align: center;
-    transition: 0.2s;
+    transition: all 0.2s ease;
     background: white;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 8px;
+    justify-content: center;
+    height: 100%;
+    min-height: 80px;
+}
+
+.pay-content i {
+    font-size: 1.5rem;
+    margin-bottom: 8px;
+    color: #888;
+    transition: 0.2s;
 }
 
 .pay-content span {
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     font-weight: 600;
-    color: #555;
+    color: #666;
 }
 
-/* Highlight selected payment method */
+/* Selected State */
 .payment-card input:checked+.pay-content {
     border-color: var(--primary);
     background-color: #fff3e0;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 10px rgba(232, 93, 4, 0.15);
+}
+
+.payment-card input:checked+.pay-content i,
+.payment-card input:checked+.pay-content span {
+    color: var(--primary);
+}
+
+/* Star Rating Input (Interactive) */
+.star-rating-input {
+    display: flex;
+    flex-direction: row-reverse;
+    justify-content: center;
+    gap: 5px;
+}
+
+.star-rating-input input {
+    display: none;
+}
+
+.star-rating-input label {
+    font-size: 2rem;
+    color: #ddd;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.star-rating-input input:checked~label,
+.star-rating-input label:hover,
+.star-rating-input label:hover~label {
+    color: #ffc107;
+    /* Gold Color */
+}
+
+/* Static Star Display (Product Cards) */
+.star-display {
+    color: #ffc107;
+    font-size: 0.85rem;
+    letter-spacing: 1px;
+    margin-bottom: 5px;
+    display: flex;
+    align-items: center;
+}
+
+.rating-count {
+    color: #999;
+    font-size: 0.75rem;
+    margin-left: 5px;
+    font-weight: normal;
+}
+
+/* Rate Button in Order History */
+.btn-rate {
+    font-size: 0.75rem;
+    padding: 4px 10px;
+    background: white;
+    border: 1px solid var(--primary);
+    color: var(--primary);
+    border-radius: 15px;
+    cursor: pointer;
+    margin-left: 10px;
+    transition: 0.2s;
+}
+
+.btn-rate:hover {
+    background: var(--primary);
+    color: white;
+}
+
+/* --- PREMIUM PRODUCT MODAL STYLES --- */
+
+/* Wrapper for the split layout */
+.pm-grid {
+    display: flex;
+    gap: 30px;
+    text-align: left;
+    /* Reset alignment */
+}
+
+/* Left Side: Image */
+.pm-image-container {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #fdfdfd;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.pm-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    max-height: 350px;
+    /* Limit height on large screens */
+    border-radius: 12px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+}
+
+/* Right Side: Details */
+.pm-details {
+    flex: 1.2;
+    display: flex;
+    flex-direction: column;
+}
+
+.pm-category {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    color: #999;
+    letter-spacing: 1px;
+    font-weight: 600;
+    margin-bottom: 5px;
+}
+
+.pm-title {
+    font-size: 1.8rem;
+    line-height: 1.2;
+    margin-bottom: 10px;
+    color: var(--text-dark);
+}
+
+.pm-desc {
+    font-size: 0.95rem;
+    color: #666;
+    line-height: 1.6;
+    margin-bottom: 20px;
+}
+
+/* Meta Data Box (Ingredients/Shelf Life) */
+.pm-meta-box {
+    background: #fff8e1;
+    /* Light cream to match theme */
+    padding: 15px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+    border: 1px solid #ffe0b2;
+}
+
+.pm-meta-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.9rem;
+    color: #5d4037;
+    margin-bottom: 5px;
+}
+
+.pm-meta-item:last-child {
+    margin-bottom: 0;
+}
+
+.pm-meta-item i {
+    color: var(--primary);
+    width: 20px;
+    text-align: center;
+}
+
+/* Controls Area */
+.pm-controls {
+    margin-top: auto;
+    /* Push to bottom */
+    padding-top: 20px;
+    border-top: 1px solid #eee;
+}
+
+.pm-price-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.pm-price {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: var(--primary);
+    font-family: 'Playfair Display', serif;
+}
+
+/* Stylish Dropdown */
+.pm-select {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid #eee;
+    border-radius: 8px;
+    font-size: 1rem;
+    color: var(--text-dark);
+    background: white;
+    cursor: pointer;
+    transition: 0.3s;
+    outline: none;
+    -webkit-appearance: none;
+    /* Remove default arrow */
+    background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23e85d04%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+    background-repeat: no-repeat;
+    background-position: right 15px center;
+    background-size: 12px;
+}
+
+.pm-select:focus {
+    border-color: var(--primary);
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+    .pm-grid {
+        flex-direction: column;
+        gap: 20px;
+    }
+
+    .pm-img {
+        max-height: 220px;
+    }
+
+    .pm-title {
+        font-size: 1.5rem;
+    }
+}
+
+/* --- MOBILE OPTIMIZATIONS FOR PRODUCT MODAL --- */
+
+/* Default Desktop Styles (Clean up) */
+.pm-variant-wrapper {
+    margin-bottom: 15px;
+}
+
+.pm-btn {
+    width: 100%;
+    padding: 14px;
+    border-radius: 8px;
+    font-size: 1rem;
+}
+
+@media (max-width: 768px) {
+
+    /* 1. Reduce Image Height */
+    .pm-img {
+        max-height: 140px;
+        /* Much smaller to fit everything */
+        width: auto;
+        margin: 0 auto;
+        display: block;
+    }
+
+    .pm-image-container {
+        padding: 10px;
+        background: transparent;
+        /* Remove heavy background */
+        height: auto;
+    }
+
+    /* 2. Tighten Text & Spacing */
+    .pm-title {
+        font-size: 1.3rem;
+        margin-bottom: 5px;
+        text-align: center;
+    }
+
+    .pm-category {
+        text-align: center;
+        margin-bottom: 0;
+    }
+
+    .pm-desc {
+        font-size: 0.85rem;
+        margin-bottom: 10px;
+        text-align: center;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        /* Limit description to 2 lines */
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    /* 3. Compact Meta Box (Ingredients) */
+    .pm-meta-box {
+        padding: 8px;
+        margin-bottom: 10px;
+        font-size: 0.8rem;
+    }
+
+    /* 4. THE MAGIC: Single Row Controls */
+    .pm-controls {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        padding-top: 10px;
+        border-top: 1px solid #eee;
+        background: white;
+
+        /* Sticky bottom ensures it's always reachable */
+        position: sticky;
+        bottom: 0;
+    }
+
+    /* Price Item */
+    .pm-price-row {
+        margin-bottom: 0;
+        white-space: nowrap;
+    }
+
+    .pm-price {
+        font-size: 1.2rem;
+    }
+
+    /* Variant Dropdown Item */
+    .pm-variant-wrapper {
+        margin-bottom: 0;
+        flex: 1;
+        /* Takes available space */
+        min-width: 80px;
+    }
+
+    .pm-select {
+        padding: 5px 8px;
+        height: 40px;
+        /* Standard touch height */
+        font-size: 0.85rem;
+    }
+
+    /* Add Button Item */
+    .pm-btn {
+        width: auto;
+        flex: 1.2;
+        /* Button slightly larger */
+        height: 40px;
+        padding: 0 10px;
+        font-size: 0.9rem;
+        white-space: nowrap;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 5px;
+    }
 }

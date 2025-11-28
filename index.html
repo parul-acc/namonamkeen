@@ -23,6 +23,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 </head>
 
 <body>
@@ -216,75 +217,21 @@
             </div>
         </div>
 
-        <div class="cart-scrollable-content">
-            <div id="cart-items" class="cart-items-list"></div>
-
-            <div class="cart-details-block">
-                <div class="coupon-section">
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
-                        <span style="font-size:0.8rem; font-weight:bold; color:#555;">Offers & Coupons</span>
-                        <small style="color:var(--primary); cursor:pointer;" onclick="toggleCouponList()">View
-                            All</small>
-                    </div>
-                    <div style="display:flex; gap:5px;">
-                        <input type="text" id="promo-code" placeholder="Enter Code" class="form-control"
-                            style="text-transform:uppercase;">
-                        <button onclick="applyPromo()"
-                            style="background:var(--dark); color:white; border:none; padding:8px 15px; border-radius:5px; cursor:pointer;">Apply</button>
-                    </div>
-                    <p id="promo-msg" style="font-size:0.75rem; margin-top:5px; min-height:15px;"></p>
-                    <div id="coupon-list"
-                        style="display:none; background:#f9f9f9; padding:10px; margin-top:5px; border-radius:5px; border:1px solid #eee; max-height:150px; overflow-y:auto;">
-                    </div>
-                </div>
-
-                <div id="customer-details-inputs">
-                    <label class="input-label">Mobile Number <span style="color:red">*</span></label>
-                    <div class="phone-input-group">
-                        <span>+91</span>
-                        <input type="tel" id="cust-phone" maxlength="10" placeholder="9876543210">
-                    </div>
-
-                    <label class="input-label">Delivery Address <span style="color:red">*</span></label>
-                    <textarea id="cust-address" placeholder="House No, Street, Area, City..." rows="2"></textarea>
-                </div>
-
-                <div class="payment-section" style="margin-top: 20px;">
-                    <label class="input-label">Select Payment Method</label>
-                    <div class="payment-options">
-                        <label class="payment-card">
-                            <input type="radio" name="paymentMethod" value="UPI" checked onchange="togglePaymentUI()">
-                            <div class="pay-content">
-                                <i class="fas fa-qrcode" style="color: var(--primary); font-size: 1.2rem;"></i>
-                                <span>Pay via UPI</span>
-                            </div>
-                        </label>
-                        <label class="payment-card">
-                            <input type="radio" name="paymentMethod" value="COD" onchange="togglePaymentUI()">
-                            <div class="pay-content">
-                                <i class="fas fa-money-bill-wave" style="color: #27ae60; font-size: 1.2rem;"></i>
-                                <span>Cash on Delivery</span>
-                            </div>
-                        </label>
-                    </div>
-                </div>
-
-                <div class="total-row" style="margin-top: 20px; border-top: 1px dashed #ddd; padding-top: 15px;">
-                    <span>Total Amount:</span>
-                    <span id="cart-total">₹0</span>
-                </div>
-            </div>
+        <div class="phone-input-group">
+            <span>+91</span>
+            <input type="tel" id="cust-phone" maxlength="10" placeholder="" required>
         </div>
 
         <div class="cart-footer">
-            <button id="btn-login-checkout" class="btn-whatsapp-checkout" onclick="validateAndLogin()"
-                style="background: #4285F4;">
-                <i class="fab fa-google"></i> Login to Order
-            </button>
-            <button id="btn-final-checkout" class="btn-whatsapp-checkout" onclick="initiateCheckout()"
-                style="display: none;">
+            <button id="btn-main-checkout" class="btn-whatsapp-checkout" onclick="handleCheckout()">
                 Proceed to Pay <i class="fas fa-arrow-right"></i>
             </button>
+        </div>
+        <div style="text-align:center; margin-top:10px; opacity:0.7;">
+            <i class="fab fa-google-pay" style="font-size:24px; margin:0 5px;"></i>
+            <i class="fab fa-cc-visa" style="font-size:24px; margin:0 5px;"></i>
+            <i class="fab fa-cc-mastercard" style="font-size:24px; margin:0 5px;"></i>
+            <p style="font-size:0.7rem; margin-top:5px;">100% Secure Payments via Razorpay</p>
         </div>
     </div>
 
@@ -325,39 +272,45 @@
         </div>
     </div>
 
-<div id="payment-modal" class="modal-overlay">
-    <div class="modal-content mobile-modal text-center">
-        <button class="close-modal" onclick="closeModal('payment-modal')">&times;</button>
-        <h3 style="color:var(--primary);">Scan & Pay</h3>
-        <p>Total Amount: <strong id="pay-modal-total">₹0</strong></p>
-        
-        <div style="background: #fff8e1; padding: 15px; border-radius: 10px; border: 2px dashed var(--primary); display: inline-block; margin: 10px 0;">
-            <img id="payment-qr-img" src="" alt="QR Code" style="width: 150px; height: 150px; mix-blend-mode: multiply;">
-        </div>
-        
-        <p style="font-size: 0.85rem; color: #555;">Scan with GPay, PhonePe, or Paytm</p>
-        
-        <button class="btn-primary full-width" onclick="finalizeOrder('UPI')" style="margin-top: 15px; width: 100%;">
-            <i class="fas fa-check-circle"></i> I Have Paid
-        </button>
-    </div>
-</div>
+    <div id="payment-modal" class="modal-overlay">
+        <div class="modal-content mobile-modal text-center">
+            <button class="close-modal" onclick="closeModal('payment-modal')">&times;</button>
+            <h3 style="color:var(--primary);">Scan & Pay</h3>
+            <p>Total Amount: <strong id="pay-modal-total">₹0</strong></p>
 
-<div id="success-modal" class="modal-overlay">
-    <div class="modal-content mobile-modal text-center">
-        <div style="width: 60px; height: 60px; background: #e8f5e9; color: #2ecc71; font-size: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 15px;">
-            <i class="fas fa-check"></i>
+            <div
+                style="background: #fff8e1; padding: 15px; border-radius: 10px; border: 2px dashed var(--primary); display: inline-block; margin: 10px 0;">
+                <img id="payment-qr-img" src="" alt="QR Code"
+                    style="width: 150px; height: 150px; mix-blend-mode: multiply;">
+            </div>
+
+            <p style="font-size: 0.85rem; color: #555;">Scan with GPay, PhonePe, or Paytm</p>
+
+            <button class="btn-primary full-width" onclick="finalizeOrder('UPI')"
+                style="margin-top: 15px; width: 100%;">
+                <i class="fas fa-check-circle"></i> I Have Paid
+            </button>
         </div>
-        <h2>Order Placed!</h2>
-        <p>Your order has been received successfully.</p>
-        <p style="font-size: 0.9rem; color: #666;">Order ID: <strong id="success-order-id">#</strong></p>
-        
-        <button id="wa-link-btn" class="btn-whatsapp-checkout" style="background: #25D366; color: white; margin-top: 15px;">
-            <i class="fab fa-whatsapp"></i> Send Confirmation
-        </button>
-        <button onclick="closeSuccessModal()" style="background:none; border:none; margin-top:10px; color:#999; text-decoration:underline;">Close</button>
     </div>
-</div>
+
+    <div id="success-modal" class="modal-overlay">
+        <div class="modal-content mobile-modal text-center">
+            <div
+                style="width: 60px; height: 60px; background: #e8f5e9; color: #2ecc71; font-size: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 15px;">
+                <i class="fas fa-check"></i>
+            </div>
+            <h2>Order Placed!</h2>
+            <p>Your order has been received successfully.</p>
+            <p style="font-size: 0.9rem; color: #666;">Order ID: <strong id="success-order-id">#</strong></p>
+
+            <button id="wa-link-btn" class="btn-whatsapp-checkout"
+                style="background: #25D366; color: white; margin-top: 15px;">
+                <i class="fab fa-whatsapp"></i> Send Confirmation
+            </button>
+            <button onclick="closeSuccessModal()"
+                style="background:none; border:none; margin-top:10px; color:#999; text-decoration:underline;">Close</button>
+        </div>
+    </div>
 
     <div id="quiz-modal" class="quiz-overlay">
         <div class="quiz-container">
@@ -434,6 +387,39 @@
         </div>
     </div>
 
+    <div id="review-modal" class="modal-overlay">
+        <div class="modal-content mobile-modal">
+            <button class="close-modal" onclick="closeModal('review-modal')">&times;</button>
+            <div style="text-align: center;">
+                <h3 style="color:var(--primary); margin-bottom: 5px;">Write a Review</h3>
+                <img id="review-p-img" src=""
+                    style="width: 80px; height: 80px; border-radius: 10px; object-fit: cover; margin-bottom: 10px;">
+                <p id="review-p-name" style="font-weight: 600; margin-bottom: 15px;">Product Name</p>
+
+                <input type="hidden" id="review-pid">
+                <input type="hidden" id="review-oid">
+
+                <div class="star-rating-input">
+                    <input type="radio" id="star5" name="rating" value="5" /><label for="star5"
+                        title="5 stars">★</label>
+                    <input type="radio" id="star4" name="rating" value="4" /><label for="star4"
+                        title="4 stars">★</label>
+                    <input type="radio" id="star3" name="rating" value="3" /><label for="star3"
+                        title="3 stars">★</label>
+                    <input type="radio" id="star2" name="rating" value="2" /><label for="star2"
+                        title="2 stars">★</label>
+                    <input type="radio" id="star1" name="rating" value="1" /><label for="star1" title="1 star">★</label>
+                </div>
+
+                <textarea id="review-comment" rows="3" placeholder="How was the taste? (Optional)" class="form-control"
+                    style="margin-top: 15px;"></textarea>
+
+                <button id="btn-submit-review" class="btn-primary full-width" onclick="submitReview()"
+                    style="margin-top: 15px; width: 100%;">Submit Review</button>
+            </div>
+        </div>
+    </div>
+
     <footer class="footer">
         <div class="container">
             <div class="footer-top">
@@ -479,6 +465,11 @@
     <button id="scrollTopBtn" onclick="scrollToTop()" title="Go to top">
         <i class="fas fa-arrow-up"></i>
     </button>
+
+    <a href="https://wa.me/919826698822" target="_blank" class="float-wa"
+        style="position:fixed; bottom:90px; right:30px; background:#25d366; color:white; width:50px; height:50px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:30px; box-shadow: 2px 2px 3px #999; z-index:100;">
+        <i class="fab fa-whatsapp"></i>
+    </a>
 
     <script src="script.js"></script>
 </body>
