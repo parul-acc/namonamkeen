@@ -217,21 +217,76 @@
             </div>
         </div>
 
-        <div class="phone-input-group">
-            <span>+91</span>
-            <input type="tel" id="cust-phone" maxlength="10" placeholder="" required>
+        <div class="cart-scrollable-content">
+            <div id="cart-items" class="cart-items-list"></div>
+
+            <div class="cart-details-block">
+                <div class="coupon-section">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+                        <span style="font-size:0.8rem; font-weight:bold; color:#555;">Offers & Coupons</span>
+                        <small style="color:var(--primary); cursor:pointer;" onclick="toggleCouponList()">View
+                            All</small>
+                    </div>
+                    <div style="display:flex; gap:5px;">
+                        <input type="text" id="promo-code" placeholder="Enter Code" class="form-control"
+                            style="text-transform:uppercase;">
+                        <button onclick="applyPromo()"
+                            style="background:var(--dark); color:white; border:none; padding:8px 15px; border-radius:5px; cursor:pointer;">Apply</button>
+                    </div>
+                    <p id="promo-msg" style="font-size:0.75rem; margin-top:5px; min-height:15px;"></p>
+                    <div id="coupon-list"
+                        style="display:none; background:#f9f9f9; padding:10px; margin-top:5px; border-radius:5px; border:1px solid #eee; max-height:150px; overflow-y:auto;">
+                    </div>
+                </div>
+
+                <div id="customer-details-inputs">
+                    <label class="input-label">Mobile Number <span style="color:red">*</span></label>
+                    <div class="phone-input-group">
+                        <span>+91</span>
+                        <input type="tel" id="cust-phone" maxlength="10" placeholder="9876543210">
+                    </div>
+
+                    <label class="input-label">Delivery Address <span style="color:red">*</span></label>
+                    <textarea id="cust-address" placeholder="House No, Street, Area, City..." rows="2"></textarea>
+                </div>
+
+                <div class="payment-section" style="margin-top: 20px;">
+                    <label class="input-label">Select Payment Method</label>
+                    <div class="payment-options">
+                        <label class="payment-card">
+                            <input type="radio" name="paymentMethod" value="UPI" checked onchange="togglePaymentUI()">
+                            <div class="pay-content">
+                                <i class="fas fa-qrcode" style="color: var(--primary); font-size: 1.2rem;"></i>
+                                <span>Pay via UPI</span>
+                            </div>
+                        </label>
+                        <label class="payment-card">
+                            <input type="radio" name="paymentMethod" value="COD" onchange="togglePaymentUI()">
+                            <div class="pay-content">
+                                <i class="fas fa-money-bill-wave" style="color: #27ae60; font-size: 1.2rem;"></i>
+                                <span>Cash on Delivery</span>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="total-row" style="margin-top: 20px; border-top: 1px dashed #ddd; padding-top: 15px;">
+                    <span>Total Amount:</span>
+                    <span id="cart-total">₹0</span>
+                </div>
+            </div>
         </div>
 
         <div class="cart-footer">
+            <div id="guest-login-option" style="text-align:center; margin-bottom:10px; font-size:0.85rem;">
+                <span style="color:#666;">Have an account?</span>
+                <a href="#" onclick="googleLogin(false)"
+                    style="color:var(--primary); font-weight:bold; text-decoration:none;">Login with Google</a>
+            </div>
+
             <button id="btn-main-checkout" class="btn-whatsapp-checkout" onclick="handleCheckout()">
                 Proceed to Pay <i class="fas fa-arrow-right"></i>
             </button>
-        </div>
-        <div style="text-align:center; margin-top:10px; opacity:0.7;">
-            <i class="fab fa-google-pay" style="font-size:24px; margin:0 5px;"></i>
-            <i class="fab fa-cc-visa" style="font-size:24px; margin:0 5px;"></i>
-            <i class="fab fa-cc-mastercard" style="font-size:24px; margin:0 5px;"></i>
-            <p style="font-size:0.7rem; margin-top:5px;">100% Secure Payments via Razorpay</p>
         </div>
     </div>
 

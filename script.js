@@ -541,26 +541,28 @@ function initiateCheckout() {
 
 // --- UNIFIED CHECKOUT HANDLER ---
 function handleCheckout() {
-    // 1. Validate Inputs First (So user feels they are making progress)
-    const phone = document.getElementById('cust-phone').value.trim();
-    const address = document.getElementById('cust-address').value.trim();
+    // 1. Get Elements safely
+    const phoneInput = document.getElementById('cust-phone');
+    const addressInput = document.getElementById('cust-address');
 
+    // Safety Check to prevent the "null" error
+    if (!phoneInput || !addressInput) {
+        alert("Error: Checkout form not loaded correctly. Please refresh.");
+        return;
+    }
+
+    const phone = phoneInput.value.trim();
+    const address = addressInput.value.trim();
+
+    // 2. Validate
     if (cart.length === 0) return alert("Your cart is empty!");
     if (!/^[0-9]{10}$/.test(phone)) return alert("Please enter a valid 10-digit mobile number.");
     if (address.length < 5) return alert("Please enter a complete delivery address.");
 
-    // 2. Check Login Status
-    if (!currentUser) {
-        // If Guest: Trigger Login
-        // We pass 'true' to googleLogin to signal it should resume checkout if possible
-        googleLogin(true);
-        return;
-    }
-
-    // 3. If Logged In: Proceed to Payment (Razorpay/COD)
+    // 3. PROCEED DIRECTLY (Do not force login)
+    // We will handle "Guest" status inside the payment functions
     initiateRazorpayPayment();
 }
-
 // 2. Called when payment is confirmed (UPI) or immediately (COD)
 async function finalizeOrder(paymentMode) {
     toggleBtnLoading('btn-final-checkout', true); // Show loading
@@ -674,9 +676,13 @@ function updateUserUI(loggedIn) {
         document.getElementById('user-profile').style.display = 'block';
         document.getElementById('user-pic').src = currentUser.photoURL;
         document.getElementById('user-name').innerText = currentUser.displayName;
+        // Hide the "Have an account?" link in cart since they are logged in
+        if (guestLink) guestLink.style.display = 'none';
     } else {
         document.getElementById('login-btn').style.display = 'block';
         document.getElementById('user-profile').style.display = 'none';
+        // Show the link
+        if (guestLink) guestLink.style.display = 'block';
     }
 }
 
@@ -901,30 +907,29 @@ function toggleBtnLoading(btnId, isLoading) {
     }
 
     function openRazorpayModal(amountPaise, amountINR, userPhone) {
+        // Determine User Details (Guest or Logged In)
+        const userName = currentUser ? currentUser.displayName : "Guest User";
+        const userEmail = currentUser ? currentUser.email : "guest@namonamkeen.com";
+
         var options = {
             "key": razorpayKeyId,
             "amount": amountPaise,
             "currency": "INR",
             "name": "Namo Namkeen",
             "description": "Order Payment",
-            "image": "logo.jpg", // Ensure this path is correct
+            "image": "logo.jpg",
             "handler": function (response) {
-                // SUCCESS! Payment verified by Razorpay client
                 console.log("Payment ID: ", response.razorpay_payment_id);
                 saveOrderToFirebase('Online', 'Paid', response.razorpay_payment_id);
             },
             "prefill": {
-                "name": currentUser ? currentUser.displayName : "Guest",
-                "email": currentUser ? currentUser.email : "",
+                "name": userName,
+                "email": userEmail,
                 "contact": userPhone
             },
-            "theme": {
-                "color": "#e85d04"
-            },
+            "theme": { "color": "#e85d04" },
             "modal": {
-                "ondismiss": function () {
-                    alert('Payment cancelled. Order was not placed.');
-                }
+                "ondismiss": function () { alert('Payment cancelled.'); }
             }
         };
 
@@ -936,13 +941,18 @@ function toggleBtnLoading(btnId, isLoading) {
     }
 
     async function saveOrderToFirebase(method, paymentStatus, txnId) {
-        toggleBtnLoading('btn-final-checkout', true);
+        toggleBtnLoading('btn-main-checkout', true);
 
         const phone = document.getElementById('cust-phone').value;
         const address = document.getElementById('cust-address').value;
         const orderId = 'ORD-' + Date.now().toString().slice(-6);
 
+        // Determine User ID (Use Auth UID or generate a Guest ID based on phone)
+        const uid = currentUser ? currentUser.uid : ("guest_" + phone);
+        const uName = currentUser ? currentUser.displayName : "Guest";
+
         let total = cart.reduce((sum, i) => sum + (i.price * i.qty), 0);
+        // ... (rest of discount calc logic remains same) ...
         let discount = 0;
         if (appliedDiscount.type === 'percent') discount = Math.round(total * (appliedDiscount.value / 100));
         else if (appliedDiscount.type === 'flat') discount = appliedDiscount.value;
@@ -951,33 +961,31 @@ function toggleBtnLoading(btnId, isLoading) {
         try {
             await db.collection("orders").add({
                 id: orderId,
-                userId: currentUser.uid,
-                userName: currentUser.displayName,
+                userId: uid,          // Save as Guest ID if not logged in
+                userName: uName,
                 userPhone: phone,
                 userAddress: address,
                 items: cart,
                 total: finalAmount,
                 discount: appliedDiscount,
-                paymentMethod: method,       // 'Online' or 'COD'
-                status: 'Pending',           // Order status
-                paymentStatus: paymentStatus, // 'Paid' or 'Pending'
-                transactionId: txnId || '',   // Razorpay Payment ID
+                paymentMethod: method,
+                status: 'Pending',
+                paymentStatus: paymentStatus,
+                transactionId: txnId || '',
                 timestamp: new Date()
             });
 
-            // Order Saved Successfully
+            // Update UI
             showSuccessModal(orderId, finalAmount, method);
-
-            // Reset Cart
             cart = [];
             updateCartUI();
             if (document.getElementById('cart-sidebar').classList.contains('active')) toggleCart();
 
         } catch (error) {
             console.error("DB Error:", error);
-            alert("Error saving order. Please contact support.");
+            alert("Error saving order.");
         } finally {
-            toggleBtnLoading('btn-final-checkout', false);
+            toggleBtnLoading('btn-main-checkout', false);
         }
     }
 
