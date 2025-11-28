@@ -66,12 +66,20 @@ function initDashboard() {
 }
 
 // --- PAGINATION ---
+// --- PAGINATION & RENDERING ---
 function renderTable(type) {
     const s = state[type];
     const dataToRender = s.filteredData ? s.filteredData : s.data;
+    
+    // Safety check
+    if (!dataToRender) return;
+
     const totalItems = dataToRender.length;
     const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE) || 1;
-    if (s.page > totalPages) s.page = totalPages; if (s.page < 1) s.page = 1;
+    
+    if (s.page > totalPages) s.page = totalPages; 
+    if (s.page < 1) s.page = 1;
+    
     const pageItems = dataToRender.slice((s.page - 1) * ITEMS_PER_PAGE, s.page * ITEMS_PER_PAGE);
 
     const tbody = document.getElementById(`${type}-body`);
@@ -878,20 +886,26 @@ function closeModal(id) { document.getElementById(id).style.display = 'none'; }
 function toggleSidebar() { document.getElementById('sidebar').classList.toggle('active'); }
 
 function switchView(v) {
-    // 1. Hide all sections
-    document.querySelectorAll('.view-section').forEach(e => e.classList.remove('active'));
+    console.log("Switching to view:", v); // Debug log
 
+    // 1. Hide all sections
+    document.querySelectorAll('.view-section').forEach(e => {
+        e.style.display = 'none'; // Force hide via JS (overrides CSS issues)
+        e.classList.remove('active');
+    });
+    
     // 2. Deactivate all nav links
     document.querySelectorAll('.nav-links a').forEach(e => e.classList.remove('active'));
-
+    
     // 3. Show target section
     const targetSection = document.getElementById('view-' + v);
     if (targetSection) {
+        targetSection.style.display = 'block'; // Force show via JS
         targetSection.classList.add('active');
     } else {
-        console.error("View not found:", v);
-        // Fallback: If view ID is wrong, don't break the UI
-        return;
+        console.error("View section not found: view-" + v);
+        alert("Error: View 'view-" + v + "' not found in HTML."); // Visible alert
+        return; 
     }
 
     // 4. Activate target nav link
@@ -900,20 +914,21 @@ function switchView(v) {
         targetNav.classList.add('active');
     }
 
-    // 5. Update Header Title (Safety check added)
+    // 5. Update Header Title
     const titleEl = document.getElementById('page-title');
     if (titleEl) {
         titleEl.innerText = v === 'pos' ? 'New Order (POS)' : v.charAt(0).toUpperCase() + v.slice(1);
     }
-
-    // 6. MOBILE FIX: Close sidebar after click
+    
+    // 6. FORCE SIDEBAR CLOSE (Mobile Fix)
     const sidebar = document.getElementById('sidebar');
     if (sidebar) {
+        console.log("Closing sidebar");
         sidebar.classList.remove('active');
     }
 
-    // 7. Load specific data if needed
-    if (v === 'orders') loadOrders();
+    // 7. Load specific data
+    if (v === 'orders' && typeof loadOrders === 'function') loadOrders();
     if (v === 'pos' && typeof renderPosProducts === 'function') renderPosProducts();
     if (v === 'reviews' && typeof loadReviews === 'function') loadReviews();
 }
@@ -1596,16 +1611,6 @@ function filterInventory() {
     state.inventory.filteredData = filtered;
     state.inventory.page = 1; // Reset to page 1
     renderTable('inventory');
-}
-
-// Update renderTable in admin.js to check for filteredData
-// Find the renderTable function and modify the first few lines:
-function renderTable(type) {
-    const s = state[type];
-    // Check if filteredData exists, otherwise use main data
-    const dataToRender = s.filteredData ? s.filteredData : s.data;
-
-    // ... rest of the function remains the same ...
 }
 
 registerAdminServiceWorker();
