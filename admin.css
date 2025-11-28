@@ -606,3 +606,158 @@ tr:hover td {
         height: auto;
     }
 }
+
+/* --- POS SYSTEM STYLES --- */
+.pos-layout {
+    display: flex;
+    gap: 20px;
+    height: calc(100vh - 120px);
+    /* Fill screen minus header */
+}
+
+.pos-left {
+    flex: 2;
+    display: flex;
+    flex-direction: column;
+}
+
+.pos-right {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 300px;
+    overflow-y: auto;
+}
+
+.pos-product-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 15px;
+    padding: 20px;
+    overflow-y: auto;
+    flex-grow: 1;
+}
+
+.pos-card {
+    background: #f9f9f9;
+    border: 1px solid #eee;
+    border-radius: 8px;
+    padding: 10px;
+    text-align: center;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.pos-card:hover {
+    border-color: var(--primary);
+    background: #fff3e0;
+    transform: translateY(-3px);
+}
+
+.pos-card img {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin-bottom: 5px;
+}
+
+.pos-card h4 {
+    margin: 5px 0;
+    font-size: 0.9rem;
+    color: var(--dark);
+}
+
+.pos-cart-list {
+    max-height: 250px;
+    overflow-y: auto;
+    margin-bottom: 15px;
+}
+
+.pos-cart-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px;
+    border-bottom: 1px solid #eee;
+    font-size: 0.9rem;
+}
+
+.pos-qty-btn {
+    background: #ddd;
+    border: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+@media (max-width: 900px) {
+    .pos-layout {
+        flex-direction: column;
+        height: auto;
+    }
+}
+
+/* Add to admin.css */
+.status-cancelled {
+    background: #fef2f2;
+    color: #b91c1c;
+    border: 1px solid #fecaca;
+}
+
+/* --- CUSTOM CONFIRM MODAL (Admin Side) --- */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 9999;
+    display: none;
+    /* Hidden by default */
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(3px);
+}
+
+.confirm-box {
+    background: white;
+    padding: 25px;
+    border-radius: 12px;
+    text-align: center;
+    max-width: 350px;
+    width: 90%;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+.confirm-actions {
+    display: flex;
+    gap: 15px;
+    margin-top: 20px;
+    justify-content: center;
+}
+
+.btn-confirm-yes {
+    background: #e85d04;
+    color: white;
+    flex: 1;
+    padding: 10px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.btn-confirm-no {
+    background: #f3f4f6;
+    color: #333;
+    flex: 1;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+}

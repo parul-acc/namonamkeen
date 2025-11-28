@@ -437,7 +437,7 @@ function openProductDetail(id) {
 // 1. Add this function to script.js
 async function cancelOrder(docId) {
     if (!docId) return showToast("Error: Invalid Order ID", "error");
-    
+
     if (!showConfirm("Are you sure you want to cancel this order?")) return;
 
     try {
@@ -447,7 +447,7 @@ async function cancelOrder(docId) {
             cancelledBy: "User",
             cancelledAt: new Date()
         });
-        
+
         showToast("Order Cancelled Successfully.", "success");
         showOrderHistory(); // Refresh to see status change
     } catch (e) {
@@ -698,12 +698,12 @@ async function finalizeOrder(paymentMode) {
 function togglePaymentUI() {
     const methodElem = document.querySelector('input[name="paymentMethod"]:checked');
     if (!methodElem) return;
-    
+
     const method = methodElem.value;
     const btn = document.getElementById('btn-main-checkout'); // Updated ID
-    
+
     if (btn) {
-        if(method === 'UPI') {
+        if (method === 'UPI') {
             btn.innerHTML = 'Proceed to Pay <i class="fas fa-arrow-right"></i>';
         } else {
             btn.innerHTML = 'Place Order <i class="fas fa-check"></i>';
@@ -792,7 +792,7 @@ function showOrderHistory() {
                 content.innerHTML = '<p style="padding:20px; text-align:center;">No past orders found.</p>';
                 return;
             }
-            
+
             let html = '';
             historyOrders = []; // 1. FIX: Reset the global array for Invoices
 
@@ -802,38 +802,57 @@ function showOrderHistory() {
                 historyOrders.push(o); // 3. FIX: Store data so Invoice works
 
                 const date = o.timestamp ? o.timestamp.toDate().toLocaleDateString() : 'N/A';
-                
-                // Timeline Status
+
+                // 1. Timeline Logic
                 let progress = '0%';
+                let lineClass = ''; // For red line
                 let s1 = '', s2 = '', s3 = '';
-                
-                if (o.status === 'Pending') { progress = '0%'; s1 = 'active'; } 
-                else if (o.status === 'Packed') { progress = '50%'; s1 = 'active'; s2 = 'active'; } 
-                else if (o.status === 'Delivered') { progress = '100%'; s1 = 'active'; s2 = 'active'; s3 = 'active'; }
-                else if (o.status === 'Cancelled') { progress = '0%'; s1 = 'active'; }
 
+                if (o.status === 'Pending') {
+                    progress = '0%'; s1 = 'active';
+                } else if (o.status === 'Packed') {
+                    progress = '50%'; s1 = 'active'; s2 = 'active';
+                } else if (o.status === 'Delivered') {
+                    progress = '100%'; s1 = 'active'; s2 = 'active'; s3 = 'active';
+                } else if (o.status === 'Cancelled') {
+                    progress = '100%';
+                    lineClass = 'cancelled'; // Triggers red CSS
+                    s1 = 'cancelled'; s2 = 'cancelled'; s3 = 'cancelled'; // All red dots
+                }
                 const timelineHTML = `
-                <div class="timeline-container">
-                    <div class="timeline-line-bg"></div>
-                    <div class="timeline-line-fill" style="width: ${progress}; background: ${o.status === 'Cancelled' ? 'red' : '#2ecc71'};"></div>
-                    <div class="timeline-step ${s1}"><div class="step-dot"><i class="fas fa-clipboard-check"></i></div><div class="step-label">Placed</div></div>
-                    <div class="timeline-step ${s2}"><div class="step-dot"><i class="fas fa-box-open"></i></div><div class="step-label">Packed</div></div>
-                    <div class="timeline-step ${s3}"><div class="step-dot"><i class="fas fa-truck"></i></div><div class="step-label">Delivered</div></div>
-                </div>`;
+<div class="timeline-container">
+    <div class="timeline-line-bg"></div>
+    <div class="timeline-line-fill ${lineClass}" style="width: ${progress}"></div>
+    
+    <div class="timeline-step ${s1}">
+        <div class="step-dot"><i class="fas ${o.status === 'Cancelled' ? 'fa-times' : 'fa-clipboard-check'}"></i></div>
+        <div class="step-label">${o.status === 'Cancelled' ? 'Cancelled' : 'Placed'}</div>
+    </div>
+    <div class="timeline-step ${s2}">
+        <div class="step-dot"><i class="fas fa-box-open"></i></div>
+    </div>
+    <div class="timeline-step ${s3}">
+        <div class="step-dot"><i class="fas fa-truck"></i></div>
+    </div>
+</div>`;
 
-                // Buttons
+                // 2. Button Logic (Hide controls if Cancelled)
                 let actionButtons = '';
-                if(o.status === 'Pending') {
-                    // 4. FIX: Use 'o.docId' for Cancel, 'o.id' for Invoice
+                if (o.status === 'Pending') {
                     actionButtons = `
-                        <button onclick="cancelOrder('${o.docId}')" style="flex:1; padding:8px; background:#ffebee; color:#c62828; border:1px solid #ef9a9a; border-radius:5px; cursor:pointer;">Cancel</button>
-                        <button onclick="openInvoice('${o.id}')" style="flex:1; padding:8px; border:1px solid #e85d04; background:white; color:#e85d04; border-radius:5px; cursor:pointer;">Invoice</button>
-                    `;
+        <button onclick="cancelOrder('${o.docId}')" style="flex:1; padding:8px; background:#ffebee; color:#c62828; border:1px solid #ef9a9a; border-radius:5px; cursor:pointer;">Cancel Order</button>
+        <button onclick="openInvoice('${o.id}')" style="flex:1; padding:8px; border:1px solid #e85d04; background:white; color:#e85d04; border-radius:5px; cursor:pointer;">Invoice</button>
+    `;
+                } else if (o.status === 'Cancelled') {
+                    actionButtons = `
+        <button disabled style="flex:1; padding:8px; background:#eee; color:#999; border:none; border-radius:5px; cursor:not-allowed;">Order Cancelled</button>
+        <button onclick="repeatOrder('${o.id}')" style="flex:1; padding:8px; background:#e85d04; color:white; border:none; border-radius:5px; cursor:pointer;">Re-Order</button>
+    `;
                 } else {
                     actionButtons = `
-                        <button onclick="openInvoice('${o.id}')" style="flex:1; padding:8px; border:1px solid #e85d04; background:white; color:#e85d04; border-radius:5px; cursor:pointer;">Invoice</button>
-                        <button onclick="repeatOrder('${o.id}')" style="flex:1; padding:8px; background:#e85d04; color:white; border:none; border-radius:5px; cursor:pointer;">Repeat</button>
-                    `;
+        <button onclick="openInvoice('${o.id}')" style="flex:1; padding:8px; border:1px solid #e85d04; background:white; color:#e85d04; border-radius:5px; cursor:pointer;">Invoice</button>
+        <button onclick="repeatOrder('${o.id}')" style="flex:1; padding:8px; background:#e85d04; color:white; border:none; border-radius:5px; cursor:pointer;">Repeat</button>
+    `;
                 }
 
                 // Items List
@@ -851,7 +870,7 @@ function showOrderHistory() {
                     <div style="background:white; border:1px solid #eee; border-radius:10px; padding:15px; margin-bottom:15px; box-shadow:0 2px 5px rgba(0,0,0,0.05);">
                         <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
                             <div><strong style="color:#333;">${date}</strong><div style="font-size:0.75rem; color:#999;">#${o.id}</div></div>
-                            <span style="font-weight:bold; color:var(--primary); font-size:0.9rem;">${o.status === 'Cancelled' ? '<span style="color:red">Cancelled</span>' : '₹'+o.total}</span>
+                            <span style="font-weight:bold; color:var(--primary); font-size:0.9rem;">${o.status === 'Cancelled' ? '<span style="color:red">Cancelled</span>' : '₹' + o.total}</span>
                         </div>
                         ${o.status !== 'Cancelled' ? timelineHTML : ''}
                         <div style="margin-top:25px; border-top:1px dashed #ddd; padding-top:10px;">${itemsList}</div>
@@ -1113,25 +1132,25 @@ function showSuccessModal(orderId, amount, method) {
     // FIX: Check if currentUser exists, otherwise use Guest
     const custName = currentUser ? currentUser.displayName : "Guest";
     const address = document.getElementById('cust-address').value;
-    
+
     // Optional Delivery Note
     const noteElem = document.getElementById('delivery-note');
     const noteText = (noteElem && noteElem.value.trim()) ? `\n*Note:* ${noteElem.value.trim()}` : '';
 
     const msg = `*New Order: ${orderId}*\n*Method:* ${method}\n*Amount:* ₹${amount}\n*Customer:* ${custName}\n*Address:* ${address}${noteText}\n\n*Payment:* ${method === 'Online' ? 'PAID ✅' : 'Cash on Delivery 🚚'}`;
-    
+
     const orderIdElem = document.getElementById('success-order-id');
-    if(orderIdElem) orderIdElem.innerText = orderId;
-    
+    if (orderIdElem) orderIdElem.innerText = orderId;
+
     const waBtn = document.getElementById('wa-link-btn');
-    if(waBtn) {
+    if (waBtn) {
         waBtn.onclick = () => {
             window.open(`https://wa.me/${shopConfig.adminPhone}?text=${encodeURIComponent(msg)}`, '_blank');
         };
     }
-    
+
     const modal = document.getElementById('success-modal');
-    if(modal) modal.style.display = 'flex';
+    if (modal) modal.style.display = 'flex';
 }
 // --- USER REVIEW SYSTEM ---
 
@@ -1352,5 +1371,118 @@ function showConfirm(message) {
             modal.style.display = 'none';
             resolve(false);
         };
+    });
+}
+
+// --- LOGIN MODAL HANDLERS ---
+
+function openLoginChoiceModal() {
+    // Close sidebar first for better UX on mobile
+    toggleCart();
+    document.getElementById('login-choice-modal').style.display = 'flex';
+}
+
+function handleLoginChoice(method) {
+    closeModal('login-choice-modal'); // Close the selection modal
+
+    if (method === 'google') {
+        // Trigger existing Google Login Logic
+        // passing 'false' means it's not a checkout-blocking flow, just a user login
+        googleLogin(false);
+        // Re-open cart after login is handled in auth listener, 
+        // or let user open it themselves.
+        toggleCart();
+    }
+    else if (method === 'mobile') {
+        // Placeholder for future WhatsApp OTP integration
+        showToast("Mobile Login coming soon! Please use Google or Guest Checkout.", "neutral");
+        // Re-open cart so they aren't lost
+        setTimeout(() => toggleCart(), 500);
+    }
+}
+
+// --- SMART SEARCH LOGIC ---
+const searchInput = document.getElementById('menu-search');
+const suggestionsBox = document.getElementById('search-suggestions');
+
+if (searchInput) {
+    searchInput.addEventListener('input', function () {
+        const query = this.value.toLowerCase().trim();
+
+        // 1. Hide if empty
+        if (query.length === 0) {
+            suggestionsBox.classList.remove('active');
+            searchMenu(); // Reset grid to show all
+            return;
+        }
+
+        // 2. Filter Products
+        const matches = products.filter(p => {
+            const name = (p.name + (p.nameHi || '')).toLowerCase();
+            return name.includes(query);
+        });
+
+        // 3. Render Suggestions
+        if (matches.length > 0) {
+            suggestionsBox.innerHTML = matches.map(p => `
+                <div class="suggestion-item" onclick="selectSuggestion(${p.id})">
+                    <img src="${p.image}" class="suggestion-img" onerror="this.src='logo.jpg'">
+                    <div class="suggestion-info">
+                        <h4>${p.name}</h4>
+                        <span>₹${p.price}</span>
+                    </div>
+                </div>
+            `).join('');
+            suggestionsBox.classList.add('active');
+        } else {
+            suggestionsBox.classList.remove('active');
+        }
+
+        // Also filter the main grid
+        searchMenu();
+    });
+
+    // Hide when clicking outside
+    document.addEventListener('click', (e) => {
+        if (!searchInput.contains(e.target) && !suggestionsBox.contains(e.target)) {
+            suggestionsBox.classList.remove('active');
+        }
+    });
+}
+
+function selectSuggestion(id) {
+    openProductDetail(id);
+    document.getElementById('search-suggestions').classList.remove('active');
+    document.getElementById('menu-search').value = ''; // Optional: clear search
+    searchMenu(); // Reset grid
+}
+
+// --- PDF DOWNLOAD FUNCTION ---
+function downloadPDF() {
+    const element = document.getElementById('invoice-print-area');
+    const orderId = document.getElementById('inv-order-id').innerText.replace('#', '');
+
+    // Configuration for the PDF
+    const opt = {
+        margin: 10,
+        filename: `Namo_Invoice_${orderId}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true }, // scale: 2 improves quality
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+
+    // Show loading state
+    const btn = document.querySelector('button[onclick="downloadPDF()"]');
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
+
+    // Generate and Save
+    html2pdf().set(opt).from(element).save().then(() => {
+        btn.innerHTML = originalText; // Restore button
+        showToast("Invoice Downloaded!", "success");
+    }).catch(err => {
+        console.error(err);
+        btn.innerHTML = originalText;
+        showToast("Failed to generate PDF", "error");
     });
 }

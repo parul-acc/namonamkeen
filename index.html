@@ -24,6 +24,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
 
 <body>
@@ -127,8 +128,8 @@
 
             <div class="search-container">
                 <i class="fas fa-search"></i>
-                <input type="text" id="menu-search" placeholder="Search for Sev, Mixture, etc..."
-                    oninput="searchMenu()">
+                <input type="text" id="menu-search" placeholder="Search for Sev, Mixture, etc..." autocomplete="off">
+                <div id="search-suggestions" class="search-suggestions"></div>
             </div>
 
             <div class="menu-filters">
@@ -287,10 +288,10 @@
         </div>
 
         <div class="cart-footer">
-            <div id="guest-login-option" style="text-align:center; margin-bottom:10px; font-size:0.85rem;">
+            <div id="guest-login-option" style="text-align:center; margin-bottom:12px; font-size:0.9rem;">
                 <span style="color:#666;">Have an account?</span>
-                <a href="#" onclick="googleLogin(false)"
-                    style="color:var(--primary); font-weight:bold; text-decoration:none;">Login with Google</a>
+                <a href="javascript:void(0)" onclick="openLoginChoiceModal()"
+                    style="color:var(--primary); font-weight:700; text-decoration:none; margin-left: 5px;">Login</a>
             </div>
 
             <button id="btn-main-checkout" class="btn-whatsapp-checkout" onclick="handleCheckout()">
@@ -387,7 +388,12 @@
         <div class="invoice-container">
 
             <div class="invoice-actions no-print">
-                <button onclick="printInvoice()" class="btn-primary"><i class="fas fa-print"></i> Print / PDF</button>
+                <button onclick="downloadPDF()" class="btn-primary" style="background:#2c3e50;">
+                    <i class="fas fa-file-pdf"></i> Download PDF
+                </button>
+                <button onclick="window.print()" class="btn-primary">
+                    <i class="fas fa-print"></i> Print
+                </button>
                 <button onclick="closeInvoice()" class="close-invoice" style="font-size: 2rem;">&times;</button>
             </div>
 
@@ -481,6 +487,28 @@
                 <button id="btn-submit-review" class="btn-primary full-width" onclick="submitReview()"
                     style="margin-top: 15px; width: 100%;">Submit Review</button>
             </div>
+        </div>
+    </div>
+
+    <div id="login-choice-modal" class="modal-overlay">
+        <div class="modal-content mobile-modal text-center" style="max-width: 350px;">
+            <button class="close-modal" onclick="closeModal('login-choice-modal')">&times;</button>
+            <h3 style="margin-bottom: 5px; font-size: 1.5rem;">Welcome Back</h3>
+            <p style="color:#666; margin-bottom: 25px; font-size: 0.9rem;">Choose how you want to login</p>
+
+            <button class="login-option-btn" onclick="handleLoginChoice('google')">
+                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="20">
+                Continue with Google
+            </button>
+
+            <button class="login-option-btn" onclick="handleLoginChoice('mobile')">
+                <i class="fas fa-mobile-alt" style="color: var(--primary); font-size: 1.2rem;"></i>
+                Login via Mobile OTP
+            </button>
+
+            <p style="font-size: 0.75rem; color: #999; margin-top: 15px;">
+                By continuing, you agree to our Terms & Privacy Policy.
+            </p>
         </div>
     </div>
 

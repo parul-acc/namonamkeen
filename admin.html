@@ -39,6 +39,8 @@
         <ul class="nav-links">
             <li><a onclick="switchView('dashboard')" id="nav-dashboard" class="active"><i class="fas fa-chart-pie"></i>
                     Dashboard</a></li>
+            <li><a onclick="switchView('pos')" id="nav-pos"><i class="fas fa-cash-register"></i> New Order (POS)</a>
+            </li>
             <li><a onclick="switchView('inventory')" id="nav-inventory"><i class="fas fa-boxes"></i> Inventory</a></li>
             <li><a onclick="switchView('orders')" id="nav-orders"><i class="fas fa-shopping-bag"></i> Orders</a></li>
             <li><a onclick="switchView('customers')" id="nav-customers"><i class="fas fa-users"></i> Customers</a></li>
@@ -81,6 +83,59 @@
             <div class="charts-grid">
                 <div class="chart-box"><canvas id="salesChart"></canvas></div>
                 <div class="chart-box"><canvas id="productChart"></canvas></div>
+            </div>
+        </div>
+
+        <div id="view-pos" class="view-section">
+            <div class="pos-layout">
+
+                <div class="card pos-left">
+                    <div class="card-header">
+                        <h3>Select Products</h3>
+                        <input type="text" id="pos-search" class="search-input" placeholder="Search product..."
+                            onkeyup="renderPosProducts()">
+                    </div>
+                    <div class="pos-product-grid" id="pos-grid">
+                    </div>
+                </div>
+
+                <div class="card pos-right">
+                    <div class="card-header">
+                        <h3>Customer Details</h3>
+                    </div>
+                    <div style="padding: 15px;">
+                        <input type="text" id="pos-name" class="form-control" placeholder="Customer Name *">
+                        <input type="tel" id="pos-phone" class="form-control" placeholder="Mobile Number *">
+                        <textarea id="pos-address" class="form-control" rows="2"
+                            placeholder="Address (Leave empty if walk-in)"></textarea>
+
+                        <hr style="border:0; border-top:1px dashed #ddd; margin:15px 0;">
+
+                        <h4>Cart Items</h4>
+                        <div id="pos-cart-list" class="pos-cart-list">
+                            <p style="color:#888; text-align:center; margin-top:20px;">No items selected</p>
+                        </div>
+
+                        <div class="pos-total-section">
+                            <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+                                <span>Total:</span>
+                                <span id="pos-total-display" style="font-weight:bold; font-size:1.2rem;">₹0</span>
+                            </div>
+
+                            <label style="font-size:0.85rem; font-weight:600;">Order Status</label>
+                            <select id="pos-status" class="form-control">
+                                <option value="Delivered">Delivered (Handed over now)</option>
+                                <option value="Pending">Pending (For Delivery)</option>
+                                <option value="Packed">Packed</option>
+                            </select>
+
+                            <button class="btn btn-primary full-width" onclick="submitPosOrder()"
+                                style="width:100%; margin-top:10px;">
+                                <i class="fas fa-check-circle"></i> Place Order
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -129,69 +184,72 @@
             </div>
         </div>
 
-<div id="view-orders" class="view-section">
-    <div class="stats-grid">
-        <div class="stat-card border-red">
-            <h3>Pending</h3>
-            <h1 id="ord-pending">0</h1>
-        </div>
-        <div class="stat-card border-blue">
-            <h3>Packed</h3>
-            <h1 id="ord-packed">0</h1>
-        </div>
-        <div class="stat-card border-green">
-            <h3>Delivered</h3>
-            <h1 id="ord-delivered">0</h1>
-        </div>
-    </div>
-
-    <div class="card">
-        <div class="card-header">
-            <h3 style="margin:0;">Order Management</h3>
-            
-            <div id="bulk-toolbar" class="bulk-actions">
-                <span id="selected-count">0 Selected</span>
-                <button class="btn btn-primary btn-sm" onclick="bulkUpdateStatus('Packed')">Mark Packed</button>
-                <button class="btn btn-outline btn-sm" onclick="bulkPrintSlips()" style="color:black;">Print Slips</button>
+        <div id="view-orders" class="view-section">
+            <div class="stats-grid">
+                <div class="stat-card border-red">
+                    <h3>Pending</h3>
+                    <h1 id="ord-pending">0</h1>
+                </div>
+                <div class="stat-card border-blue">
+                    <h3>Packed</h3>
+                    <h1 id="ord-packed">0</h1>
+                </div>
+                <div class="stat-card border-green">
+                    <h3>Delivered</h3>
+                    <h1 id="ord-delivered">0</h1>
+                </div>
             </div>
 
-            <div class="filter-group">
-                <input type="text" id="order-search" class="search-input" placeholder="Search ID, Name, Phone..." onkeyup="filterOrders()">
-                <input type="date" id="date-start" class="date-input" onchange="filterOrders()">
-                <input type="date" id="date-end" class="date-input" onchange="filterOrders()">
-                <select id="order-filter" class="form-control" onchange="filterOrders()" style="width:auto;">
-                    <option value="All">All Status</option>
-                    <option value="Pending">Pending</option>
-                    <option value="Packed">Packed</option>
-                    <option value="Delivered">Delivered</option>
-                </select>
-                <button class="btn btn-primary" onclick="exportOrdersToCSV()"><i class="fas fa-download"></i></button>
+            <div class="card">
+                <div class="card-header">
+                    <h3 style="margin:0;">Order Management</h3>
+
+                    <div id="bulk-toolbar" class="bulk-actions">
+                        <span id="selected-count">0 Selected</span>
+                        <button class="btn btn-primary btn-sm" onclick="bulkUpdateStatus('Packed')">Mark Packed</button>
+                        <button class="btn btn-outline btn-sm" onclick="bulkPrintSlips()" style="color:black;">Print
+                            Slips</button>
+                    </div>
+
+                    <div class="filter-group">
+                        <input type="text" id="order-search" class="search-input"
+                            placeholder="Search ID, Name, Phone..." onkeyup="filterOrders()">
+                        <input type="date" id="date-start" class="date-input" onchange="filterOrders()">
+                        <input type="date" id="date-end" class="date-input" onchange="filterOrders()">
+                        <select id="order-filter" class="form-control" onchange="filterOrders()" style="width:auto;">
+                            <option value="All">All Status</option>
+                            <option value="Pending">Pending</option>
+                            <option value="Packed">Packed</option>
+                            <option value="Delivered">Delivered</option>
+                        </select>
+                        <button class="btn btn-primary" onclick="exportOrdersToCSV()"><i
+                                class="fas fa-download"></i></button>
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th width="40"><input type="checkbox" onchange="toggleAllOrders(this)"></th>
+                                <th>Date / ID</th>
+                                <th>Customer</th>
+                                <th>Items</th>
+                                <th>Total</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="orders-body"></tbody>
+                    </table>
+                </div>
+                <div class="pagination">
+                    <button class="page-btn" onclick="changePage('orders', -1)">Prev</button>
+                    <span class="page-info" id="orders-page-info">Page 1</span>
+                    <button class="page-btn" onclick="changePage('orders', 1)">Next</button>
+                </div>
             </div>
         </div>
-
-        <div class="table-responsive">
-            <table>
-                <thead>
-                    <tr>
-                        <th width="40"><input type="checkbox" onchange="toggleAllOrders(this)"></th>
-                        <th>Date / ID</th>
-                        <th>Customer</th>
-                        <th>Items</th>
-                        <th>Total</th>
-                        <th>Status</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody id="orders-body"></tbody>
-            </table>
-        </div>
-        <div class="pagination">
-            <button class="page-btn" onclick="changePage('orders', -1)">Prev</button>
-            <span class="page-info" id="orders-page-info">Page 1</span>
-            <button class="page-btn" onclick="changePage('orders', 1)">Next</button>
-        </div>
-    </div>
-</div>
 
         <div id="view-customers" class="view-section">
             <div class="stats-grid">

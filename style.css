@@ -560,32 +560,63 @@ h4 {
 }
 
 /* --- SEARCH BAR --- */
+/* --- SMART SEARCH SUGGESTIONS --- */
 .search-container {
-    max-width: 600px;
-    margin: 0 auto 20px;
-    position: relative;
+    position: relative; /* Needed for absolute positioning of dropdown */
+    z-index: 100;
 }
 
-.search-container input {
-    width: 100%;
-    padding: 15px 20px 15px 50px;
-    border-radius: 30px;
-    border: 2px solid #eee;
-    font-size: 1rem;
-    outline: none;
-    transition: 0.3s;
-}
-
-.search-container input:focus {
-    border-color: var(--primary);
-}
-
-.search-container i {
+.search-suggestions {
     position: absolute;
-    left: 20px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: #aaa;
+    top: 100%;
+    left: 0;
+    width: 100%;
+    background: white;
+    border-radius: 0 0 15px 15px; /* Rounded bottom */
+    box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    max-height: 300px;
+    overflow-y: auto;
+    display: none; /* Hidden by default */
+    border: 1px solid #eee;
+    border-top: none;
+}
+
+.search-suggestions.active {
+    display: block;
+}
+
+.suggestion-item {
+    display: flex;
+    align-items: center;
+    padding: 10px 15px;
+    cursor: pointer;
+    transition: 0.2s;
+    border-bottom: 1px solid #f9f9f9;
+}
+
+.suggestion-item:hover {
+    background: #fff3e0;
+}
+
+.suggestion-img {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin-right: 12px;
+    border: 1px solid #ddd;
+}
+
+.suggestion-info h4 {
+    font-size: 0.9rem;
+    margin: 0;
+    color: var(--text-dark);
+}
+
+.suggestion-info span {
+    font-size: 0.8rem;
+    color: var(--primary);
+    font-weight: 600;
 }
 
 /* --- HAMPER BUILDER --- */
@@ -1601,49 +1632,96 @@ h4 {
     }
 }
 
-.input-label {
-    font-size: 0.85rem;
-    font-weight: 700;
-    color: #444;
-    margin-bottom: 8px;
-    display: block;
-    margin-top: 15px;
-    /* Spacing between fields */
+/* --- PREMIUM CHECKOUT FORM --- */
+
+/* 1. Input Fields & Textareas */
+.form-control, 
+textarea, 
+.phone-input-group {
+    width: 100%;
+    background: #f9fafb; /* Light clean background */
+    border: 1px solid #e5e7eb;
+    border-radius: 12px; /* Nice rounded corners */
+    font-size: 0.95rem;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    color: var(--text-dark);
 }
 
-.input-label:first-child {
-    margin-top: 0;
+.form-control { padding: 14px; }
+textarea { padding: 14px; resize: vertical; min-height: 80px; }
+
+/* 2. Focus State (Glow Effect) */
+.form-control:focus, 
+textarea:focus, 
+.phone-input-group:focus-within {
+    background: #ffffff;
+    border-color: var(--primary);
+    box-shadow: 0 4px 12px rgba(232, 93, 4, 0.15); /* Soft Orange Glow */
+    outline: none;
 }
 
-/* Phone Input Specifics */
+/* 3. Phone Input Group Specifics */
 .phone-input-group {
     display: flex;
-    align-items: center;
+    align-items: stretch; /* Ensure full height match */
     padding: 0;
-    /* Reset padding */
-    overflow: hidden;
+    overflow: hidden; /* Clips the inner input */
 }
 
 .phone-input-group span {
-    background: #f9f9f9;
-    padding: 12px 15px;
-    color: #666;
+    background: #f3f4f6;
+    padding: 0 16px;
+    color: #4b5563;
     font-weight: 600;
-    border-right: 1px solid #eee;
+    display: flex;
+    align-items: center;
+    border-right: 1px solid #e5e7eb;
 }
 
 .phone-input-group input {
     border: none;
     outline: none;
-    padding: 12px;
+    padding: 14px;
     width: 100%;
+    background: transparent;
     font-size: 1rem;
+    color: var(--text-dark);
 }
 
-textarea {
-    padding: 12px;
-    resize: none;
-    font-family: inherit;
+/* 4. Labels */
+.input-label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 8px;
+    display: block;
+    margin-top: 20px;
+    letter-spacing: 0.3px;
+}
+
+/* 5. Login Modal specific styles */
+.login-option-btn {
+    width: 100%;
+    padding: 14px;
+    margin-bottom: 15px;
+    border: 1px solid #eee;
+    background: white;
+    border-radius: 10px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    cursor: pointer;
+    transition: 0.2s;
+    font-size: 1rem;
+    color: #333;
+}
+
+.login-option-btn:hover {
+    background: #f9f9f9;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.05);
 }
 
 /* --- 4. PAYMENT OPTIONS (Fixes Alignment) --- */
@@ -2319,4 +2397,24 @@ textarea {
     border-radius: 8px;
     cursor: pointer;
     font-weight: 600;
+}
+
+/* Add to style.css */
+
+/* Status Badge */
+.status-cancelled {
+    background-color: #fee2e2;
+    color: #c62828;
+    border: 1px solid #ef9a9a;
+}
+
+/* Timeline: Cancelled State (Red Line) */
+.timeline-line-fill.cancelled {
+    background: #e74c3c !important;
+}
+
+.timeline-step.cancelled .step-dot {
+    background: #e74c3c;
+    border-color: #e74c3c;
+    color: white;
 }

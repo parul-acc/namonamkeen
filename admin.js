@@ -18,6 +18,8 @@ const ADMIN_EMAILS = ["parul19.accenture@gmail.com", "namonamkeens@gmail.com", "
 let previousOrderCount = 0;
 const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3'); // Simple notification sound
 
+let adminCart = []; // Store items for POS
+
 let salesChartInstance, productChartInstance;
 const ITEMS_PER_PAGE = 10;
 let state = {
@@ -191,7 +193,7 @@ function filterCustomers() {
 }
 
 function exportCustomersToCSV() {
-    if (!state.customers.data || state.customers.data.length === 0) return showToast("No data to export","error");
+    if (!state.customers.data || state.customers.data.length === 0) return showToast("No data to export", "error");
 
     let csv = "Name,Email,Phone,Address,Last Login\n";
     state.customers.data.forEach(u => {
@@ -208,9 +210,12 @@ function loadDashboardData() {
         let rev = 0, count = 0, pending = 0, salesMap = {}, prodMap = {};
         snap.forEach(doc => {
             const o = doc.data();
+            // --- LOGIC CHANGE: Skip Cancelled Orders for Revenue ---
+            if (o.status === 'Cancelled') return;
             const d = o.timestamp ? o.timestamp.toDate() : new Date();
             rev += o.total; count++;
             if (o.status === 'Pending') pending++;
+            // Chart Data
             const dateStr = d.toLocaleDateString();
             salesMap[dateStr] = (salesMap[dateStr] || 0) + o.total;
             if (o.items) o.items.forEach(i => prodMap[i.name] = (prodMap[i.name] || 0) + i.qty);
@@ -312,7 +317,9 @@ function renderOrderRows(tbody, items) {
         const d = o.timestamp ? new Date(o.timestamp.seconds * 1000).toLocaleDateString() : '-';
         const statusClass = `status-${o.status.toLowerCase()}`;
         const itemCount = o.items.length;
-
+        // Add Cancel Button to Actions if Pending
+        const cancelBtn = (o.status === 'Pending') ?
+            `<button class="icon-btn btn-danger" onclick="adminCancelOrder('${o.docId}')" title="Cancel/Spam"><i class="fas fa-ban"></i></button>` : '';
         tbody.innerHTML += `
             <tr>
                 <td><input type="checkbox" class="order-check" value="${o.docId}" onchange="updateBulkUI()"></td>
@@ -326,6 +333,8 @@ function renderOrderRows(tbody, items) {
                 <td><span class="status-pill ${statusClass}">${o.status}</span></td>
                 <td>
                     <button class="icon-btn btn-blue" onclick="viewOrder('${o.docId}')" title="View"><i class="fas fa-eye"></i></button>
+                    <button class="icon-btn" style="background:#555;" onclick="printPackingSlip('${o.docId}')"><i class="fas fa-print"></i></button>
+            ${cancelBtn} </td>
                     <button class="icon-btn" style="background:#555;" onclick="printPackingSlip('${o.docId}')" title="Print"><i class="fas fa-print"></i></button>
                     
                     ${o.status === 'Pending' ?
@@ -456,7 +465,9 @@ function setStatus(id, status) {
     });
 }
 
-// Replace the existing viewOrder function
+// --- ADMIN: EDIT ORDER LOGIC ---
+
+// 1. Replace the existing viewOrder function
 function viewOrder(id) {
     const o = state.orders.data.find(x => x.docId === id);
     if (!o) return;
@@ -466,32 +477,55 @@ function viewOrder(id) {
     o.items.forEach((item, idx) => {
         itemsHtml += `
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; border-bottom:1px solid #eee; padding-bottom:5px;">
-            <div>
+            <div style="flex:1;">
                 <strong>${item.name}</strong> <small>(${item.weight})</small><br>
-                Price: ₹${item.price}
+                <small style="color:#666;">₹${item.price} x ${item.qty} = <strong>₹${item.price * item.qty}</strong></small>
             </div>
-            <div style="display:flex; align-items:center; gap:5px;">
-                <button onclick="adminUpdateQty('${id}', ${idx}, -1)" style="padding:2px 8px;">-</button>
-                <span>${item.qty}</span>
-                <button onclick="adminUpdateQty('${id}', ${idx}, 1)" style="padding:2px 8px;">+</button>
-                <button onclick="adminRemoveItem('${id}', ${idx})" style="color:red; border:none; background:none; margin-left:5px;">&times;</button>
+            <div style="display:flex; align-items:center; gap:8px;">
+                <button class="btn btn-outline btn-sm" onclick="adminUpdateQty('${id}', ${idx}, -1)" style="padding:2px 8px;">-</button>
+                <span style="font-weight:600; width:20px; text-align:center;">${item.qty}</span>
+                <button class="btn btn-outline btn-sm" onclick="adminUpdateQty('${id}', ${idx}, 1)" style="padding:2px 8px;">+</button>
+                <button class="icon-btn btn-danger" onclick="adminRemoveItem('${id}', ${idx})" style="width:28px; height:28px; margin-left:5px;"><i class="fas fa-trash"></i></button>
             </div>
         </div>`;
     });
 
+    // Discount Display
+    let discountHtml = '';
+    if (o.discount && o.discount.value > 0) {
+        discountHtml = `<div style="display:flex; justify-content:space-between; color:green; margin-top:5px; font-size:0.9rem;">
+            <span>Discount (${o.discount.code}):</span>
+            <span>-₹${o.discount.type === 'percent' ? Math.round((o.total / (1 - o.discount.value / 100)) - o.total) : o.discount.value}</span>
+        </div>`;
+    }
+
     const html = `
-        <div style="background:#f9f9f9; padding:10px; border-radius:5px; margin-bottom:15px;">
-            <p><strong>Customer:</strong> ${escapeHtml(o.userName)}</p>
-            <p><strong>Phone:</strong> ${escapeHtml(o.userPhone)}</p>
-            <p><strong>Address:</strong> ${escapeHtml(o.userAddress)}</p>
+        <div style="background:#f9fafb; padding:15px; border-radius:10px; margin-bottom:20px; border:1px solid #e5e7eb;">
+            <h4 style="margin:0 0 10px 0; color:var(--dark);">Customer Details</h4>
+            <p style="margin:5px 0;"><strong>Name:</strong> ${escapeHtml(o.userName)}</p>
+            <p style="margin:5px 0;"><strong>Phone:</strong> ${escapeHtml(o.userPhone)}</p>
+            <p style="margin:5px 0;"><strong>Address:</strong> ${escapeHtml(o.userAddress)}</p>
         </div>
         
-        <h4>Order Items (Edit Mode)</h4>
-        <div id="admin-order-items">${itemsHtml}</div>
+        <h4 style="margin-bottom:15px; display:flex; justify-content:space-between; align-items:center;">
+            Order Items 
+            <span style="font-size:0.75rem; font-weight:normal; color:#666; background:#eee; padding:2px 8px; border-radius:10px;">Edit Mode Active</span>
+        </h4>
         
-        <div style="margin-top:20px; text-align:right; border-top:2px solid #eee; padding-top:10px;">
-            <h3>Total: ₹${o.total}</h3>
-            ${o.discount && o.discount.value > 0 ? `<small style="color:green">Discount Applied: -₹${o.discount.value}</small>` : ''}
+        <div id="admin-order-items" style="max-height:300px; overflow-y:auto; padding-right:5px;">${itemsHtml}</div>
+        
+        <div style="margin-top:20px; border-top:2px dashed #ddd; padding-top:15px;">
+            ${discountHtml}
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <h3>Total: ₹${o.total}</h3>
+            </div>
+        </div>
+
+        <div style="margin-top:20px; display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+            <button class="btn btn-outline" onclick="closeModal('order-modal')">Close</button>
+            <button class="btn btn-green" onclick="sendUpdateNotification('${id}')">
+                <i class="fab fa-whatsapp"></i> Send Updated Receipt
+            </button>
         </div>
     `;
 
@@ -499,52 +533,108 @@ function viewOrder(id) {
     document.getElementById('order-modal').style.display = 'flex';
 }
 
-// Add these NEW Helper Functions to admin.js
+// 2. Add these NEW Helper Functions
+
 function adminUpdateQty(orderId, itemIdx, change) {
     const orderDoc = state.orders.data.find(x => x.docId === orderId);
     if (!orderDoc) return;
 
-    // Clone items array
-    let newItems = [...orderDoc.items];
+    // Clone items array to avoid direct mutation issues
+    let newItems = JSON.parse(JSON.stringify(orderDoc.items));
     let item = newItems[itemIdx];
 
     item.qty += change;
-    if (item.qty < 1) return adminRemoveItem(orderId, itemIdx); // Remove if 0
+
+    if (item.qty < 1) {
+        // If qty goes to 0, ask to remove
+        adminRemoveItem(orderId, itemIdx);
+        return;
+    }
 
     recalculateAndSave(orderId, newItems, orderDoc);
 }
 
-function adminRemoveItem(orderId, itemIdx) {
-    if (!showConfirm("Remove this item?")) return;
-    const orderDoc = state.orders.data.find(x => x.docId === orderId);
-    let newItems = [...orderDoc.items];
+async function adminRemoveItem(orderId, itemIdx) {
+    // 1. Robust Confirmation Logic
+    let confirmed = false;
+    if (typeof showConfirm === 'function') {
+        confirmed = await showConfirm("Remove this item from the order?");
+    } else {
+        confirmed = confirm("Remove this item from the order?"); // Fallback
+    }
 
-    newItems.splice(itemIdx, 1); // Remove item
+    if (!confirmed) return;
+
+    // 2. Safety Check: Find Order
+    const orderDoc = state.orders.data.find(x => x.docId === orderId);
+    if (!orderDoc) {
+        console.error("Error: Order not found in local state", orderId);
+        alert("Error: Order data missing. Please refresh the page.");
+        return;
+    }
+
+    // 3. Clone Items Safely
+    let newItems = [];
+    if (orderDoc.items && Array.isArray(orderDoc.items)) {
+        newItems = JSON.parse(JSON.stringify(orderDoc.items));
+    }
+
+    // 4. Safety Check: Item Index
+    if (itemIdx < 0 || itemIdx >= newItems.length) {
+        console.error("Error: Invalid Item Index", itemIdx);
+        return;
+    }
+    
+    // 5. Remove & Save
+    newItems.splice(itemIdx, 1); // Remove item at index
     recalculateAndSave(orderId, newItems, orderDoc);
 }
 
 function recalculateAndSave(orderId, newItems, orderDoc) {
-    // 1. Calculate New Total
-    let newTotal = newItems.reduce((sum, i) => sum + (i.price * i.qty), 0);
+    // 1. Calculate New Item Total
+    let newItemTotal = newItems.reduce((sum, i) => sum + (i.price * i.qty), 0);
 
-    // 2. Re-apply Discount if exists
+    // 2. Re-apply Discount logic (if any)
     let discountVal = 0;
     if (orderDoc.discount) {
-        if (orderDoc.discount.type === 'percent') discountVal = Math.round(newTotal * (orderDoc.discount.value / 100));
-        else discountVal = orderDoc.discount.value;
+        if (orderDoc.discount.type === 'percent') {
+            discountVal = Math.round(newItemTotal * (orderDoc.discount.value / 100));
+        } else {
+            discountVal = orderDoc.discount.value;
+        }
     }
-    const finalTotal = Math.max(0, newTotal - discountVal);
+
+    const finalTotal = Math.max(0, newItemTotal - discountVal);
 
     // 3. Update Firebase
     db.collection("orders").doc(orderId).update({
         items: newItems,
         total: finalTotal
     }).then(() => {
-        // UI will auto-update because of onSnapshot in loadOrders
-        // But we need to refresh the modal specifically
-        // Simple hack: Close and reopen or just alert
-        viewOrder(orderId); // Refresh modal content
+        // Since we have a real-time listener (onSnapshot), the state.orders.data 
+        // will update automatically, but we need to re-render the modal to show changes immediately.
+        // We manually update local state briefly to make UI snappy before DB confirms
+        orderDoc.items = newItems;
+        orderDoc.total = finalTotal;
+        viewOrder(orderId); // Re-render modal
+    }).catch(err => showToast("Update failed: " + err.message));
+}
+
+// 3. The Notification Function
+function sendUpdateNotification(orderId) {
+    const o = state.orders.data.find(x => x.docId === orderId);
+    if (!o) return;
+
+    let itemsList = "";
+    o.items.forEach(i => {
+        itemsList += `- ${i.name} (${i.weight}) x ${i.qty}\n`;
     });
+
+    let msg = `*Order Update #${o.id}*\n\nHello ${escapeHtml(o.userName)}, per your request, we have updated your order.\n\n*New Summary:*\n${itemsList}\n*New Total: ₹${o.total}*\n\nThank you for choosing Namo Namkeen!`;
+
+    // Open WhatsApp
+    const phone = o.userPhone.replace(/\D/g, '');
+    window.open(`https://wa.me/91${phone}?text=${encodeURIComponent(msg)}`, '_blank');
 }
 
 function loadSettings() {
@@ -823,7 +913,6 @@ function updateBulkUI() {
 function bulkUpdateStatus(newStatus) {
     const checked = document.querySelectorAll('.order-check:checked');
     if (checked.length === 0) return;
-
     if (!showConfirm(`Mark ${checked.length} orders as ${newStatus}?`)) return;
 
     const batch = db.batch();
@@ -867,4 +956,154 @@ function showToast(message, type = 'neutral') {
         setTimeout(() => toast.remove(), 400);
     }, 3000);
 }
+
+// --- POS SYSTEM LOGIC ---
+
+function switchView(v) {
+    // ... existing switchView code ...
+    // Add this inside the function:
+    if (v === 'pos') renderPosProducts();
+}
+
+function renderPosProducts() {
+    const grid = document.getElementById('pos-grid');
+    const query = document.getElementById('pos-search').value.toLowerCase();
+    grid.innerHTML = '';
+
+    state.inventory.data.forEach(p => {
+        // Search Filter
+        if (!p.name.toLowerCase().includes(query)) return;
+
+        // Determine price logic (Default to first variant or base price)
+        let price = p.price;
+        let weight = 'Standard';
+
+        if (p.variants && p.variants.length > 0) {
+            price = p.variants[0].price;
+            weight = p.variants[0].weight;
+        }
+
+        // Generate Card
+        grid.innerHTML += `
+        <div class="pos-card" onclick="addToAdminCart('${p.id}', '${escapeHtml(p.name)}', ${price}, '${weight}', '${p.image}')">
+            <img src="${p.image}" onerror="this.src='logo.jpg'">
+            <h4>${p.name}</h4>
+            <small>${weight} - ₹${price}</small>
+        </div>`;
+    });
+}
+
+function addToAdminCart(id, name, price, weight, image) {
+    const existing = adminCart.find(i => i.productId == id);
+
+    if (existing) {
+        existing.qty++;
+    } else {
+        adminCart.push({
+            productId: id,
+            name: name,
+            price: parseInt(price),
+            weight: weight,
+            image: image,
+            qty: 1
+        });
+    }
+    renderAdminCart();
+}
+
+function renderAdminCart() {
+    const list = document.getElementById('pos-cart-list');
+    list.innerHTML = '';
+    let total = 0;
+
+    adminCart.forEach((item, idx) => {
+        total += item.price * item.qty;
+        list.innerHTML += `
+        <div class="pos-cart-item">
+            <div style="flex:1">
+                <strong>${item.name}</strong><br>
+                <small>₹${item.price} x ${item.qty}</small>
+            </div>
+            <div style="display:flex; align-items:center; gap:5px;">
+                <button class="pos-qty-btn" onclick="updatePosQty(${idx}, -1)">-</button>
+                <span>${item.qty}</span>
+                <button class="pos-qty-btn" onclick="updatePosQty(${idx}, 1)">+</button>
+            </div>
+            <div style="font-weight:bold; margin-left:10px;">₹${item.price * item.qty}</div>
+        </div>`;
+    });
+
+    if (adminCart.length === 0) list.innerHTML = '<p style="color:#888; text-align:center; padding:10px;">Empty Cart</p>';
+
+    document.getElementById('pos-total-display').innerText = `₹${total}`;
+}
+
+function updatePosQty(idx, change) {
+    adminCart[idx].qty += change;
+    if (adminCart[idx].qty <= 0) adminCart.splice(idx, 1);
+    renderAdminCart();
+}
+
+async function submitPosOrder() {
+    const name = document.getElementById('pos-name').value.trim();
+    const phone = document.getElementById('pos-phone').value.trim();
+    const address = document.getElementById('pos-address').value.trim() || "Walk-in Customer";
+    const status = document.getElementById('pos-status').value;
+
+    if (!name || !phone) return showToast("Please enter Name and Phone Number", "error");
+    if (adminCart.length === 0) return showToast("Cart is empty", "error");
+
+    // Calculate Total
+    const total = adminCart.reduce((sum, i) => sum + (i.price * i.qty), 0);
+    const orderId = 'POS-' + Date.now().toString().slice(-6);
+
+    try {
+        await db.collection("orders").add({
+            id: orderId,
+            userId: 'admin_entry', // Mark as internally created
+            userName: name,
+            userPhone: phone,
+            userAddress: address,
+            items: adminCart,
+            total: total,
+            status: status,
+            paymentMethod: 'Cash/UPI (POS)',
+            paymentStatus: 'Paid', // Assuming POS is paid immediately
+            timestamp: new Date(),
+            source: 'Admin POS'
+        });
+
+        showToast("Order Placed Successfully!", "success");
+
+        // Reset Form
+        adminCart = [];
+        renderAdminCart();
+        document.getElementById('pos-name').value = '';
+        document.getElementById('pos-phone').value = '';
+        document.getElementById('pos-address').value = '';
+
+        // Go back to orders
+        switchView('orders');
+
+    } catch (e) {
+        console.error(e);
+        showToast("Error placing order: " + e.message);
+    }
+}
+
+async function adminCancelOrder(docId) {
+    if (!await showConfirm("Mark this order as Cancelled/Spam?")) return;
+
+    try {
+        await db.collection("orders").doc(docId).update({
+            status: "Cancelled",
+            cancelledBy: "Admin",
+            cancelledAt: new Date()
+        });
+        showToast("Order Cancelled", "success");
+    } catch (e) {
+        showToast("Error: " + e.message);
+    }
+}
+
 registerAdminServiceWorker();
