@@ -1541,4 +1541,12 @@ window.addEventListener('beforeinstallprompt', (e) => {
     }
 });
 
+let searchTimeout;
+function debouncedPosSearch() {
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => {
+        renderPosProducts();
+    }, 300); // Waits 300ms after you stop typing to run the search
+}
+
 registerAdminServiceWorker();

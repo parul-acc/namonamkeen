@@ -45,6 +45,7 @@
                 <li><a href="#home" class="nav-link">Home</a></li>
                 <li><a href="#menu-section" class="nav-link">Menu</a></li>
                 <li><a href="pricelist.html" class="nav-link">Price List</a></li>
+                 <li><a href="#testimonials" class="nav-link">Reviews</a></li>
             </ul>
 
             <div class="nav-actions">
@@ -75,14 +76,25 @@
     </nav>
 
     <div class="mobile-nav" id="mobile-nav">
-        <a href="#home" onclick="toggleMobileMenu()">Home</a>
-        <a href="#menu-section" onclick="toggleMobileMenu()">Menu</a>
-        <a href="pricelist.html">Price List</a>
+        <div class="mobile-nav-header">
+            <span class="mobile-nav-title">Namo Namkeen</span>
+            <button onclick="toggleMobileMenu()"
+                style="background: none; border: none; font-size: 2rem; color: white; cursor: pointer; line-height: 1;">
+                &times;
+            </button>
+        </div>
 
-        <button id="pwa-install-btn"
-            style="display: none; background: var(--primary); color: white; border: none; padding: 10px 20px; border-radius: 20px; font-weight: 600; cursor: pointer; margin-top: 10px;">
-            <i class="fas fa-download"></i> Install App
-        </button>
+        <a href="#home" onclick="toggleMobileMenu()"><i class="fas fa-home"></i> Home</a>
+        <a href="#menu-section" onclick="toggleMobileMenu()"><i class="fas fa-utensils"></i> Menu</a>
+        <a href="pricelist.html"><i class="fas fa-file-invoice-dollar"></i> Price List</a>
+        <a href="#testimonials" onclick="toggleMobileMenu()"><i class="fas fa-comment-alt"></i> Reviews</a>
+
+        <div class="mobile-install-box">
+            <button id="pwa-install-btn"
+                style="display: none; width: 100%; background: var(--primary); color: white; border: none; padding: 12px; border-radius: 8px; font-weight: 600; cursor: pointer;">
+                <i class="fas fa-download"></i> Install App
+            </button>
+        </div>
     </div>
 
     <section id="home" class="hero">
@@ -516,7 +528,6 @@
         <div class="container">
             <div class="footer-top">
                 <div class="footer-section about">
-                    <img src="logo.jpg" alt="Namo Namkeen" class="footer-logo">
                     <p>Authentic Indian Sweets & Snacks, delivered to your doorstep. The Royal Taste of Indore.</p>
                     <div class="social-links">
                         <a href="#" class="social-icon"><i class="fab fa-instagram"></i></a>

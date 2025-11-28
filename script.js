@@ -960,7 +960,26 @@ function closeAnnouncement() { document.getElementById('announcement-bar').style
 function filterMenu(c) { currentCategory = c; document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active')); event.target.classList.add('active'); renderMenu(); }
 function searchMenu() { searchQuery = document.getElementById('menu-search').value; renderMenu(); }
 function toggleLanguage() { currentLang = currentLang === 'en' ? 'hi' : 'en'; renderMenu(); updateCartUI(); }
-function toggleMobileMenu() { document.getElementById('mobile-nav').classList.toggle('active'); }
+function toggleMobileMenu() {
+    const nav = document.getElementById('mobile-nav');
+    const hamburger = document.querySelector('.hamburger');
+
+    // Toggle classes on both
+    nav.classList.toggle('active');
+    hamburger.classList.toggle('active');
+}
+
+// Close menu when clicking outside (Optional but good UX)
+document.addEventListener('click', (e) => {
+    const nav = document.getElementById('mobile-nav');
+    const hamburger = document.querySelector('.hamburger');
+
+    // If menu is open AND click is NOT on menu AND NOT on hamburger
+    if (nav.classList.contains('active') && !nav.contains(e.target) && !hamburger.contains(e.target)) {
+        nav.classList.remove('active');
+        hamburger.classList.remove('active');
+    }
+});
 function scrollToTop() { window.scrollTo({ top: 0, behavior: 'smooth' }); }
 
 // --- COUPON LIST RENDERER (Missing Function) ---
@@ -1402,9 +1421,13 @@ function showConfirm(message) {
 
 // --- LOGIN MODAL HANDLERS ---
 
+// --- LOGIN MODAL HANDLERS ---
+
 function openLoginChoiceModal() {
-    // Close sidebar first for better UX on mobile
-    toggleCart();
+    // 1. Do NOT close the cart. 
+    // The modal should stack on top of the sidebar.
+    // (Ensure your CSS z-indexes are correct: Sidebar ~5001, Modal ~6000+)
+
     document.getElementById('login-choice-modal').style.display = 'flex';
 }
 
@@ -1412,18 +1435,12 @@ function handleLoginChoice(method) {
     closeModal('login-choice-modal'); // Close the selection modal
 
     if (method === 'google') {
-        // Trigger existing Google Login Logic
-        // passing 'false' means it's not a checkout-blocking flow, just a user login
-        googleLogin(false);
-        // Re-open cart after login is handled in auth listener, 
-        // or let user open it themselves.
-        toggleCart();
+        // 2. Trigger Google Login as 'Checkout Flow' (true)
+        // This ensures that after login, initiateRazorpayPayment() is called automatically.
+        googleLogin(true);
     }
     else if (method === 'mobile') {
-        // Placeholder for future WhatsApp OTP integration
         showToast("Mobile Login coming soon! Please use Google or Guest Checkout.", "neutral");
-        // Re-open cart so they aren't lost
-        setTimeout(() => toggleCart(), 500);
     }
 }
 

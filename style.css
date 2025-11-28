@@ -171,20 +171,6 @@ h4 {
     font-weight: bold;
 }
 
-.hamburger {
-    display: none;
-    cursor: pointer;
-}
-
-.bar {
-    display: block;
-    width: 25px;
-    height: 3px;
-    margin: 5px 0;
-    background-color: var(--text-dark);
-    transition: 0.3s;
-}
-
 /* USER PROFILE */
 #user-profile {
     position: relative;
@@ -263,33 +249,150 @@ h4 {
     border-top: 1px solid #eee;
 }
 
+/* Install Button styling in menu */
+#pwa-install-btn {
+    width: 100%;
+    margin-top: 20px;
+    justify-content: center;
+}
+
 /* MOBILE NAV */
+/* --- MOBILE DRAWER (Fixed Layout) --- */
+/* --- MOBILE DRAWER (Dark Premium Theme) --- */
 .mobile-nav {
     position: fixed;
-    top: 70px;
-    left: 0;
-    width: 100%;
-    background: #ffffff;
-    padding: 30px 0;
+    top: 0;
+    right: -300px;
+    /* Start hidden */
+    width: 280px;
+    height: 100vh;
+    /* CHANGE: Dark Brand Background instead of White */
+    background: var(--text-dark);
+    box-shadow: -5px 0 30px rgba(0, 0, 0, 0.5);
+    z-index: 2005;
+    /* Above everything */
     display: flex;
     flex-direction: column;
-    align-items: center;
-    gap: 25px;
-    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
-    z-index: 9999;
-    transform: translateY(-150%);
-    transition: transform 0.3s ease-in-out;
+    padding-top: 20px;
+    /* FIX: Reduced from 90px to 20px to move content up */
+    transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .mobile-nav.active {
-    transform: translateY(0);
+    right: 0;
+    /* Slide in */
 }
 
+/* Close Button Container */
+.mobile-nav-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 25px 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.mobile-nav-title {
+    color: var(--primary);
+    font-family: 'Playfair Display', serif;
+    font-size: 1.2rem;
+    font-weight: 700;
+}
+
+/* Links Styling */
 .mobile-nav a {
     text-decoration: none;
-    color: var(--text-dark);
-    font-size: 1.2rem;
-    font-weight: 600;
+    color: rgba(255, 255, 255, 0.9);
+    /* White text */
+    font-size: 1.1rem;
+    font-weight: 500;
+    padding: 18px 30px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    /* Subtle dividers */
+    transition: 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.mobile-nav a i {
+    color: var(--primary);
+    /* Orange Icons */
+    width: 25px;
+    /* Fixed width for alignment */
+    text-align: center;
+}
+
+.mobile-nav a:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+    color: var(--primary);
+    padding-left: 35px;
+    /* Slide effect */
+}
+
+/* Install App Button Container */
+.mobile-install-box {
+    margin-top: auto;
+    /* Push to bottom */
+    padding: 20px;
+    background: rgba(0, 0, 0, 0.2);
+}
+
+/* --- HAMBURGER TO 'X' ANIMATION --- */
+.hamburger {
+    display: none;
+    cursor: pointer;
+    width: 30px;
+    height: 25px;
+    position: relative;
+    z-index: 6000;
+    /* Super high to sit on top of sidebar */
+    transition: 0.3s;
+}
+
+.bar {
+    display: block;
+    width: 100%;
+    height: 3px;
+    margin: 5px 0;
+    background-color: var(--text-dark);
+    border-radius: 3px;
+    transition: 0.3s;
+}
+
+/* Animation: Turn into X */
+.hamburger.active .bar:nth-child(1) {
+    transform: translateY(8px) rotate(45deg);
+    background-color: var(--primary);
+    /* Orange Color */
+}
+
+.hamburger.active .bar:nth-child(2) {
+    opacity: 0;
+}
+
+.hamburger.active .bar:nth-child(3) {
+    transform: translateY(-8px) rotate(-45deg);
+    background-color: var(--primary);
+    /* Orange Color */
+}
+
+/* Ensure it appears properly on mobile */
+@media (max-width: 768px) {
+    .hamburger {
+        display: block;
+        position: fixed;
+        /* Breaks out of Navbar stacking context */
+        top: 22px;
+        /* Aligns with your Logo */
+        right: 20px;
+        /* Aligns with edge */
+    }
+
+    /* Adjust Navbar actions so they don't overlap the fixed hamburger */
+    .nav-actions {
+        margin-right: 0;
+    }
 }
 
 /* --- 4. HERO SECTION --- */
@@ -561,9 +664,51 @@ h4 {
 
 /* --- SEARCH BAR --- */
 /* --- SMART SEARCH SUGGESTIONS --- */
+/* --- PREMIUM SEARCH BAR --- */
 .search-container {
-    position: relative; /* Needed for absolute positioning of dropdown */
+    max-width: 600px;
+    margin: 10px auto 25px;
+    position: relative;
     z-index: 100;
+}
+
+.search-container input {
+    width: 100%;
+    padding: 14px 20px 14px 50px;
+    /* Space for icon */
+    border-radius: 50px;
+    /* Fully rounded pill shape */
+    border: 1px solid #e0e0e0;
+    font-size: 1rem;
+    outline: none;
+    transition: all 0.3s ease;
+    background: #ffffff;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+    /* Soft shadow */
+    color: var(--text-dark);
+}
+
+.search-container input::placeholder {
+    color: #999;
+    font-weight: 400;
+}
+
+.search-container input:focus {
+    border-color: var(--primary);
+    box-shadow: 0 5px 20px rgba(232, 93, 4, 0.15);
+    /* Orange glow on focus */
+    transform: translateY(-2px);
+    /* Slight lift effect */
+}
+
+.search-container i {
+    position: absolute;
+    left: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--primary);
+    font-size: 1.1rem;
+    pointer-events: none;
 }
 
 .search-suggestions {
@@ -572,11 +717,13 @@ h4 {
     left: 0;
     width: 100%;
     background: white;
-    border-radius: 0 0 15px 15px; /* Rounded bottom */
-    box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    border-radius: 0 0 15px 15px;
+    /* Rounded bottom */
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
     max-height: 300px;
     overflow-y: auto;
-    display: none; /* Hidden by default */
+    display: none;
+    /* Hidden by default */
     border: 1px solid #eee;
     border-top: none;
 }
@@ -691,6 +838,10 @@ h4 {
     gap: 10px;
     border-top: 1px solid #eee;
     padding-top: 20px;
+}
+
+.modal-overlay {
+    z-index: 6000 !important;
 }
 
 /* --- CART SIDEBAR --- */
@@ -1386,21 +1537,88 @@ h4 {
         margin-bottom: 10px;
     }
 
+    /* 1. Grid Layout: Force 2 Columns */
     .product-grid {
-        grid-template-columns: 1fr 1fr;
-        gap: 10px;
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        /* 2 Columns equal width */
+        gap: 12px;
+        /* Smaller gap between cards */
+        padding: 0 5px;
+        /* Slight edge padding */
+    }
+
+    /* 2. Product Card Compact Styling */
+    .product-card {
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        /* Lighter shadow for mobile */
     }
 
     .product-img {
-        height: 140px;
+        height: 130px;
+        /* Smaller image height */
     }
 
     .product-info {
         padding: 10px;
+        /* Reduce internal padding */
     }
 
+    .product-info h3 {
+        font-size: 0.9rem;
+        /* Smaller title font */
+        margin-bottom: 4px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        /* Truncate long names with ... */
+    }
+
+    /* Hide long descriptions on mobile to save space */
     .product-desc {
         display: none;
+    }
+
+    /* Compact Star Rating */
+    .star-display {
+        font-size: 0.7rem;
+        margin-bottom: 8px;
+    }
+
+    /* 3. Controls (Dropdown & Button) */
+    .variant-select {
+        padding: 4px 8px;
+        font-size: 0.8rem;
+        height: 32px;
+        margin-bottom: 8px;
+        background-position: right 8px center;
+        /* Adjust arrow position */
+    }
+
+    .price-row {
+        flex-direction: row;
+        /* Keep side-by-side */
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .price {
+        font-size: 1rem;
+    }
+
+    .add-btn {
+        padding: 6px 12px;
+        font-size: 0.8rem;
+        border-radius: 6px;
+    }
+
+    /* Adjust Ribbon Size */
+    .ribbon {
+        font-size: 0.6rem;
+        padding: 2px 8px;
+        top: 8px;
+        right: 8px;
     }
 
     .video-grid {
@@ -1436,12 +1654,96 @@ h4 {
 }
 
 @media (max-width: 480px) {
+
+    /* 1. Grid Layout: Force 2 Columns */
     .product-grid {
-        grid-template-columns: 1fr;
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        /* 2 Columns equal width */
+        gap: 12px;
+        /* Smaller gap between cards */
+        padding: 0 5px;
+        /* Slight edge padding */
+    }
+
+    /* 2. Product Card Compact Styling */
+    .product-card {
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        /* Lighter shadow for mobile */
+    }
+
+    .product-img {
+        height: 130px;
+        /* Smaller image height */
+    }
+
+    .product-info {
+        padding: 10px;
+        /* Reduce internal padding */
+    }
+
+    .product-info h3 {
+        font-size: 0.9rem;
+        /* Smaller title font */
+        margin-bottom: 4px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        /* Truncate long names with ... */
+    }
+
+    /* Hide long descriptions on mobile to save space */
+    .product-desc {
+        display: none;
+    }
+
+    /* Compact Star Rating */
+    .star-display {
+        font-size: 0.7rem;
+        margin-bottom: 8px;
+    }
+
+    /* 3. Controls (Dropdown & Button) */
+    .variant-select {
+        padding: 4px 8px;
+        font-size: 0.8rem;
+        height: 32px;
+        margin-bottom: 8px;
+        background-position: right 8px center;
+        /* Adjust arrow position */
+    }
+
+    .price-row {
+        flex-direction: row;
+        /* Keep side-by-side */
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .price {
+        font-size: 1rem;
+    }
+
+    .add-btn {
+        padding: 6px 12px;
+        font-size: 0.8rem;
+        border-radius: 6px;
+    }
+
+    /* Adjust Ribbon Size */
+    .ribbon {
+        font-size: 0.6rem;
+        padding: 2px 8px;
+        top: 8px;
+        right: 8px;
     }
 
     .hamper-grid {
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: repeat(3, 1fr);
+        /* FIX: Force 3 Columns */
+        gap: 5px;
+        /* Tighter gap for small screens */
     }
 
     .video-wrapper {
@@ -1635,37 +1937,49 @@ h4 {
 /* --- PREMIUM CHECKOUT FORM --- */
 
 /* 1. Input Fields & Textareas */
-.form-control, 
-textarea, 
+.form-control,
+textarea,
 .phone-input-group {
     width: 100%;
-    background: #f9fafb; /* Light clean background */
+    background: #f9fafb;
+    /* Light clean background */
     border: 1px solid #e5e7eb;
-    border-radius: 12px; /* Nice rounded corners */
+    border-radius: 12px;
+    /* Nice rounded corners */
     font-size: 0.95rem;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     color: var(--text-dark);
 }
 
-.form-control { padding: 14px; }
-textarea { padding: 14px; resize: vertical; min-height: 80px; }
+.form-control {
+    padding: 14px;
+}
+
+textarea {
+    padding: 14px;
+    resize: vertical;
+    min-height: 80px;
+}
 
 /* 2. Focus State (Glow Effect) */
-.form-control:focus, 
-textarea:focus, 
+.form-control:focus,
+textarea:focus,
 .phone-input-group:focus-within {
     background: #ffffff;
     border-color: var(--primary);
-    box-shadow: 0 4px 12px rgba(232, 93, 4, 0.15); /* Soft Orange Glow */
+    box-shadow: 0 4px 12px rgba(232, 93, 4, 0.15);
+    /* Soft Orange Glow */
     outline: none;
 }
 
 /* 3. Phone Input Group Specifics */
 .phone-input-group {
     display: flex;
-    align-items: stretch; /* Ensure full height match */
+    align-items: stretch;
+    /* Ensure full height match */
     padding: 0;
-    overflow: hidden; /* Clips the inner input */
+    overflow: hidden;
+    /* Clips the inner input */
 }
 
 .phone-input-group span {
@@ -1721,7 +2035,7 @@ textarea:focus,
 .login-option-btn:hover {
     background: #f9f9f9;
     transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
 }
 
 /* --- 4. PAYMENT OPTIONS (Fixes Alignment) --- */
@@ -2205,7 +2519,7 @@ textarea:focus,
     bottom: 30px;
     left: 50%;
     transform: translateX(-50%);
-    z-index: 6000;
+    z-index: 7000;
     display: flex;
     flex-direction: column;
     gap: 10px;
@@ -2362,12 +2676,14 @@ textarea:focus,
 
 /* --- CUSTOM CONFIRM MODAL --- */
 #custom-confirm-modal {
-    z-index: 9999 !important; /* Always on top */
+    z-index: 9999 !important;
+    /* Always on top */
 }
 
 .confirm-box {
     text-align: center;
-    max-width: 350px !important; /* Smaller width */
+    max-width: 350px !important;
+    /* Smaller width */
 }
 
 .confirm-actions {
@@ -2417,4 +2733,248 @@ textarea:focus,
     background: #e74c3c;
     border-color: #e74c3c;
     color: white;
+}
+
+/* --- MOBILE FOOTER OPTIMIZATION --- */
+@media (max-width: 600px) {
+    .footer {
+        padding: 30px 0 80px;
+        /* Extra bottom padding for floating buttons */
+        text-align: center;
+    }
+
+    .footer-top {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        /* Force 2 Columns */
+        gap: 30px 15px;
+        /* Vertical Gap: 30px, Horizontal: 15px */
+    }
+
+    /* 1. Logo & About Section: Full Width & Centered */
+    .footer-section.about {
+        grid-column: 1 / -1;
+        /* Span across both columns */
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        border-bottom: 1px solid #3a3a3a;
+        padding-bottom: 20px;
+        margin-bottom: 10px;
+    }
+
+    .footer-section.about p {
+        max-width: 300px;
+        margin: 0 auto 15px;
+        font-size: 0.9rem;
+    }
+
+    .footer-logo {
+        margin-bottom: 10px;
+    }
+
+    .social-links {
+        justify-content: center;
+    }
+
+    /* 2. Links Sections (Quick Links & Legal): Left Aligned */
+    .footer-section.links {
+        text-align: left;
+        padding-left: 10px;
+    }
+
+    .footer-section.links h4 {
+        font-size: 1rem;
+        margin-bottom: 15px;
+    }
+
+    .footer-section.links h4::after {
+        left: 0;
+        transform: none;
+        /* Keep underline left-aligned */
+    }
+
+    /* 3. Contact Section: Full Width & Styled Box */
+    .footer-section.contact {
+        grid-column: 1 / -1;
+        /* Span full width */
+        background: rgba(255, 255, 255, 0.05);
+        /* Dark box background */
+        padding: 20px;
+        border-radius: 12px;
+        margin-top: 10px;
+    }
+
+    .footer-section.contact h4 {
+        text-align: center;
+    }
+
+    .footer-section.contact h4::after {
+        left: 50%;
+        transform: translateX(-50%);
+        /* Center the underline */
+    }
+
+    .footer-section.contact p {
+        justify-content: center;
+        /* Center align icon and text */
+        font-size: 0.9rem;
+    }
+}
+
+/* --- HEADER & LAYOUT FIXES (Mobile) --- */
+@media (max-width: 600px) {
+
+    /* 1. Container Spacing */
+    .nav-container {
+        padding: 0 12px;
+        height: 60px;
+        /* Fix header height */
+    }
+
+    /* 2. Logo Optimization: Hide Text, Keep Icon */
+    .logo-text {
+        display: none;
+        /* Hides "Namo Namkeen" text to save space */
+    }
+
+    .logo-img {
+        width: 45px;
+        /* Slightly larger icon since text is gone */
+        height: 45px;
+    }
+
+    /* 3. Login Button Compact */
+    .btn-primary.small-btn {
+        padding: 6px 12px;
+        font-size: 0.8rem;
+        white-space: nowrap;
+        /* Prevents text wrap */
+    }
+
+    /* 4. Action Icons Spacing */
+    .nav-actions {
+        gap: 12px;
+        /* Consistent gap between Login, Cart, Menu */
+    }
+
+    /* 5. Cart Icon */
+    .cart-trigger {
+        font-size: 1.3rem;
+    }
+
+    .cart-count {
+        top: -5px;
+        right: -8px;
+    }
+
+    /* 6. Fix Hamburger Position (Put back in flow) */
+    .hamburger {
+        display: block;
+        position: relative;
+        /* Reset from fixed */
+        top: auto;
+        right: auto;
+        margin-left: 5px;
+        z-index: 6000;
+        /* Keep high z-index */
+    }
+
+    /* 7. Ensure Navbar Items Align Vertically */
+    .navbar {
+        display: flex;
+        align-items: center;
+        height: 70px;
+    }
+}
+
+@media (max-width: 600px) {
+    /* ... existing mobile styles ... */
+
+    /* Force Trust Badges to be 3 in a row */
+    .badge-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        /* 3 Equal Columns */
+        gap: 10px;
+        /* Smaller gap */
+        justify-content: center;
+    }
+
+    .badge-item {
+        margin-bottom: 0;
+        /* Remove extra margin if any */
+    }
+
+    /* Reduce icon and text size to fit */
+    .badge-item i {
+        font-size: 1.5rem;
+        /* Smaller icon */
+        margin-bottom: 5px;
+    }
+
+    .badge-item h4 {
+        font-size: 0.75rem;
+        /* Smaller text */
+        line-height: 1.2;
+    }
+}
+
+@media (max-width: 600px) {
+    /* ... existing mobile styles ... */
+
+    /* Force Testimonials (Video Grid) to be 3 in a row */
+    .video-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        /* 3 Equal Columns */
+        gap: 8px;
+        /* Tight gap */
+        padding: 0 5px;
+    }
+
+    /* Adjust Video Card for small size */
+    .video-wrapper {
+        height: 140px;
+        /* Reduce height significantly to match width */
+        border-radius: 10px 10px 0 0;
+    }
+
+    .video-card {
+        border-radius: 10px;
+    }
+
+    /* Shrink Play Button */
+    .play-overlay {
+        width: 35px;
+        height: 35px;
+        font-size: 1rem;
+        border-width: 2px;
+    }
+
+    /* Compact Text Info */
+    .video-caption {
+        padding: 8px 4px;
+        text-align: center;
+    }
+
+    .video-caption h4 {
+        font-size: 0.75rem;
+        /* Smaller Name */
+        margin-bottom: 2px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .test-location {
+        font-size: 0.6rem;
+        display: none;
+        /* Optional: Hide location to save space, or keep it very small */
+    }
+
+    .video-caption .stars {
+        font-size: 0.6rem;
+        margin-bottom: 4px;
+    }
 }

@@ -11,6 +11,7 @@
         href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Poppins:wght@300;400;500;600&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
     <style>
         .pricelist-body {
             background-color: #f4f4f4;
@@ -72,7 +73,7 @@
 
         .p-name {
             font-weight: 600;
-            font-size: 1rem;
+            font-size: 0.8rem;
             color: var(--text-dark);
         }
 
@@ -80,7 +81,7 @@
             font-family: 'Playfair Display', serif;
             font-weight: 700;
             color: var(--primary);
-            font-size: 1.2rem;
+            font-size: 1.0rem;
             text-align: right;
         }
 
@@ -121,12 +122,46 @@
                 <img src="logo.jpg" alt="Namo Namkeen" class="logo-img">
                 <span class="logo-text">Namo Namkeen</span>
             </a>
+
             <ul class="nav-menu">
                 <li><a href="index.html" class="nav-link">Home</a></li>
                 <li><a href="pricelist.html" class="nav-link active">Price List</a></li>
             </ul>
+
+            <div class="nav-actions">
+                <div class="hamburger" onclick="toggleMobileMenu()">
+                    <span class="bar"></span>
+                    <span class="bar"></span>
+                    <span class="bar"></span>
+                </div>
+            </div>
         </div>
     </nav>
+
+
+
+    <div class="mobile-nav" id="mobile-nav">
+        <div class="mobile-nav-header">
+            <span class="mobile-nav-title">Namo Namkeen</span>
+            <button onclick="toggleMobileMenu()"
+                style="background: none; border: none; font-size: 2rem; color: white; cursor: pointer; line-height: 1;">
+                &times;
+            </button>
+        </div>
+
+        <a href="index.html" onclick="toggleMobileMenu()"><i class="fas fa-home"></i> Home</a>
+        <a href="index.html#menu-section" onclick="toggleMobileMenu()"><i class="fas fa-utensils"></i> Menu</a>
+        <a href="#"><i class="fas fa-file-invoice-dollar"></i> Price List</a>
+        <a href="index.html#testimonials" onclick="toggleMobileMenu()"><i class="fas fa-comment-alt"></i> Reviews</a>
+
+        <div class="mobile-install-box">
+            <button id="pwa-install-btn"
+                style="display: none; width: 100%; background: var(--primary); color: white; border: none; padding: 12px; border-radius: 8px; font-weight: 600; cursor: pointer;">
+                <i class="fas fa-download"></i> Install App
+            </button>
+        </div>
+    </div>
+    </div>
 
     <button class="fab-print" onclick="window.print()"
         style="position:fixed; bottom:30px; right:30px; width:60px; height:60px; background:#2c1810; color:#faa307; border-radius:50%; border:none; font-size:1.5rem; cursor:pointer; z-index:99; box-shadow: 0 4px 10px rgba(0,0,0,0.3);">
@@ -150,7 +185,6 @@
         <div class="container">
             <div class="footer-top">
                 <div class="footer-section about">
-                    <img src="logo.jpg" alt="Namo Namkeen" class="footer-logo">
                     <p>Authentic Indian Sweets & Snacks, delivered to your doorstep. The Royal Taste of Indore.</p>
                     <div class="social-links">
                         <a href="#" class="social-icon"><i class="fab fa-instagram"></i></a>
@@ -255,9 +289,8 @@
                             <td width="80"><img src="${p.image}" class="t-thumb" onerror="this.src='logo.jpg'"></td>
                             <td>
                                 <div class="p-name">${p.name}</div>
-                                <small style="color:#777">${p.nameHi || ''}</small>
                             </td>
-                            <td style="color:#555; font-size:0.9rem;">${sizeInfo}</td>
+                            <td style="color:#555; font-size:0.8rem;">${sizeInfo}</td>
                             <td class="p-price">${priceInfo}</td>
                         </tr>
                     `;
@@ -288,6 +321,26 @@
         }).catch(error => {
             console.error("Error loading menu:", error);
             document.getElementById('dynamic-content').innerHTML = '<p style="text-align:center; color:red;">Failed to load menu.</p>';
+        });
+
+        // --- MOBILE MENU LOGIC ---
+        function toggleMobileMenu() {
+            const nav = document.getElementById('mobile-nav');
+            const hamburger = document.querySelector('.hamburger'); // Selects the fixed hamburger
+
+            nav.classList.toggle('active');
+            hamburger.classList.toggle('active'); // This triggers the CSS animation above
+        }
+
+        // Close menu when clicking outside
+        document.addEventListener('click', (e) => {
+            const nav = document.getElementById('mobile-nav');
+            const hamburger = document.querySelector('.hamburger');
+
+            if (nav.classList.contains('active') && !nav.contains(e.target) && !hamburger.contains(e.target)) {
+                nav.classList.remove('active');
+                hamburger.classList.remove('active');
+            }
         });
     </script>
 </body>

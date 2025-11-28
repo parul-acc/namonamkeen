@@ -125,7 +125,7 @@
                     <div class="card-header">
                         <h3>Select Products</h3>
                         <input type="text" id="pos-search" class="search-input" placeholder="Search product..."
-                            onkeyup="renderPosProducts()">
+                            onkeyup="debouncedPosSearch()">
                     </div>
                     <div class="pos-product-grid" id="pos-grid">
                     </div>
