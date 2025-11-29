@@ -12,6 +12,14 @@ if (typeof firebase !== 'undefined' && !firebase.apps.length) {
     firebase.initializeApp(firebaseConfig);
 }
 const db = firebase.firestore();
+db.enablePersistence()
+    .catch((err) => {
+        if (err.code == 'failed-precondition') {
+            console.log('Persistence failed: Multiple tabs open');
+        } else if (err.code == 'unimplemented') {
+            console.log('Persistence not supported by browser');
+        }
+    });
 const auth = firebase.auth();
 const ADMIN_EMAILS = ["parul19.accenture@gmail.com", "namonamkeens@gmail.com", "soramjain2297@gmail.com"];
 
@@ -55,6 +63,8 @@ function logout() { auth.signOut().then(() => location.reload()); }
 
 function initDashboard() {
     console.log("Initializing Dashboard...");
+    // FIX: Reveal the UI now that we know the user is an Admin
+    document.body.classList.remove('loading');
     loadDashboardData('All');
     loadInventory();
     loadOrders();
@@ -138,7 +148,7 @@ function loadReviews() {
                 <td><small>${date}</small></td>
                 <td>
                     <div style="display:flex; align-items:center; gap:10px;">
-                        <img src="${pImg}" style="width:30px; height:30px; border-radius:4px; object-fit:cover;" onerror="this.src='logo.jpg'">
+                        <img src="${pImg}" style="width:30px; height:30px; border-radius:4px; object-fit:cover;" onerror="this.onerror=null; this.src='logo.jpg';">
                         <span>${pName}</span>
                     </div>
                 </td>
@@ -257,13 +267,18 @@ function filterCustomers() {
     renderTable('customers');
 }
 
+// In admin.js inside exportCustomersToCSV()
+
 function exportCustomersToCSV() {
     if (!state.customers.data || state.customers.data.length === 0) return showToast("No data to export", "error");
 
     let csv = "Name,Email,Phone,Address,Last Login\n";
     state.customers.data.forEach(u => {
-        const addr = u.address ? String(u.address).replace(/(\r\n|\n|\r|,)/gm, " ") : "";
-        csv += `"${u.name || ''}","${u.email || ''}","${u.phone || ''}","${addr}","${u.displayDate}"\n`;
+        // FIX: Escape double quotes inside data and wrap fields in quotes
+        const addr = u.address ? u.address.replace(/"/g, '""') : "";
+        const name = u.name ? u.name.replace(/"/g, '""') : "";
+
+        csv += `"${name}","${u.email || ''}","${u.phone || ''}","${addr}","${u.displayDate}"\n`;
     });
     downloadCSV(csv, "namo_customers.csv");
 }
@@ -438,7 +453,7 @@ function renderInventoryRows(tbody, items) {
         const rowClass = !p.in_stock ? 'row-out-stock' : '';
         tbody.innerHTML += `
             <tr class="${rowClass}">
-                <td><img src="${p.image}" width="40" height="40" style="border-radius:5px; object-fit:cover;" onerror="this.src='logo.jpg'"></td>
+                <td><img src="${p.image}" width="40" height="40" style="border-radius:5px; object-fit:cover;" onerror="this.onerror=null; this.src='logo.jpg';"></td>
                 <td><strong>${p.name}</strong><br><small>${p.category}</small></td>
                 <td><small>${vs}</small></td>
                 <td><span class="stock-tag ${p.in_stock ? 'stock-in' : 'stock-out'}" onclick="toggleStock('${p.docId}',${!p.in_stock})">${p.in_stock ? 'In Stock' : 'Out'}</span></td>
@@ -450,15 +465,24 @@ function renderInventoryRows(tbody, items) {
     });
 }
 
+// 1. Add this variable at the top of admin.js with other state variables
+let inventorySearchTimeout;
+
+// 2. Replace the existing filterInventory function with this:
 function filterInventory() {
-    const query = document.getElementById('inv-search').value.toLowerCase();
-    const filtered = state.inventory.data.filter(p =>
-        (p.name && p.name.toLowerCase().includes(query)) ||
-        (p.category && p.category.toLowerCase().includes(query))
-    );
-    state.inventory.filteredData = filtered;
-    state.inventory.page = 1;
-    renderTable('inventory');
+    clearTimeout(inventorySearchTimeout);
+
+    // Wait for 300ms pause in typing before actually filtering
+    inventorySearchTimeout = setTimeout(() => {
+        const query = document.getElementById('inv-search').value.toLowerCase();
+        const filtered = state.inventory.data.filter(p =>
+            (p.name && p.name.toLowerCase().includes(query)) ||
+            (p.category && p.category.toLowerCase().includes(query))
+        );
+        state.inventory.filteredData = filtered;
+        state.inventory.page = 1;
+        renderTable('inventory');
+    }, 300);
 }
 
 // --- ORDERS ---
@@ -467,7 +491,13 @@ function loadOrders() {
         let pending = 0, packed = 0, delivered = 0;
 
         if (previousOrderCount > 0 && snap.size > previousOrderCount) {
-            audio.play().catch(e => console.log("Audio play failed (user interaction needed first)"));
+            // FIX: Handle autoplay restrictions
+            const playPromise = audio.play();
+            if (playPromise !== undefined) {
+                playPromise.catch(error => {
+                    console.log("Audio play blocked by browser (user interaction needed).");
+                });
+            }
             showToast("New Order Received!", "success");
         }
         previousOrderCount = snap.size;
@@ -559,7 +589,7 @@ function exportOrdersToCSV() {
     let csv = "Date,Order ID,Customer,Phone,Address,Items,Total,Payment,Status\n";
     dataToExport.forEach(o => {
         const d = o.timestamp ? new Date(o.timestamp.seconds * 1000).toLocaleDateString() : '-';
-        const addr = o.userAddress ? o.userAddress.replace(/(\r\n|\n|\r|,)/gm, " ") : "";
+        const addr = o.userAddress ? o.userAddress.replace(/"/g, '""') : "";
         const items = o.items.map(i => `${i.name} (${i.qty})`).join(' | ');
         csv += `"${d}","${o.id}","${escapeHtml(o.userName)}","${o.userPhone}","${addr}","${items}",${o.total},"${o.paymentMethod}",${o.status}\n`;
     });
@@ -599,12 +629,15 @@ function loadCoupons() {
     });
 }
 
+// In admin.js inside saveCoupon()
+
 function saveCoupon() {
     const code = document.getElementById('cpn-code').value.toUpperCase().trim();
     const type = document.getElementById('cpn-type').value;
     const value = document.getElementById('cpn-value').value;
     const dateStr = document.getElementById('cpn-expiry').value;
-    const minOrder = parseInt(document.getElementById('cpn-min').value) || 0;
+    // FIX: Parse as Float to allow decimals (e.g. 500)
+    const minOrder = parseFloat(document.getElementById('cpn-min').value) || 0;
 
     if (!code || !value || !dateStr) return showToast("Fill all fields", "error");
 
@@ -612,10 +645,20 @@ function saveCoupon() {
     expiryDate.setHours(23, 59, 59);
 
     db.collection("coupons").add({
-        code, type, value: parseInt(value), expiryDate, isActive: true,
+        code,
+        type,
+        value: parseFloat(value), // FIX: Changed from parseInt to parseFloat
+        expiryDate,
+        isActive: true,
         minOrder: minOrder
     })
-        .then(() => { showToast("Coupon Created!", "success"); document.getElementById('cpn-code').value = ''; })
+        .then(() => {
+            showToast("Coupon Created!", "success");
+            // Clear inputs
+            document.getElementById('cpn-code').value = '';
+            document.getElementById('cpn-value').value = '';
+            document.getElementById('cpn-min').value = '';
+        })
         .catch(err => showToast(err.message, "error"));
 }
 
@@ -731,7 +774,7 @@ function recalculateAndSave(orderId, newItems, orderDoc) {
 
     db.collection("orders").doc(orderId).update({ items: newItems, total: finalTotal }).then(() => {
         orderDoc.items = newItems; orderDoc.total = finalTotal; viewOrder(orderId);
-    }).catch(err => alert("Update failed: " + err.message));
+    }).catch(err => showToast("Update failed: " + err.message));
 }
 
 function sendUpdateNotification(orderId) {
@@ -876,6 +919,67 @@ function saveProduct() {
     }, { merge: true }).then(() => closeModal('product-modal'));
 }
 
+function handleFileUpload(input) {
+    const file = input.files[0];
+    if (!file) return;
+
+    if (!confirm("This will overwrite/update products. Continue?")) {
+        input.value = ''; // Reset
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = async function (e) {
+        const text = e.target.result;
+        await processCSV(text);
+        input.value = ''; // Reset for next use
+    };
+    reader.readAsText(file);
+}
+
+async function processCSV(csvText) {
+    try {
+        const rows = csvText.split("\n").slice(1); // Skip header
+        const batch = db.batch();
+        let count = 0;
+
+        rows.forEach(rw => {
+            if (!rw.trim()) return;
+            // Handle CSV parsing (simple regex for quotes)
+            const c = rw.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g).map(x => x.replace(/^"|"$/g, ''));
+
+            const id = c[0];
+            if (!id || id === '999') return;
+
+            // ... (Keep your existing parsing logic for variants/prices) ...
+            let v = [], rp = c[3];
+            if (rp.includes('|')) rp.split('|').forEach(x => { let [s, p] = x.split('='); if (s) v.push({ weight: s.trim(), price: parseInt(p) }) });
+            else v.push({ weight: 'Standard', price: parseInt(rp) || 0 });
+
+            const docRef = db.collection("products").doc(id);
+            batch.set(docRef, {
+                id: parseInt(id),
+                name: c[1],
+                nameHi: c[2] || '',
+                price: Math.min(...v.map(z => z.price)),
+                variants: v,
+                desc: c[4] || '',
+                category: c[6] || 'other',
+                image: c[7] || '',
+                in_stock: (c[10] && c[10].toUpperCase() === 'TRUE')
+            }, { merge: true });
+
+            count++;
+        });
+
+        await batch.commit();
+        showToast(`Successfully imported ${count} products`, "success");
+    } catch (e) {
+        console.error(e);
+        showToast("Error parsing CSV: " + e.message, "error");
+    }
+}
+
 async function importFromSheet() {
     if (!await showConfirm("Overwrite product data?")) return;
     const u = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRznY2zlF7wuPxkTe1k22gRLVOA9AHtmgZy2LBdEs9LIU3GlO_VxmFyN446vpb9IPspRXMeiBi4Lc29/pub?output=csv";
@@ -990,14 +1094,29 @@ function renderPosProducts() {
         let price = p.price;
         let weight = 'Standard';
         if (p.variants && p.variants.length > 0) { price = p.variants[0].price; weight = p.variants[0].weight; }
-        grid.innerHTML += `<div class="pos-card" onclick="addToAdminCart('${p.id}', '${escapeHtml(p.name)}', ${price}, '${weight}', '${p.image}')"><img src="${p.image}" onerror="this.src='logo.jpg'"><h4>${p.name}</h4><small>${weight} - ₹${price}</small></div>`;
+        grid.innerHTML += `<div class="pos-card" onclick="addToAdminCart('${p.id}', '${escapeHtml(p.name)}', ${price}, '${weight}', '${p.image}')"><img src="${p.image}" onerror="this.onerror=null; this.src='logo.jpg';"><h4>${p.name}</h4><small>${weight} - ₹${price}</small></div>`;
     });
 }
 
 function addToAdminCart(id, name, price, weight, image) {
+    vibrate(50); // <--- TACTILE FEEDBACK
+
     const existing = adminCart.find(i => i.productId == id);
-    if (existing) existing.qty++;
-    else adminCart.push({ productId: id, name: name, price: parseInt(price), weight: weight, image: image, qty: 1 });
+    if (existing) {
+        existing.qty++;
+        showToast(`Updated: ${name} (+1)`, "success"); // Optional: Small toast
+    } else {
+        adminCart.push({
+            productId: id,
+            name: name,
+            price: parseInt(price),
+            weight: weight,
+            image: image,
+            qty: 1
+        });
+        showToast(`Added: ${name}`, "success");
+    }
+
     renderAdminCart();
 }
 
@@ -1005,12 +1124,30 @@ function renderAdminCart() {
     const list = document.getElementById('pos-cart-list');
     list.innerHTML = '';
     let total = 0;
+
     adminCart.forEach((item, idx) => {
         total += item.price * item.qty;
-        list.innerHTML += `<div class="pos-cart-item"><div style="flex:1"><strong>${item.name}</strong><br><small>₹${item.price} x ${item.qty}</small></div><div style="display:flex; align-items:center; gap:5px;"><button class="pos-qty-btn" onclick="updatePosQty(${idx}, -1)">-</button><span>${item.qty}</span><button class="pos-qty-btn" onclick="updatePosQty(${idx}, 1)">+</button></div><div style="font-weight:bold; margin-left:10px;">₹${item.price * item.qty}</div></div>`;
+        list.innerHTML += `
+        <div class="pos-cart-item" style="animation: highlight 0.3s ease;">
+            <div style="flex:1">
+                <strong>${item.name}</strong><br>
+                <small>₹${item.price} x ${item.qty}</small>
+            </div>
+            <div style="display:flex; align-items:center; gap:10px;">
+                <button class="pos-qty-btn" onclick="updatePosQty(${idx}, -1)">-</button>
+                <span style="font-weight:600; width:20px; text-align:center;">${item.qty}</span>
+                <button class="pos-qty-btn" onclick="updatePosQty(${idx}, 1)">+</button>
+            </div>
+            <div style="font-weight:bold; margin-left:10px; min-width:50px; text-align:right;">₹${item.price * item.qty}</div>
+        </div>`;
     });
-    if (adminCart.length === 0) list.innerHTML = '<p style="color:#888; text-align:center; padding:10px;">Empty Cart</p>';
+
+    if (adminCart.length === 0) list.innerHTML = '<p style="color:#888; text-align:center; padding:10px;">Cart is Empty</p>';
+
     document.getElementById('pos-total-display').innerText = `₹${total}`;
+
+    // Auto-scroll to bottom of cart to show newest item
+    list.scrollTop = list.scrollHeight;
 }
 
 function updatePosQty(idx, change) {
@@ -1030,6 +1167,10 @@ async function submitPosOrder() {
     const total = adminCart.reduce((sum, i) => sum + (i.price * i.qty), 0);
     const orderId = 'POS-' + Date.now().toString().slice(-6);
     try {
+        const userSnapshot = await db.collection("users").where("phone", "==", phone).limit(1).get();
+        if (!userSnapshot.empty) {
+            uid = userSnapshot.docs[0].id; // Use existing User ID
+        }
         const batch = db.batch();
         batch.set(db.collection("orders").doc(orderId), {
             id: orderId, userId: uid, userName: name, userPhone: phone, userAddress: address,
@@ -1089,5 +1230,60 @@ function debouncedPosSearch() {
     clearTimeout(searchTimeout);
     searchTimeout = setTimeout(() => { renderPosProducts(); }, 300);
 }
+
+// 1. Add Vibrate Helper (if not already there)
+function vibrate(ms) {
+    if (navigator.vibrate) navigator.vibrate(ms);
+}
+
+// In admin.js
+
+// 1. Add this new function
+async function performGlobalSearch() {
+    const query = document.getElementById('order-search').value.trim();
+
+    // If empty, reload default view (recent 20)
+    if (!query) {
+        loadOrders();
+        return;
+    }
+
+    showToast("Searching server...", "neutral");
+
+    try {
+        let results = [];
+
+        // Strategy 1: Search by Exact Order ID (e.g., "ORD-123456")
+        const idSnap = await db.collection("orders").where("id", "==", query).get();
+        idSnap.forEach(doc => { let d = doc.data(); d.docId = doc.id; results.push(d); });
+
+        // Strategy 2: If no ID found, Search by Phone Number
+        if (results.length === 0) {
+            // Ensure we search using the exact format stored (usually 10 digits)
+            const phoneSnap = await db.collection("orders").where("userPhone", "==", query).get();
+            phoneSnap.forEach(doc => { let d = doc.data(); d.docId = doc.id; results.push(d); });
+        }
+
+        if (results.length > 0) {
+            state.orders.data = results; // Replace current table data
+            state.orders.filteredData = null;
+            state.orders.page = 1;
+            renderTable('orders');
+            showToast(`Found ${results.length} orders.`, "success");
+        } else {
+            showToast("No matching order found in database.", "error");
+        }
+    } catch (e) {
+        console.error(e);
+        showToast("Search failed: " + e.message, "error");
+    }
+}
+
+// 2. Bind 'Enter' key to this function
+document.getElementById('order-search').addEventListener('keypress', function (e) {
+    if (e.key === 'Enter') {
+        performGlobalSearch();
+    }
+});
 
 registerAdminServiceWorker();

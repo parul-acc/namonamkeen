@@ -614,34 +614,69 @@ tr:hover td {
 
     .pos-layout {
         flex-direction: column-reverse;
-        /* Puts Cart (Right) on TOP, Products (Left) on BOTTOM */
+        /* FIX: Cart goes to TOP, Products to BOTTOM */
         height: auto;
+        /* Allow full page scrolling on mobile */
+        overflow: visible;
+        gap: 15px;
     }
 
     .pos-right {
-        border-bottom: 5px solid #eee;
+        width: 100%;
+        min-width: auto;
+        max-height: 40vh;
+        /* Limit cart height so it doesn't take full screen */
+        overflow-y: auto;
+        border-bottom: 4px solid var(--primary);
         /* Visual separator */
-        padding-bottom: 20px;
+    }
+
+    .pos-left {
+        height: 60vh;
+        /* Give products a fixed scrollable area */
     }
 
     .pos-product-grid {
-        max-height: 500px;
-        /* Limit height so it doesn't scroll forever */
+        padding: 10px;
+        grid-template-columns: repeat(3, 1fr);
+        /* 3 items per row on mobile for density */
+        gap: 10px;
+    }
+
+    .pos-card img {
+        width: 50px;
+        height: 50px;
+        /* Smaller images on mobile */
+    }
+
+    .pos-card h4 {
+        font-size: 0.8rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
 }
 
+/* --- POS SYSTEM STYLES --- */
 /* --- POS SYSTEM STYLES --- */
 .pos-layout {
     display: flex;
     gap: 20px;
     height: calc(100vh - 120px);
-    /* Fill screen minus header */
+    /* Desktop: Fixed height to allow inner scrolling */
+    overflow: hidden;
+    /* Prevent double scrollbars on desktop */
 }
 
 .pos-left {
     flex: 2;
     display: flex;
     flex-direction: column;
+    background: white;
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    /* Contains the grid scroll */
 }
 
 .pos-right {
@@ -649,7 +684,11 @@ tr:hover td {
     display: flex;
     flex-direction: column;
     min-width: 300px;
-    overflow-y: auto;
+    background: white;
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    /* Contains the cart scroll */
 }
 
 .pos-product-grid {
@@ -658,6 +697,7 @@ tr:hover td {
     gap: 15px;
     padding: 20px;
     overflow-y: auto;
+    /* Scroll ONLY the grid, not the whole page */
     flex-grow: 1;
 }
 
@@ -884,4 +924,10 @@ tr.high-value-row td {
     .brand h3 {
         font-size: 1rem;
     }
+}
+
+/* Hide Admin UI by default for security */
+body.loading .sidebar,
+body.loading .main-content {
+    display: none !important;
 }

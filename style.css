@@ -537,12 +537,26 @@ h4 {
     padding: 10px 0;
     margin-bottom: 20px;
 
-    /* Hide scrollbar if it overflows horizontally */
+    /* Center filters using flexbox on all viewports */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
+    padding-left: 12px;
+    padding-right: 12px;
+
+    /* Allow horizontal scroll on very small screens while keeping items centered */
     overflow-x: auto;
-    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
 
     /* Add a subtle shadow only when sticking (optional, browsers handle this differently) */
     box-shadow: 0 4px 10px -5px rgba(0, 0, 0, 0.1);
+}
+
+/* Ensure filter buttons keep their intrinsic size and don't stretch */
+.menu-filters .filter-btn {
+    display: inline-flex;
+    flex: 0 0 auto;
 }
 
 /* Ensure container allows sticking */
@@ -939,15 +953,14 @@ h4 {
     right: -450px;
     width: 400px;
     max-width: 100%;
+    /* FIX: Use dynamic viewport height for mobile browsers */
     height: 100vh;
-    /* Force full viewport height */
+    height: 100dvh;
     background: #f4f6f8;
-    /* Slightly gray background for contrast */
     z-index: 5001;
     transition: right 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     display: flex;
     flex-direction: column;
-    /* Stack: Header -> Content -> Footer */
     box-shadow: -10px 0 30px rgba(0, 0, 0, 0.15);
 }
 
@@ -969,12 +982,10 @@ h4 {
 /* This is the middle part that scrolls */
 .cart-scrollable-content {
     flex-grow: 1;
-    /* Fills remaining space */
     overflow-y: auto;
-    /* Enables scrolling */
     padding: 20px;
-    padding-bottom: 40px;
-    /* Extra space at bottom so content isn't hidden */
+    /* FIX: Ensure content doesn't get hidden behind footer */
+    padding-bottom: 20px;
 }
 
 .cart-items-list {
@@ -1090,7 +1101,8 @@ h4 {
     border-top: 1px solid #eee;
     z-index: 10;
     flex-shrink: 0;
-    /* Prevents squashing */
+    /* FIX: Add shadow so it separates clearly */
+    box-shadow: 0 -5px 15px rgba(0, 0, 0, 0.05);
 }
 
 .total-row {
@@ -3002,4 +3014,36 @@ textarea:focus,
         font-size: 0.6rem;
         margin-bottom: 4px;
     }
+}
+
+/* In style.css */
+
+/* Lift WhatsApp button slightly higher */
+.float-wa {
+    bottom: 90px;
+    /* Kept as is */
+    right: 20px;
+    /* Move closer to edge */
+    width: 55px;
+    /* Slightly larger touch target */
+    height: 55px;
+    z-index: 4000;
+    /* Ensure it's below Modal (5000) but above content */
+}
+
+/* Position Scroll Top button above WhatsApp */
+#scrollTopBtn {
+    bottom: 160px;
+    /* Positioned clearly above WhatsApp */
+    right: 20px;
+    width: 45px;
+    height: 45px;
+    z-index: 3999;
+}
+
+/* Ensure they don't cover the Cart Sidebar Footer */
+.cart-sidebar.active~.float-wa,
+.cart-sidebar.active~#scrollTopBtn {
+    display: none;
+    /* Hide them when Cart is open to prevent clutter */
 }

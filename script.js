@@ -13,12 +13,21 @@ if (typeof firebase !== 'undefined' && !firebase.apps.length) {
     firebase.initializeApp(firebaseConfig);
 }
 const db = firebase.firestore();
+db.enablePersistence()
+    .catch((err) => {
+        if (err.code == 'failed-precondition') {
+            console.log('Persistence failed: Multiple tabs open');
+        } else if (err.code == 'unimplemented') {
+            console.log('Persistence not supported by browser');
+        }
+    });
 const auth = firebase.auth();
 
 // --- 2. STATE VARIABLES ---
 let products = [];
 let cart = [];
 let currentUser = null;
+let userProfile = null;
 let currentCategory = 'all';
 let searchQuery = '';
 let currentLang = 'en';
@@ -47,8 +56,33 @@ document.addEventListener('DOMContentLoaded', () => {
     auth.onAuthStateChanged(user => {
         currentUser = user;
         updateUserUI(!!user);
+        if (user) {
+            fetchUserProfile(user.uid); // NEW: Fetch extra details on login
+        } else {
+            userProfile = null;
+        }
     });
 });
+
+// --- NEW HELPER: Fetch User Profile from Firestore ---
+function fetchUserProfile(uid) {
+    db.collection("users").doc(uid).get().then(doc => {
+        if (doc.exists) {
+            userProfile = doc.data();
+
+            // Auto-fill Checkout Fields if they are empty
+            const phoneInput = document.getElementById('cust-phone');
+            const addrInput = document.getElementById('cust-address');
+
+            if (phoneInput && !phoneInput.value && userProfile.phone) {
+                phoneInput.value = userProfile.phone;
+            }
+            if (addrInput && !addrInput.value && userProfile.address) {
+                addrInput.value = userProfile.address;
+            }
+        }
+    }).catch(err => console.error("Error fetching profile:", err));
+}
 
 window.onscroll = function () {
     const btn = document.getElementById("scrollTopBtn");
@@ -60,9 +94,9 @@ function fetchData() {
     // 1. Show Skeletons
     const grid = document.getElementById('menu-grid');
     if (grid) {
-        grid.innerHTML = '';
+        let skeletonHtml = ''; // Build string first
         for (let i = 0; i < 6; i++) {
-            grid.innerHTML += `
+            skeletonHtml += `
             <div class="sk-card">
                 <div class="skeleton sk-img"></div>
                 <div class="skeleton sk-title"></div>
@@ -71,6 +105,7 @@ function fetchData() {
                 <div class="skeleton sk-btn"></div>
             </div>`;
         }
+        grid.innerHTML = skeletonHtml;
     }
     // Products
     db.collection("products").get().then(snap => {
@@ -86,8 +121,8 @@ function fetchData() {
         if (doc.exists) {
             const data = doc.data();
             if (data.upiId) shopConfig.upiId = data.upiId;
-            if (data.adminPhone) shopConfig.adminPhone = data.adminPhone;
-            console.log("Shop Config Loaded:", shopConfig);
+            // FIX: Remove non-numeric characters immediately
+            if (data.adminPhone) shopConfig.adminPhone = data.adminPhone.replace(/\D/g, '');
         }
     });
 
@@ -119,9 +154,34 @@ function fetchData() {
                 activeCoupons.push(c);
             }
         });
-        // This call was failing because the function was missing
         renderCouponList();
+
+        // NEW FIX: Re-validate applied coupon against fresh data
+        validateAppliedCoupon();
     });
+}
+
+// Add this new function to script.js
+function validateAppliedCoupon() {
+    if (!appliedDiscount || !appliedDiscount.code) return;
+
+    const validCoupon = activeCoupons.find(c => c.code === appliedDiscount.code);
+
+    // 1. Check if coupon still exists and is active
+    if (!validCoupon) {
+        appliedDiscount = { type: 'none', value: 0, code: null };
+        showToast("Saved coupon is no longer valid.", "error");
+        updateCartUI();
+        return;
+    }
+
+    // 2. Check Minimum Order Value again
+    let currentTotal = cart.reduce((sum, i) => sum + (i.price * i.qty), 0);
+    if (validCoupon.minOrder && currentTotal < validCoupon.minOrder) {
+        appliedDiscount = { type: 'none', value: 0, code: null };
+        showToast(`Coupon removed. Add items worth ₹${validCoupon.minOrder}`, "error");
+        updateCartUI();
+    }
 }
 
 // --- 5. RENDER MENU ---
@@ -191,7 +251,7 @@ function renderMenu() {
         grid.innerHTML += `
         <div class="product-card ${cardClass}" onclick="openProductDetail(${p.id})">
             ${ribbonHTML}
-           <img src="${p.image}" class="product-img" loading="lazy" onload="this.classList.add('loaded')" onerror="this.src='logo.jpg'">
+           <img src="${p.image}" class="product-img" loading="lazy" onload="this.classList.add('loaded')" onerror="this.onerror=null; this.src='logo.jpg';">
             <div class="product-info">
                 <h3>${name}</h3>
                 ${starHTML} <p class="product-desc">${desc}</p>
@@ -239,7 +299,7 @@ function renderHamperOptions() {
         const div = document.createElement('div');
         div.className = 'hamper-option';
         div.onclick = () => toggleHamperItem(p, div);
-        div.innerHTML = `<img src="${p.image}" onerror="this.src='logo.jpg'"><h4>${p.name}</h4>`;
+        div.innerHTML = `<img src="${p.image}" onerror="this.onerror=null; this.src='logo.jpg';"><h4>${p.name}</h4>`;
         container.appendChild(div);
     });
 }
@@ -332,7 +392,7 @@ function quizStep2(pref) {
 
 function findResult(keyword) {
     const p = products.find(x => (x.name || '').toLowerCase().includes(keyword)) || products[0];
-    document.getElementById('quiz-content').innerHTML = `<div class="quiz-result"><h3 style="color:green">Try This!</h3><img src="${p.image}" class="result-img" onerror="this.src='logo.jpg'"><h2>${p.name}</h2><button class="btn-primary" style="padding:10px;" onclick="openProductDetail(${p.id}); closeQuiz();">View</button></div>`;
+    document.getElementById('quiz-content').innerHTML = `<div class="quiz-result"><h3 style="color:green">Try This!</h3><img src="${p.image}" class="result-img" onerror="this.onerror=null; this.src='logo.jpg';"><h2>${p.name}</h2><button class="btn-primary" style="padding:10px;" onclick="openProductDetail(${p.id}); closeQuiz();">View</button></div>`;
 }
 
 // --- 8. PRODUCT MODAL ---
@@ -384,7 +444,7 @@ function openProductDetail(id) {
     let html = `
         <div class="pm-grid">
             <div class="pm-image-container">
-                <img src="${p.image}" class="pm-img" onerror="this.src='logo.jpg'">
+                <img src="${p.image}" class="pm-img" onerror="this.onerror=null; this.src='logo.jpg';">
             </div>
 
             <div class="pm-details">
@@ -505,7 +565,7 @@ function updateCartUI() {
 
             con.innerHTML += `
             <div class="cart-item">
-                <img src="${i.image}" onerror="this.src='logo.jpg'">
+                <img src="${i.image}" onerror="this.onerror=null; this.src='logo.jpg';">
                 <div class="item-details" style="flex-grow:1;">
                     <h4>${i.name}</h4>
                     <div style="font-size:0.85rem; color:#666;">${i.weight}</div>
@@ -521,6 +581,22 @@ function updateCartUI() {
         });
     }
 
+    // START NEW VALIDATION LOGIC
+    if (appliedDiscount && appliedDiscount.code) {
+        // Find the full coupon details from activeCoupons list
+        const couponRule = activeCoupons.find(c => c.code === appliedDiscount.code);
+
+        if (couponRule && couponRule.minOrder && subtotal < couponRule.minOrder) {
+            // Auto-remove discount if total drops below limit
+            appliedDiscount = { type: 'none', value: 0, code: null };
+            document.getElementById('promo-code').value = '';
+            document.getElementById('promo-msg').innerText = `Coupon removed. Min order is ₹${couponRule.minOrder}`;
+            document.getElementById('promo-msg').style.color = "red";
+            showToast("Coupon removed: Minimum order not met", "error");
+        }
+    }
+    // END NEW VALIDATION LOGIC
+
     // CALCULATE DISCOUNT
     let discountAmount = 0;
     if (appliedDiscount.type === 'percent') {
@@ -532,7 +608,8 @@ function updateCartUI() {
     if (discountAmount > subtotal) discountAmount = subtotal;
     const final = subtotal - discountAmount;
 
-    document.getElementById('cart-total').innerText = `₹${final}`;
+    // In updateCartUI()
+    document.getElementById('cart-total').innerText = '₹' + final.toLocaleString('en-IN');
 
     document.getElementById('cart-count').innerText = count;
 }
@@ -567,46 +644,6 @@ function toggleCart() { document.getElementById('cart-sidebar').classList.toggle
 
 // --- NEW CHECKOUT LOGIC ---
 
-// 1. Called when user clicks "Proceed to Pay"
-function initiateCheckout() {
-    if (cart.length === 0) return showToast("Your cart is empty!", "success");
-
-    const phone = document.getElementById('cust-phone').value.trim();
-    const address = document.getElementById('cust-address').value.trim();
-
-    // Validation
-    if (!/^[0-9]{10}$/.test(phone)) return showToast("Please enter a valid 10-digit phone number.", "error");
-    if (address.length < 3) return showToast("Please enter a complete delivery address.", "error");
-
-    // Get Payment Method
-    const paymentMethod = document.querySelector('input[name="paymentMethod"]:checked').value;
-
-    // Calculate Final Amount
-    let total = cart.reduce((sum, i) => sum + (i.price * i.qty), 0);
-    let discount = 0;
-    if (appliedDiscount.type === 'percent') discount = Math.round(total * (appliedDiscount.value / 100));
-    else if (appliedDiscount.type === 'flat') discount = appliedDiscount.value;
-    const finalAmount = Math.max(0, total - discount);
-
-    if (paymentMethod === 'UPI') {
-        // Show UPI QR Modal
-        document.getElementById('pay-modal-total').innerText = '₹' + finalAmount;
-
-        // Generate UPI Link
-        const upiLink = `upi://pay?pa=${shopConfig.upiId}&pn=NamoNamkeen&am=${finalAmount}&cu=INR`;
-        const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(upiLink)}`;
-
-        document.getElementById('payment-qr-img').src = qrApiUrl;
-        document.getElementById('payment-modal').style.display = 'flex';
-        toggleCart(); // Close sidebar so they focus on payment
-    } else {
-        // COD - Directly Finalize
-        if (showConfirm("Place order with Cash on Delivery?")) {
-            finalizeOrder('COD');
-        }
-    }
-}
-
 // --- UNIFIED CHECKOUT HANDLER ---
 function handleCheckout() {
     // 1. Check Connectivity
@@ -639,7 +676,7 @@ function handleCheckout() {
 }
 // 2. Called when payment is confirmed (UPI) or immediately (COD)
 async function finalizeOrder(paymentMode) {
-    toggleBtnLoading('btn-final-checkout', true); // Show loading
+    toggleBtnLoading('btn-main-checkout', true);
 
     const phone = document.getElementById('cust-phone').value;
     const address = document.getElementById('cust-address').value;
@@ -648,16 +685,18 @@ async function finalizeOrder(paymentMode) {
     // Calculate Totals again for security
     let total = cart.reduce((sum, i) => sum + (i.price * i.qty), 0);
     let discount = 0;
-    if (appliedDiscount.type === 'percent') discount = Math.round(total * (appliedDiscount.value / 100));
-    else if (appliedDiscount.type === 'flat') discount = appliedDiscount.value;
-    const finalAmount = Math.max(0, total - discount);
 
+    // FIX: Handle Coupon Logic safely
+    if (appliedDiscount && appliedDiscount.value > 0) {
+        if (appliedDiscount.type === 'percent') discount = Math.round(total * (appliedDiscount.value / 100));
+        else if (appliedDiscount.type === 'flat') discount = appliedDiscount.value;
+    }
+    const finalAmount = Math.max(0, total - discount);
     try {
-        // SAVE TO FIRESTORE FIRST
         await db.collection("orders").add({
             id: orderId,
-            userId: currentUser.uid,
-            userName: currentUser.displayName,
+            userId: currentUser ? currentUser.uid : `guest_${phone}`, // FIX: Handle Guest User
+            userName: currentUser ? currentUser.displayName : "Guest",
             userPhone: phone,
             userAddress: address,
             items: cart,
@@ -670,25 +709,19 @@ async function finalizeOrder(paymentMode) {
         });
 
         // SUCCESS!
-        cart = []; // Clear cart
+        cart = [];
+        appliedDiscount = { type: 'none', value: 0, code: null }; // Reset Discount
         updateCartUI();
-        document.getElementById('payment-modal').style.display = 'none'; // Close payment modal if open
-        if (document.getElementById('cart-sidebar').classList.contains('active')) toggleCart();
+        document.getElementById('payment-modal').style.display = 'none';
 
-        // Prepare WhatsApp Message
-        let msg = `*New Order: ${orderId}*\n*Payment:* ${paymentMode}\n*Name:* ${currentUser.displayName}\n*Phone:* ${phone}\n*Address:* ${address}\n\n*Items:*\n`;
-        // Use a temp variable for cart items since we just cleared the main cart
-        // (Note: In a real app, store a copy before clearing. For now, we assume success).
-        // Actually, let's just use a generic message or pass items. 
-        // Better: Don't clear cart immediately or use a temp variable. 
-        // For simplicity, we will just link the WhatsApp button.
-
-        msg += `(Check Admin Panel for Item Details)\n`;
-        msg += `*Total Amount:* ₹${finalAmount}`;
+        // FIX: Close sidebar properly
+        document.getElementById('cart-sidebar').classList.remove('active');
+        document.querySelector('.cart-overlay').classList.remove('active');
 
         // Show Success Modal
         document.getElementById('success-order-id').innerText = orderId;
         const waBtn = document.getElementById('wa-link-btn');
+        let msg = `*New Order: ${orderId}* - ₹${finalAmount}\nPayment: ${paymentMode}`;
         waBtn.onclick = () => {
             window.open(`https://wa.me/${shopConfig.adminPhone}?text=${encodeURIComponent(msg)}`, '_blank');
         };
@@ -699,7 +732,8 @@ async function finalizeOrder(paymentMode) {
         console.error("Order Error:", error);
         showToast("Failed to place order. Please try again.", "error");
     } finally {
-        toggleBtnLoading('btn-final-checkout', false);
+        // FIX: Ensure button is re-enabled even if error occurs
+        toggleBtnLoading('btn-main-checkout', false);
     }
 }
 
@@ -727,21 +761,26 @@ function validateAndLogin() {
 }
 
 function googleLogin(isCheckoutFlow = false) {
-    // Show loading on the main checkout button if in checkout flow
     if (isCheckoutFlow) toggleBtnLoading('btn-main-checkout', true);
     else toggleBtnLoading('login-btn', true);
 
     auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()).then(res => {
-        // Save User Data
-        db.collection("users").doc(res.user.uid).set({
+        // Only save phone/address if the user actually entered them
+        const enteredPhone = document.getElementById('cust-phone').value;
+        const enteredAddress = document.getElementById('cust-address').value;
+
+        const updateData = {
             name: res.user.displayName,
             email: res.user.email,
-            phone: document.getElementById('cust-phone').value, // Auto-save phone if entered
-            address: document.getElementById('cust-address').value, // Auto-save address
             lastLogin: new Date()
-        }, { merge: true });
+        };
 
-        // If this was triggered from Checkout, auto-start payment after login
+        // Only update these if they exist, otherwise preserve what's in DB
+        if (enteredPhone) updateData.phone = enteredPhone;
+        if (enteredAddress) updateData.address = enteredAddress;
+
+        db.collection("users").doc(res.user.uid).set(updateData, { merge: true });
+
         if (isCheckoutFlow) {
             initiateRazorpayPayment();
         }
@@ -917,16 +956,65 @@ function openInvoice(orderId) {
 }
 function closeInvoice() { document.getElementById('invoice-modal').style.display = 'none'; }
 function printInvoice() { window.print(); }
+// In script.js
+
 function repeatOrder(orderId) {
     const order = historyOrders.find(o => o.id === orderId);
     if (!order) return;
-    if (showConfirm("Add all items from this order to your cart?")) {
+
+    if (showConfirm("Add available items from this order to your cart?")) {
+        let addedCount = 0;
+        let outOfStockCount = 0;
+
         order.items.forEach(item => {
-            const cartId = item.cartId || `${item.productId}-${item.weight.replace(/\s/g, '')}`;
-            const existing = cart.find(c => c.cartId === cartId);
-            if (existing) existing.qty += item.qty; else cart.push({ ...item, cartId: cartId });
+            // Find the current live product info
+            const liveProduct = products.find(p => p.id === item.productId);
+
+            // Check if product exists and is in stock
+            if (liveProduct && liveProduct.in_stock) {
+                // Use CURRENT price, not old order price
+                let currentPrice = item.price;
+
+                // If it has variants, try to find the matching variant price
+                if (liveProduct.variants) {
+                    const variant = liveProduct.variants.find(v => v.weight === item.weight);
+                    if (variant) {
+                        currentPrice = variant.price;
+                        // Check if specific variant is in stock (if you have variant-level stock)
+                        if (variant.inStock === false) {
+                            outOfStockCount++;
+                            return;
+                        }
+                    }
+                }
+
+                const cartId = `${item.productId}-${item.weight.replace(/\s/g, '')}`;
+                const existing = cart.find(c => c.cartId === cartId);
+
+                if (existing) {
+                    existing.qty += item.qty;
+                } else {
+                    cart.push({
+                        ...item,
+                        price: currentPrice, // Update to current price
+                        image: liveProduct.image // Update image in case it changed
+                    });
+                }
+                addedCount++;
+            } else {
+                outOfStockCount++;
+            }
         });
-        updateCartUI(); toggleCart(); closeHistory();
+
+        updateCartUI();
+        toggleCart();
+        closeHistory();
+
+        if (outOfStockCount > 0) {
+            showToast(`${addedCount} items added. ${outOfStockCount} items are out of stock.`, "neutral");
+        } else {
+            showToast("All items added to cart!", "success");
+        }
     }
 }
 
@@ -938,26 +1026,77 @@ function toggleCouponList() { const l = document.getElementById('coupon-list'); 
 function useCoupon(code) { document.getElementById('promo-code').value = code; applyPromo(); document.getElementById('coupon-list').style.display = 'none'; }
 function applyPromo() {
     const input = document.getElementById('promo-code').value.toUpperCase().trim();
-    if (!input) { appliedDiscount = { type: 'none', value: 0, code: null }; document.getElementById('promo-msg').innerText = ""; updateCartUI(); return; }
+    const msgElement = document.getElementById('promo-msg');
+
+    // Reset state
+    appliedDiscount = { type: 'none', value: 0, code: null };
+    msgElement.innerText = "";
+
+    if (!input) {
+        updateCartUI();
+        return;
+    }
+
     const coupon = activeCoupons.find(c => c.code === input);
+
     if (coupon) {
-        // NEW CHECK: Minimum Order Value
+        // Check Min Order
         let currentTotal = cart.reduce((sum, i) => sum + (i.price * i.qty), 0);
         if (coupon.minOrder && currentTotal < coupon.minOrder) {
-            document.getElementById('promo-msg').innerText = `Add items worth ₹${coupon.minOrder} to use this!`;
-            document.getElementById('promo-msg').style.color = "orange";
-            appliedDiscount = { type: 'none', value: 0 };
-            updateCartUI();
-            return;
+            msgElement.innerText = `Add items worth ₹${coupon.minOrder} to use this!`;
+            msgElement.style.color = "orange";
+        } else {
+            // Apply Coupon
+            appliedDiscount = { type: coupon.type, value: coupon.value, code: coupon.code };
+            msgElement.innerText = "Coupon Applied! 🎉";
+            msgElement.style.color = "green";
         }
+    } else {
+        msgElement.innerText = "Invalid Code";
+        msgElement.style.color = "red";
+    }
+    updateCartUI();
+}
+function openProfileModal() {
+    document.getElementById('profile-modal').style.display = 'flex';
+    document.getElementById('profile-menu').classList.remove('active');
 
-        else { appliedDiscount = { type: 'none', value: 0, code: null }; document.getElementById('promo-msg').innerText = "Invalid Code"; document.getElementById('promo-msg').style.color = "red"; }
-        updateCartUI();
+    if (currentUser) {
+        document.getElementById('edit-name').value = currentUser.displayName || '';
+
+        // Populate from the fetched Firestore profile
+        if (userProfile) {
+            document.getElementById('edit-phone').value = userProfile.phone || '';
+            document.getElementById('edit-address').value = userProfile.address || '';
+        }
     }
 }
-function openProfileModal() { document.getElementById('profile-modal').style.display = 'flex'; document.getElementById('profile-menu').classList.remove('active'); }
+
 function closeProfileModal() { document.getElementById('profile-modal').style.display = 'none'; }
-function saveProfile() { db.collection("users").doc(currentUser.uid).set({ phone: document.getElementById('edit-phone').value, address: document.getElementById('edit-address').value }, { merge: true }).then(() => closeProfileModal()); }
+function saveProfile() {
+    const phone = document.getElementById('edit-phone').value;
+    const address = document.getElementById('edit-address').value;
+
+    db.collection("users").doc(currentUser.uid).set({
+        phone: phone,
+        address: address
+    }, { merge: true }).then(() => {
+        // Update local variable
+        if (!userProfile) userProfile = {};
+        userProfile.phone = phone;
+        userProfile.address = address;
+
+        // Also update checkout fields to reflect changes immediately
+        const phoneInput = document.getElementById('cust-phone');
+        const addrInput = document.getElementById('cust-address');
+        if (phoneInput) phoneInput.value = phone;
+        if (addrInput) addrInput.value = address;
+
+        closeProfileModal();
+        showToast("Profile Updated", "success");
+    });
+}
+
 function playVideo(w) { const v = w.querySelector('video'); document.querySelectorAll('.video-wrapper.playing video').forEach(o => { if (o !== v) { o.pause(); o.closest('.video-wrapper').classList.remove('playing'); } }); if (v.paused) { w.classList.add('playing'); v.play(); } else { w.classList.remove('playing'); v.pause(); } }
 function closeAnnouncement() { document.getElementById('announcement-bar').style.display = 'none'; }
 function filterMenu(c) {
@@ -1188,7 +1327,7 @@ async function saveOrderToFirebase(method, paymentStatus, txnId) {
 
     } catch (error) {
         console.error("Order Error:", error);
-        alert("Error placing order. Please try again.");
+        showToast("Error placing order. Please try again.", "error");
     } finally {
         toggleBtnLoading('btn-main-checkout', false);
     }
@@ -1245,7 +1384,7 @@ function openReviewModal(pid, oid, name, img) {
 }
 
 async function submitReview() {
-    const pid = parseInt(document.getElementById('review-pid').value); // ID is integer in your DB
+    const pid = parseInt(document.getElementById('review-pid').value);
     const oid = document.getElementById('review-oid').value;
     const comment = document.getElementById('review-comment').value.trim();
     const ratingElem = document.querySelector('input[name="rating"]:checked');
@@ -1256,19 +1395,19 @@ async function submitReview() {
     toggleBtnLoading('btn-submit-review', true);
 
     try {
-        // 1. Check if user already reviewed this item in this order to prevent duplicates
+        // 1. Check duplicates
         const check = await db.collection("reviews")
             .where("orderId", "==", oid)
             .where("productId", "==", pid)
             .get();
 
         if (!check.empty) {
-            showToast("You have already reviewed this item!", "error");
-            toggleBtnLoading('btn-submit-review', false);
+            showToast("You have already reviewed this item!", "warning");
+            closeModal('review-modal'); // FIX: Close modal if duplicate
             return;
         }
 
-        // 2. Add Review to 'reviews' collection
+        // 2. Add Review
         await db.collection("reviews").add({
             productId: pid,
             orderId: oid,
@@ -1279,24 +1418,21 @@ async function submitReview() {
             timestamp: new Date()
         });
 
-        // 3. Update Product Stats (Rating Sum & Count) using Atomic Increment
-        // Note: product IDs are numbers in your system, stored as document IDs (strings)
+        // 3. Update Product Stats
         const productRef = db.collection("products").doc(String(pid));
-
         await productRef.update({
             ratingSum: firebase.firestore.FieldValue.increment(rating),
             ratingCount: firebase.firestore.FieldValue.increment(1)
         });
 
         showToast("Thanks for your feedback!", "success");
-        closeModal('review-modal');
-
-        // Refresh data to show new stars on menu
+        closeModal('review-modal'); // FIX: Ensure modal closes on success
         fetchData();
 
     } catch (error) {
         console.error("Review Error:", error);
-        showToast("Failed to submit review. Try again.", "error");
+        showToast("Error submitting review. Please try later.", "error");
+        closeModal('review-modal'); // FIX: Close modal even on error to prevent stuck UI
     } finally {
         toggleBtnLoading('btn-submit-review', false);
     }
@@ -1522,7 +1658,7 @@ if (searchInput) {
         if (matches.length > 0) {
             suggestionsBox.innerHTML = matches.map(p => `
                 <div class="suggestion-item" onclick="selectSuggestion(${p.id})">
-                    <img src="${p.image}" class="suggestion-img" onerror="this.src='logo.jpg'">
+                    <img src="${p.image}" class="suggestion-img" onerror="this.onerror=null; this.src='logo.jpg';">
                     <div class="suggestion-info">
                         <h4>${p.name}</h4>
                         <span>₹${p.price}</span>

@@ -19,7 +19,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 
-<body>
+<body class="loading">
 
     <div id="login-overlay">
         <img src="logo.jpg" class="login-logo" alt="Logo">
@@ -190,6 +190,8 @@
                 <div class="card-header">
                     <h3>Product List</h3>
                     <div class="header-actions">
+                        <input type="file" id="csv-upload" style="display:none" accept=".csv"
+                            onchange="handleFileUpload(this)">
                         <button class="btn btn-blue" onclick="importFromSheet()">Import</button>
                         <button class="btn btn-primary" onclick="openProductModal()">+ Add</button>
                     </div>
@@ -239,6 +241,8 @@
                     <div id="bulk-toolbar" class="bulk-actions">
                         <span id="selected-count">0 Selected</span>
                         <button class="btn btn-primary btn-sm" onclick="bulkUpdateStatus('Packed')">Mark Packed</button>
+                        <button class="btn btn-green btn-sm" onclick="bulkUpdateStatus('Delivered')">Mark
+                            Delivered</button>
                         <button class="btn btn-outline btn-sm" onclick="bulkPrintSlips()" style="color:black;">Print
                             Slips</button>
                     </div>

@@ -45,7 +45,7 @@
                 <li><a href="#home" class="nav-link">Home</a></li>
                 <li><a href="#menu-section" class="nav-link">Menu</a></li>
                 <li><a href="pricelist.html" class="nav-link">Price List</a></li>
-                 <li><a href="#testimonials" class="nav-link">Reviews</a></li>
+                <li><a href="#testimonials" class="nav-link">Reviews</a></li>
             </ul>
 
             <div class="nav-actions">
@@ -134,13 +134,12 @@
         <div class="container">
             <div class="section-header text-center">
                 <span class="section-subtitle">Select Your Favorites</span>
-                <h2>Our Full Menu</h2>
                 <div class="separator"></div>
             </div>
 
             <div class="search-container">
                 <i class="fas fa-search"></i>
-                <input type="text" id="menu-search" placeholder="Search for Sev, Mixture, etc..." autocomplete="off">
+                <input type="search" id="menu-search" placeholder="Search for Sev, Mixture..." enterkeyhint="search">
                 <div id="search-suggestions" class="search-suggestions"></div>
             </div>
 
@@ -246,8 +245,7 @@
                             All</small>
                     </div>
                     <div style="display:flex; gap:5px;">
-                        <input type="text" id="promo-code" placeholder="Enter Code" class="form-control"
-                            style="text-transform:uppercase;">
+                        <input type="text" id="promo-code" placeholder="Enter Code" autocapitalize="characters">
                         <button onclick="applyPromo()"
                             style="background:var(--dark); color:white; border:none; padding:8px 15px; border-radius:5px; cursor:pointer;">Apply</button>
                     </div>
@@ -261,7 +259,8 @@
                     <label class="input-label">Mobile Number <span style="color:red">*</span></label>
                     <div class="phone-input-group">
                         <span>+91</span>
-                        <input type="tel" id="cust-phone" maxlength="10" placeholder="9876543210">
+                        <input type="tel" id="cust-phone" maxlength="10" placeholder="9876543210" inputmode="numeric"
+                            pattern="[0-9]*">
                     </div>
 
                     <label class="input-label">Delivery Address <span style="color:red">*</span></label>
