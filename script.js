@@ -51,7 +51,8 @@ document.addEventListener('DOMContentLoaded', () => {
     loadCartLocal();
     fetchData();
     loadStorefront();
-    if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
+  // FIX: Call the robust function instead of using inline logic
+    registerServiceWorker();
 
     auth.onAuthStateChanged(user => {
         currentUser = user;
@@ -1738,3 +1739,5 @@ function vibrate(ms = 50) {
         navigator.vibrate(ms);
     }
 }
+
+function closeModal(id) { document.getElementById(id).style.display = 'none'; }
