@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Namo Namkeen | Price List</title>
+    <title>FAQs | Namo Namkeen</title>
     <link rel="icon" href="logo.jpg" type="image/jpeg">
     <link rel="stylesheet" href="style.css">
     <link
@@ -13,7 +13,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 
-<body class="pricelist-body">
+<body>
 
     <nav class="navbar">
         <div class="nav-container">
@@ -24,9 +24,10 @@
             <ul class="nav-menu">
                 <li><a href="index.html" class="nav-link">Home</a></li>
                 <li><a href="index.html#menu-section" class="nav-link">Menu</a></li>
+                 <li><a href="pricelist.html" class="nav-link">Price List</a></li>
                 <li><a href="story.html" class="nav-link">Our Story</a></li>
                 <li><a href="blog.html" class="nav-link">Blog</a></li>
-                <li><a href="faq.html" class="nav-link">FAQs</a></li>
+                <li><a href="faq.html" class="nav-link active">FAQs</a></li>
             </ul>
             <div class="nav-actions">
                 <div id="user-auth-section">
@@ -37,7 +38,6 @@
                             <p id="user-name">Guest</p>
                             <hr>
                             <button onclick="openProfileModal()">Edit Profile</button>
-                            <button onclick="showOrderHistory()">Order History</button>
                             <button onclick="logout()">Logout</button>
                         </div>
                     </div>
@@ -57,74 +57,60 @@
         <div class="mobile-nav-header">
             <span class="mobile-nav-title">Namo Namkeen</span>
             <button onclick="toggleMobileMenu()"
-                style="background: none; border: none; font-size: 2rem; color: white; cursor: pointer;">&times;</button>
+                style="background:none; border:none; font-size:2rem; color:white;">&times;</button>
         </div>
-        <a href="index.html">Home</a>
-        <a href="index.html#menu-section">Menu</a>
-        <a href="story.html">Our Story</a>
-        <a href="blog.html">Blog</a>
-        <a href="faq.html">FAQs</a>
+       <a href="#home" onclick="toggleMobileMenu()"><i class="fas fa-home"></i> Home</a>
+        <a href="#menu-section" onclick="toggleMobileMenu()"><i class="fas fa-utensils"></i> Menu</a>
+        <a href="pricelist.html"><i class="fas fa-book-open"></i>Price List</a>
+        <a href="story.html"><i class="fas fa-book-open"></i> Our Story</a>
+        <a href="blog.html"><i class="fas fa-newspaper"></i> Blog</a>
+        <a href="faq.html"><i class="fas fa-question-circle"></i> FAQs</a>
     </div>
 
-    <button class="fab-print" onclick="window.print()" title="Print Rate Card">
-        <i class="fas fa-print"></i>
-    </button>
-
-    <section class="price-header-section">
+    <section class="section-pad bg-cream text-center" style="padding-top: 60px;">
         <div class="container">
-            <span class="section-subtitle">Official Menu</span>
-            <h2 style="font-size: 2.5rem; margin-top: 5px;">Our Rate Card</h2>
-            <div class="separator"></div>
+            <span class="section-subtitle">Got Questions?</span>
+            <h1>Help & FAQs</h1>
         </div>
     </section>
 
-    <section class="section-pad price-content">
-        <div class="container" id="dynamic-content">
-            <div style="text-align:center; padding:50px;">
-                <i class="fas fa-spinner fa-spin" style="font-size: 2rem; color: var(--primary);"></i>
-                <p style="margin-top: 10px; color:#777;">Loading Price List...</p>
+    <section class="section-pad">
+        <div class="container" style="max-width: 800px;">
+            <div class="faq-item">
+                <div class="faq-question" onclick="toggleFaq(this)">Do you deliver all over India? <i
+                        class="fas fa-chevron-down"></i></div>
+                <div class="faq-answer">No! Currently we deliver we delivery only in Indore and Mhow.</div>
+            </div>
+            <div class="faq-item">
+                <div class="faq-question" onclick="toggleFaq(this)">Is your Namkeen 100% Vegetarian? <i
+                        class="fas fa-chevron-down"></i></div>
+                <div class="faq-answer">Absolutely. We operate a 100% vegetarian kitchen using only high-quality
+                    plant-based ingredients.</div>
+            </div>
+            <div class="faq-item">
+                <div class="faq-question" onclick="toggleFaq(this)">What is the shelf life of the products? <i
+                        class="fas fa-chevron-down"></i></div>
+                <div class="faq-answer">Most sealed packs stay fresh for 45 day to 60 days. Once opened, we recommend
+                    storing them in an airtight container.</div>
+            </div>
+            <div class="faq-item">
+                <div class="faq-question" onclick="toggleFaq(this)">Do you accept Cash on Delivery? <i
+                        class="fas fa-chevron-down"></i></div>
+                <div class="faq-answer">Yes, we offer Cash on Delivery (COD) for local orders in Indore/Mhow.</div>
             </div>
         </div>
     </section>
+
+    <script>
+        function toggleFaq(element) {
+            const item = element.parentElement;
+            item.classList.toggle('active');
+        }
+    </script>
 
     <footer class="footer">
-        <div class="container">
-            <div class="footer-top">
-                <div class="footer-section about">
-                    <p>Authentic Indian Sweets & Snacks, delivered to your doorstep. The Royal Taste of Indore.</p>
-                    <div class="social-links">
-                        <a href="#" class="social-icon"><i class="fab fa-instagram"></i></a>
-                        <a href="#" class="social-icon"><i class="fab fa-facebook-f"></i></a>
-                        <a href="#" class="social-icon"><i class="fab fa-whatsapp"></i></a>
-                    </div>
-                </div>
-                <div class="footer-section links">
-                    <h4>Quick Links</h4>
-                    <ul>
-                        <li><a href="index.html">Home</a></li>
-                        <li><a href="index.html#menu-section">Menu</a></li>
-                        <li><a href="story.html">Our Story</a></li>
-                        <li><a href="blog.html">Blog</a></li>
-                    </ul>
-                </div>
-                <div class="footer-section links">
-                    <h4>Legal</h4>
-                    <ul>
-                        <li><a href="privacy.html">Privacy Policy</a></li>
-                        <li><a href="terms.html">Terms of Service</a></li>
-                    </ul>
-                </div>
-                <div class="footer-section contact">
-                    <h4>Contact Us</h4>
-                    <p><i class="fas fa-map-marker-alt"></i> 131, Keshav Park, Mhow (M.P.)</p>
-                    <p><i class="fas fa-phone-alt"></i> +91 98266 98822</p>
-                    <p><i class="fas fa-envelope"></i> contact@namonamkeen.shop</p>
-                </div>
-            </div>
-            <div class="footer-bottom">
-                <p>&copy; 2025 Namo Namkeen. All Rights Reserved.</p>
-                <p>Designed with ❤️ by Parul Gangwal</p>
-            </div>
+        <div class="container text-center">
+            <p>&copy; 2025 Namo Namkeen</p>
         </div>
     </footer>
 
@@ -219,91 +205,10 @@
     </div>
 
     <div id="toast-container"></div>
-
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
     <script src="script.js"></script>
-
-    <script>
-        // Specific Logic to Render Price List
-        window.addEventListener('DOMContentLoaded', () => {
-            const db = firebase.firestore();
-            db.collection("products").get().then(snap => {
-                const products = [];
-                snap.forEach(doc => products.push(doc.data()));
-
-                const categories = {
-                    'spicy': { title: 'Spicy Namkeen', icon: 'fa-pepper-hot', items: [] },
-                    'sweet': { title: 'Sweet & Mild', icon: 'fa-cookie-bite', items: [] },
-                    'premium': { title: 'Premium Selection', icon: 'fa-crown', items: [] },
-                    'other': { title: 'Other Snacks', icon: 'fa-utensils', items: [] }
-                };
-
-                products.forEach(p => {
-                    if (p.id === 999) return;
-                    const cat = categories[p.category] ? p.category : 'other';
-                    categories[cat].items.push(p);
-                });
-
-                const container = document.getElementById('dynamic-content');
-                container.innerHTML = '';
-
-                for (const key in categories) {
-                    const section = categories[key];
-                    if (section.items.length === 0) continue;
-                    section.items.sort((a, b) => a.name.localeCompare(b.name));
-
-                    let rows = '';
-                    section.items.forEach(p => {
-                        let sizeInfo = '', priceInfo = '';
-                        if (p.variants && p.variants.length > 0) {
-                            sizeInfo = p.variants.map(v => v.weight).join('<br>');
-                            priceInfo = p.variants.map(v => `₹${v.price}`).join('<br>');
-                        } else {
-                            sizeInfo = 'Standard';
-                            priceInfo = `₹${p.price}`;
-                        }
-
-                        // FIX: Ensure image has a fallback logic in JS as well
-                        const imgSrc = p.image ? p.image : 'logo.jpg';
-
-                        rows += `
-                        <tr>
-                            <td width="60">
-                                <img src="${imgSrc}" class="t-thumb" onerror="this.src='logo.jpg'">
-                            </td>
-                            <td>
-                                <div class="p-name">${p.name}</div>
-                            </td>
-                            <td style="color:#666; font-size:0.85rem;">${sizeInfo}</td>
-                            <td class="p-price">${priceInfo}</td>
-                        </tr>`;
-                    });
-
-                    container.innerHTML += `
-                    <div class="price-category">
-                        <div class="cat-header">
-                            <h3><i class="fas ${section.icon}"></i> ${section.title}</h3>
-                        </div>
-                        <div class="table-responsive">
-                            <table class="price-table">
-                                <thead>
-                                    <tr>
-                                        <th>Image</th>
-                                        <th>Product</th>
-                                        <th>Pack Size</th>
-                                        <th class="text-right">Price</th>
-                                    </tr>
-                                </thead>
-                                <tbody>${rows}</tbody>
-                            </table>
-                        </div>
-                    </div>`;
-                }
-            });
-        });
-    </script>
 </body>
 
 </html>

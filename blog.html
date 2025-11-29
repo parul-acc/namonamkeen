@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Namo Namkeen | Price List</title>
+    <title>Snack Diaries | Namo Namkeen</title>
     <link rel="icon" href="logo.jpg" type="image/jpeg">
     <link rel="stylesheet" href="style.css">
     <link
@@ -13,7 +13,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 
-<body class="pricelist-body">
+<body>
 
     <nav class="navbar">
         <div class="nav-container">
@@ -24,8 +24,9 @@
             <ul class="nav-menu">
                 <li><a href="index.html" class="nav-link">Home</a></li>
                 <li><a href="index.html#menu-section" class="nav-link">Menu</a></li>
+                 <li><a href="pricelist.html" class="nav-link">Price List</a></li>
                 <li><a href="story.html" class="nav-link">Our Story</a></li>
-                <li><a href="blog.html" class="nav-link">Blog</a></li>
+                <li><a href="blog.html" class="nav-link active">Blog</a></li>
                 <li><a href="faq.html" class="nav-link">FAQs</a></li>
             </ul>
             <div class="nav-actions">
@@ -57,74 +58,72 @@
         <div class="mobile-nav-header">
             <span class="mobile-nav-title">Namo Namkeen</span>
             <button onclick="toggleMobileMenu()"
-                style="background: none; border: none; font-size: 2rem; color: white; cursor: pointer;">&times;</button>
+                style="background:none; border:none; font-size:2rem; color:white;">&times;</button>
         </div>
         <a href="index.html">Home</a>
-        <a href="index.html#menu-section">Menu</a>
-        <a href="story.html">Our Story</a>
         <a href="blog.html">Blog</a>
         <a href="faq.html">FAQs</a>
     </div>
 
-    <button class="fab-print" onclick="window.print()" title="Print Rate Card">
-        <i class="fas fa-print"></i>
-    </button>
-
-    <section class="price-header-section">
+    <section class="section-pad bg-cream text-center" style="padding-top: 60px;">
         <div class="container">
-            <span class="section-subtitle">Official Menu</span>
-            <h2 style="font-size: 2.5rem; margin-top: 5px;">Our Rate Card</h2>
-            <div class="separator"></div>
+            <span class="section-subtitle">Read & Relish</span>
+            <h1>The Snack Diaries</h1>
         </div>
     </section>
 
-    <section class="section-pad price-content">
-        <div class="container" id="dynamic-content">
-            <div style="text-align:center; padding:50px;">
-                <i class="fas fa-spinner fa-spin" style="font-size: 2rem; color: var(--primary);"></i>
-                <p style="margin-top: 10px; color:#777;">Loading Price List...</p>
+    <section class="section-pad">
+        <div class="container">
+            <div class="blog-grid">
+
+                <article class="blog-card">
+                    <img src="assets/images/banner.jpg" class="blog-img" alt="Blog 1">
+                    <div class="blog-content">
+                        <span class="blog-date">Oct 15, 2025</span>
+                        <h3 class="blog-title">5 Creative Ways to Use 'Sev' in Breakfast</h3>
+                        <p style="color: #666; font-size: 0.9rem; margin-bottom: 15px;">Transform your Poha and Upma
+                            with a crunchy twist...</p>
+                        <a href="javascript:void(0)" onclick="openBlog(1)" class="read-more">Read Full Story &rarr;</a>
+                    </div>
+                </article>
+
+                <article class="blog-card">
+                    <img src="assets/images/product/gujiya.jpg" class="blog-img" alt="Blog 2">
+                    <div class="blog-content">
+                        <span class="blog-date">Nov 02, 2025</span>
+                        <h3 class="blog-title">Why Homemade Gujiya Tastes Better</h3>
+                        <p style="color: #666; font-size: 0.9rem; margin-bottom: 15px;">The secret lies in the 'Khoya'
+                            and the frying temp...</p>
+                        <a href="javascript:void(0)" onclick="openBlog(2)" class="read-more">Read Full Story &rarr;</a>
+                    </div>
+                </article>
+
+                <article class="blog-card">
+                    <img src="assets/images/product/Ratlami_Sev.jpg" class="blog-img" alt="Blog 3">
+                    <div class="blog-content">
+                        <span class="blog-date">Nov 20, 2025</span>
+                        <h3 class="blog-title">History of Ratlami Sev</h3>
+                        <p style="color: #666; font-size: 0.9rem; margin-bottom: 15px;">How a royal recipe became the
+                            favorite snack of millions...</p>
+                        <a href="javascript:void(0)" onclick="openBlog(3)" class="read-more">Read Full Story &rarr;</a>
+                    </div>
+                </article>
+
             </div>
         </div>
     </section>
+
+    <div id="blog-modal" class="modal-overlay">
+        <div class="modal-content" style="max-width: 700px;">
+            <button class="close-modal" onclick="closeBlog()">&times;</button>
+            <div id="blog-modal-body">
+            </div>
+        </div>
+    </div>
 
     <footer class="footer">
-        <div class="container">
-            <div class="footer-top">
-                <div class="footer-section about">
-                    <p>Authentic Indian Sweets & Snacks, delivered to your doorstep. The Royal Taste of Indore.</p>
-                    <div class="social-links">
-                        <a href="#" class="social-icon"><i class="fab fa-instagram"></i></a>
-                        <a href="#" class="social-icon"><i class="fab fa-facebook-f"></i></a>
-                        <a href="#" class="social-icon"><i class="fab fa-whatsapp"></i></a>
-                    </div>
-                </div>
-                <div class="footer-section links">
-                    <h4>Quick Links</h4>
-                    <ul>
-                        <li><a href="index.html">Home</a></li>
-                        <li><a href="index.html#menu-section">Menu</a></li>
-                        <li><a href="story.html">Our Story</a></li>
-                        <li><a href="blog.html">Blog</a></li>
-                    </ul>
-                </div>
-                <div class="footer-section links">
-                    <h4>Legal</h4>
-                    <ul>
-                        <li><a href="privacy.html">Privacy Policy</a></li>
-                        <li><a href="terms.html">Terms of Service</a></li>
-                    </ul>
-                </div>
-                <div class="footer-section contact">
-                    <h4>Contact Us</h4>
-                    <p><i class="fas fa-map-marker-alt"></i> 131, Keshav Park, Mhow (M.P.)</p>
-                    <p><i class="fas fa-phone-alt"></i> +91 98266 98822</p>
-                    <p><i class="fas fa-envelope"></i> contact@namonamkeen.shop</p>
-                </div>
-            </div>
-            <div class="footer-bottom">
-                <p>&copy; 2025 Namo Namkeen. All Rights Reserved.</p>
-                <p>Designed with ❤️ by Parul Gangwal</p>
-            </div>
+        <div class="container text-center">
+            <p>&copy; 2025 Namo Namkeen</p>
         </div>
     </footer>
 
@@ -219,90 +218,94 @@
     </div>
 
     <div id="toast-container"></div>
-
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
     <script src="script.js"></script>
 
     <script>
-        // Specific Logic to Render Price List
-        window.addEventListener('DOMContentLoaded', () => {
-            const db = firebase.firestore();
-            db.collection("products").get().then(snap => {
-                const products = [];
-                snap.forEach(doc => products.push(doc.data()));
+        const blogPosts = {
+            1: {
+                title: "5 Creative Ways to Use 'Sev' in Breakfast",
+                date: "Oct 15, 2025",
+                image: "assets/images/banner.jpg",
+                content: `
+                    <p>We all know <strong>Indori Poha</strong> is incomplete without a generous handful of Sev. But did you know this crunchy topping is more versatile than you think?</p>
+                    
+                    <h4>1. The Upma Crunch</h4>
+                    <p>Sprinkle <em>Ratlami Sev</em> on your morning Upma. The spicy clove flavor cuts through the mild semolina taste perfectly.</p>
+                    
+                    <h4>2. Sev Paratha</h4>
+                    <p>Instead of Aloo, try stuffing your paratha with a mix of <em>Ujjaini Sev</em>, onions, and coriander. It’s a popular breakfast in Rajasthan!</p>
+                    
+                    <h4>3. Curd Rice Garnish</h4>
+                    <p>Add a twist to South Indian Curd Rice with <em>Nylon Sev</em>. It adds texture without overpowering the dish.</p>
+                    
+                    <h4>4. Sev Sandwich</h4>
+                    <p>Bombay Sandwich style! Butter bread, add green chutney, cucumber, tomato, and a thick layer of Sev before grilling.</p>
+                    
+                    <h4>5. Tomato Sev Soup</h4>
+                    <p>A winter favorite. Add thick Sev to hot tomato soup just before serving for a delicious 'crouton' alternative.</p>
+                `
+            },
+            2: {
+                title: "Why Homemade Gujiya Tastes Better",
+                date: "Nov 02, 2025",
+                image: "assets/images/product/gujiya.jpg",
+                content: `
+                    <p>Diwali is incomplete without Gujiya. While store-bought sweets are convenient, nothing beats the taste of homemade Gujiya. Here is why ours stands out.</p>
+                    
+                    <h4>The Secret is the 'Khoya'</h4>
+                    <p>We don't use milk powder. We slow-cook full-fat milk for hours until it turns into rich, granular Khoya (Mawa). This gives our Gujiya a moist, melt-in-the-mouth center.</p>
+                    
+                    <h4>Frying Temperature Matters</h4>
+                    <p>Many commercial kitchens fry at high heat for speed. We fry at low-medium heat. This ensures the outer pastry is flaky and cooked through, not just browned on the outside.</p>
+                    
+                    <h4>Pure Desi Ghee</h4>
+                    <p>We believe in the power of Ghee. It acts as a natural preservative and adds that distinct aroma you remember from your grandmother's kitchen.</p>
+                `
+            },
+            3: {
+                title: "History of Ratlami Sev",
+                date: "Nov 20, 2025",
+                image: "assets/images/product/Ratlami_Sev.jpg",
+                content: `
+                    <p>Ratlami Sev isn't just a snack; it's a GI (Geographical Indication) tagged heritage food of Madhya Pradesh. But how did it start?</p>
+                    
+                    <h4>Royal Beginnings</h4>
+                    <p>History suggests that Mughal emperors passing through the Malwa region demanded a snack similar to vermicelli but with a spicy kick. The local Bhil tribes prepared a dish using gram flour and local spices.</p>
+                    
+                    <h4>The 'Laung' Factor</h4>
+                    <p>The defining ingredient of Ratlami Sev is <strong>Cloves (Laung)</strong> and Black Pepper. This combination was originally used to keep the body warm during cold Malwa nights.</p>
+                    
+                    <h4>Why is it so crisp?</h4>
+                    <p>Authentic Ratlami Sev dough is kneaded with a special mix of oil and water (called 'Moyan') which makes it incredibly crisp yet brittle.</p>
+                    
+                    <p>At <strong>Namo Namkeen</strong>, we follow this 200-year-old recipe strictly, ensuring you get the authentic taste of history in every bite.</p>
+                `
+            }
+        };
 
-                const categories = {
-                    'spicy': { title: 'Spicy Namkeen', icon: 'fa-pepper-hot', items: [] },
-                    'sweet': { title: 'Sweet & Mild', icon: 'fa-cookie-bite', items: [] },
-                    'premium': { title: 'Premium Selection', icon: 'fa-crown', items: [] },
-                    'other': { title: 'Other Snacks', icon: 'fa-utensils', items: [] }
-                };
+        function openBlog(id) {
+            const blog = blogPosts[id];
+            if (!blog) return;
 
-                products.forEach(p => {
-                    if (p.id === 999) return;
-                    const cat = categories[p.category] ? p.category : 'other';
-                    categories[cat].items.push(p);
-                });
+            const html = `
+                <img src="${blog.image}" style="width:100%; height:300px; object-fit:cover; border-radius:10px; margin-bottom:20px;">
+                <h2 style="color:var(--primary); margin-bottom:5px; font-family:'Playfair Display'">${blog.title}</h2>
+                <small style="color:#999; display:block; margin-bottom:20px;">Posted on ${blog.date}</small>
+                <div style="font-size:1.05rem; line-height:1.8; color:#444;">
+                    ${blog.content}
+                </div>
+            `;
 
-                const container = document.getElementById('dynamic-content');
-                container.innerHTML = '';
+            document.getElementById('blog-modal-body').innerHTML = html;
+            document.getElementById('blog-modal').style.display = 'flex';
+        }
 
-                for (const key in categories) {
-                    const section = categories[key];
-                    if (section.items.length === 0) continue;
-                    section.items.sort((a, b) => a.name.localeCompare(b.name));
-
-                    let rows = '';
-                    section.items.forEach(p => {
-                        let sizeInfo = '', priceInfo = '';
-                        if (p.variants && p.variants.length > 0) {
-                            sizeInfo = p.variants.map(v => v.weight).join('<br>');
-                            priceInfo = p.variants.map(v => `₹${v.price}`).join('<br>');
-                        } else {
-                            sizeInfo = 'Standard';
-                            priceInfo = `₹${p.price}`;
-                        }
-
-                        // FIX: Ensure image has a fallback logic in JS as well
-                        const imgSrc = p.image ? p.image : 'logo.jpg';
-
-                        rows += `
-                        <tr>
-                            <td width="60">
-                                <img src="${imgSrc}" class="t-thumb" onerror="this.src='logo.jpg'">
-                            </td>
-                            <td>
-                                <div class="p-name">${p.name}</div>
-                            </td>
-                            <td style="color:#666; font-size:0.85rem;">${sizeInfo}</td>
-                            <td class="p-price">${priceInfo}</td>
-                        </tr>`;
-                    });
-
-                    container.innerHTML += `
-                    <div class="price-category">
-                        <div class="cat-header">
-                            <h3><i class="fas ${section.icon}"></i> ${section.title}</h3>
-                        </div>
-                        <div class="table-responsive">
-                            <table class="price-table">
-                                <thead>
-                                    <tr>
-                                        <th>Image</th>
-                                        <th>Product</th>
-                                        <th>Pack Size</th>
-                                        <th class="text-right">Price</th>
-                                    </tr>
-                                </thead>
-                                <tbody>${rows}</tbody>
-                            </table>
-                        </div>
-                    </div>`;
-                }
-            });
-        });
+        function closeBlog() {
+            document.getElementById('blog-modal').style.display = 'none';
+        }
     </script>
 </body>
 

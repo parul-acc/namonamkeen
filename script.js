@@ -51,7 +51,7 @@ document.addEventListener('DOMContentLoaded', () => {
     loadCartLocal();
     fetchData();
     loadStorefront();
-  // FIX: Call the robust function instead of using inline logic
+    // FIX: Call the robust function instead of using inline logic
     registerServiceWorker();
 
     auth.onAuthStateChanged(user => {
@@ -500,10 +500,10 @@ function openProductDetail(id) {
 async function cancelOrder(docId) {
     if (!docId) return showToast("Error: Invalid Order ID", "error");
 
-    if (!showConfirm("Are you sure you want to cancel this order?")) return;
+    // FIX: Wait for confirmation
+    if (!await showConfirm("Are you sure you want to cancel this order?")) return;
 
     try {
-        // Use the Document ID directly
         await db.collection("orders").doc(docId).update({
             status: "Cancelled",
             cancelledBy: "User",
@@ -511,10 +511,10 @@ async function cancelOrder(docId) {
         });
 
         showToast("Order Cancelled Successfully.", "success");
-        showOrderHistory(); // Refresh to see status change
+        showOrderHistory(); // Refresh UI
     } catch (e) {
         console.error("Cancel Error:", e);
-        showToast("Could not cancel order. It might already be processed.", "error");
+        showToast("Could not cancel order.", "error");
     }
 }
 
@@ -553,13 +553,20 @@ function updateCartUI() {
     con.innerHTML = '';
     let subtotal = 0, count = 0;
 
+    // Helper variables for elements that might be missing
+    const clearBtn = document.getElementById('clear-cart-btn');
+    const promoCodeInput = document.getElementById('promo-code');
+    const promoMsg = document.getElementById('promo-msg');
+
     if (cart.length === 0) {
         con.innerHTML = '<p style="text-align:center; padding:20px;">Cart is empty</p>';
-        document.getElementById('clear-cart-btn').style.display = 'none';
+        if (clearBtn) clearBtn.style.display = 'none'; // Safe check
+        
         appliedDiscount = { type: 'none', value: 0, code: null };
-        document.getElementById('promo-code').value = '';
+        if (promoCodeInput) promoCodeInput.value = ''; // Safe check
     } else {
-        document.getElementById('clear-cart-btn').style.display = 'flex';
+        if (clearBtn) clearBtn.style.display = 'flex'; // Safe check
+        
         cart.forEach(i => {
             subtotal += i.price * i.qty;
             count += i.qty;
@@ -582,21 +589,21 @@ function updateCartUI() {
         });
     }
 
-    // START NEW VALIDATION LOGIC
+    // VALIDATION LOGIC
     if (appliedDiscount && appliedDiscount.code) {
-        // Find the full coupon details from activeCoupons list
         const couponRule = activeCoupons.find(c => c.code === appliedDiscount.code);
 
         if (couponRule && couponRule.minOrder && subtotal < couponRule.minOrder) {
-            // Auto-remove discount if total drops below limit
             appliedDiscount = { type: 'none', value: 0, code: null };
-            document.getElementById('promo-code').value = '';
-            document.getElementById('promo-msg').innerText = `Coupon removed. Min order is ₹${couponRule.minOrder}`;
-            document.getElementById('promo-msg').style.color = "red";
+            if (promoCodeInput) promoCodeInput.value = '';
+            
+            if (promoMsg) {
+                promoMsg.innerText = `Coupon removed. Min order is ₹${couponRule.minOrder}`;
+                promoMsg.style.color = "red";
+            }
             showToast("Coupon removed: Minimum order not met", "error");
         }
     }
-    // END NEW VALIDATION LOGIC
 
     // CALCULATE DISCOUNT
     let discountAmount = 0;
@@ -609,10 +616,12 @@ function updateCartUI() {
     if (discountAmount > subtotal) discountAmount = subtotal;
     const final = subtotal - discountAmount;
 
-    // In updateCartUI()
-    document.getElementById('cart-total').innerText = '₹' + final.toLocaleString('en-IN');
+    // Update Totals
+    const totalEl = document.getElementById('cart-total');
+    if (totalEl) totalEl.innerText = '₹' + final.toLocaleString('en-IN');
 
-    document.getElementById('cart-count').innerText = count;
+    const countEl = document.getElementById('cart-count');
+    if (countEl) countEl.innerText = count;
 }
 
 function changeQty(id, d) {
@@ -632,13 +641,17 @@ function removeFromCart(id) {
     cart = cart.filter(x => x.cartId !== id); updateCartUI();
     saveCartLocal();
 }
-function clearCart() {
-    if (showConfirm("Clear?")) {
+
+async function clearCart() {
+    // FIX: Wait for confirmation
+    if (await showConfirm("Clear your cart?")) {
         cart = [];
+        appliedDiscount = { type: 'none', value: 0, code: null }; // Also clear coupons
         updateCartUI();
+        saveCartLocal();
     }
-    saveCartLocal();
 }
+
 function toggleCart() { document.getElementById('cart-sidebar').classList.toggle('active'); document.querySelector('.cart-overlay').classList.toggle('active'); }
 
 // --- 10. CHECKOUT FLOW (Split Logic) ---
@@ -959,64 +972,72 @@ function closeInvoice() { document.getElementById('invoice-modal').style.display
 function printInvoice() { window.print(); }
 // In script.js
 
-function repeatOrder(orderId) {
+// --- SMART RE-ORDER FUNCTION ---
+async function repeatOrder(orderId) {
     const order = historyOrders.find(o => o.id === orderId);
     if (!order) return;
 
-    if (showConfirm("Add available items from this order to your cart?")) {
-        let addedCount = 0;
-        let outOfStockCount = 0;
+    // FIX: Use await to actually wait for user click
+    if (!await showConfirm("Add available items from this order to your cart?")) return;
 
-        order.items.forEach(item => {
-            // Find the current live product info
-            const liveProduct = products.find(p => p.id === item.productId);
+    let addedCount = 0;
+    let outOfStockItems = [];
 
-            // Check if product exists and is in stock
-            if (liveProduct && liveProduct.in_stock) {
-                // Use CURRENT price, not old order price
-                let currentPrice = item.price;
+    order.items.forEach(item => {
+        // 1. Find the current live product info to check real-time stock/price
+        const liveProduct = products.find(p => p.id === item.productId);
 
-                // If it has variants, try to find the matching variant price
-                if (liveProduct.variants) {
-                    const variant = liveProduct.variants.find(v => v.weight === item.weight);
-                    if (variant) {
-                        currentPrice = variant.price;
-                        // Check if specific variant is in stock (if you have variant-level stock)
-                        if (variant.inStock === false) {
-                            outOfStockCount++;
-                            return;
-                        }
+        let isAvailable = false;
+        let currentPrice = item.price;
+
+        // 2. Check if product exists and is globally in stock
+        if (liveProduct && liveProduct.in_stock) {
+            isAvailable = true;
+            
+            // 3. If it has variants, check if the specific size is in stock
+            if (liveProduct.variants) {
+                const variant = liveProduct.variants.find(v => v.weight === item.weight);
+                if (variant) {
+                    currentPrice = variant.price; // Update to current price
+                    if (variant.inStock === false) {
+                        isAvailable = false; // Variant specific out-of-stock
                     }
                 }
-
-                const cartId = `${item.productId}-${item.weight.replace(/\s/g, '')}`;
-                const existing = cart.find(c => c.cartId === cartId);
-
-                if (existing) {
-                    existing.qty += item.qty;
-                } else {
-                    cart.push({
-                        ...item,
-                        price: currentPrice, // Update to current price
-                        image: liveProduct.image // Update image in case it changed
-                    });
-                }
-                addedCount++;
-            } else {
-                outOfStockCount++;
             }
-        });
-
-        updateCartUI();
-        toggleCart();
-        closeHistory();
-
-        if (outOfStockCount > 0) {
-            showToast(`${addedCount} items added. ${outOfStockCount} items are out of stock.`, "neutral");
-        } else {
-            showToast("All items added to cart!", "success");
         }
+
+        if (isAvailable) {
+            const cartId = `${item.productId}-${item.weight.replace(/\s/g, '')}`;
+            const existing = cart.find(c => c.cartId === cartId);
+
+            if (existing) {
+                existing.qty += item.qty;
+            } else {
+                cart.push({
+                    ...item,
+                    price: currentPrice, // Use updated price
+                    image: liveProduct.image // Use updated image
+                });
+            }
+            addedCount++;
+        } else {
+            outOfStockItems.push(item.name);
+        }
+    });
+
+    updateCartUI();
+    toggleCart();
+    closeHistory();
+
+    // 4. Smart Feedback
+    if (outOfStockItems.length > 0) {
+        // If only a few items are missing, list them
+        const missingText = outOfStockItems.length <= 2 ? outOfStockItems.join(", ") : `${outOfStockItems.length} items`;
+        showToast(`${addedCount} added. ${missingText} out of stock.`, "neutral");
+    } else {
+        showToast("All items added to cart!", "success");
     }
+    saveCartLocal();
 }
 
 // --- HELPER ---
@@ -1114,7 +1135,10 @@ function filterMenu(c) {
     const y = grid.getBoundingClientRect().top + window.pageYOffset + yOffset;
     window.scrollTo({ top: y, behavior: 'smooth' });
 }
-function searchMenu() { searchQuery = document.getElementById('menu-search').value; renderMenu(); }
+function searchMenu() {
+    searchQuery = document.getElementById('menu-search').value;
+    renderMenu();
+}
 function toggleLanguage() { currentLang = currentLang === 'en' ? 'hi' : 'en'; renderMenu(); updateCartUI(); }
 function toggleMobileMenu() {
     const nav = document.getElementById('mobile-nav');
@@ -1637,6 +1661,17 @@ function handleLoginChoice(method) {
 // --- SMART SEARCH LOGIC ---
 const searchInput = document.getElementById('menu-search');
 const suggestionsBox = document.getElementById('search-suggestions');
+let fuse; // Hold the Fuse instance
+
+// Initialize Fuse once products are loaded
+function initFuzzySearch() {
+    const options = {
+        keys: ['name', 'nameHi', 'category', 'desc'], // Fields to search
+        threshold: 0.4, // 0.0 = perfect match, 1.0 = match anything. 0.4 is good for typos.
+        distance: 100   // How close the match needs to be
+    };
+    fuse = new Fuse(products, options);
+}
 
 if (searchInput) {
     searchInput.addEventListener('input', function () {
@@ -1649,11 +1684,10 @@ if (searchInput) {
             return;
         }
 
-        // 2. Filter Products
-        const matches = products.filter(p => {
-            const name = (p.name + (p.nameHi || '')).toLowerCase();
-            return name.includes(query);
-        });
+        // 2. Perform Fuzzy Search
+        // Fuse returns results in { item: ... } format
+        const results = fuse.search(query);
+        const matches = results.map(result => result.item).slice(0, 5); // Limit to top 5
 
         // 3. Render Suggestions
         if (matches.length > 0) {

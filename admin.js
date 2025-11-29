@@ -491,14 +491,11 @@ function loadOrders() {
         let pending = 0, packed = 0, delivered = 0;
 
         if (previousOrderCount > 0 && snap.size > previousOrderCount) {
-            // FIX: Handle autoplay restrictions
-            const playPromise = audio.play();
-            if (playPromise !== undefined) {
-                playPromise.catch(error => {
-                    console.log("Audio play blocked by browser (user interaction needed).");
-                });
+            if (soundEnabled) {
+                orderSound.play().catch(e => console.log("Sound blocked:", e));
             }
             showToast("New Order Received!", "success");
+            vibrate(200); // Add vibration for mobile admins
         }
         previousOrderCount = snap.size;
 
@@ -1089,12 +1086,32 @@ function renderPosProducts() {
     if (!grid) return;
     const query = document.getElementById('pos-search').value.toLowerCase();
     grid.innerHTML = '';
+
     state.inventory.data.forEach(p => {
         if (!p.name.toLowerCase().includes(query)) return;
+
         let price = p.price;
         let weight = 'Standard';
-        if (p.variants && p.variants.length > 0) { price = p.variants[0].price; weight = p.variants[0].weight; }
-        grid.innerHTML += `<div class="pos-card" onclick="addToAdminCart('${p.id}', '${escapeHtml(p.name)}', ${price}, '${weight}', '${p.image}')"><img src="${p.image}" onerror="this.onerror=null; this.src='logo.jpg';"><h4>${p.name}</h4><small>${weight} - ₹${price}</small></div>`;
+        // Use first variant if available
+        if (p.variants && p.variants.length > 0) {
+            price = p.variants[0].price;
+            weight = p.variants[0].weight;
+        }
+
+        // New Card HTML Structure
+        grid.innerHTML += `
+        <div class="pos-card" onclick="addToAdminCart('${p.id}', '${escapeHtml(p.name)}', ${price}, '${weight}', '${p.image}')">
+            <div class="pos-card-img-wrap">
+                <img src="${p.image}" onerror="this.onerror=null; this.src='logo.jpg';">
+            </div>
+            <div class="pos-card-info">
+                <h4>${p.name}</h4>
+                <div class="pos-meta">
+                    <span class="pos-weight">${weight}</span>
+                    <span class="pos-price">₹${price}</span>
+                </div>
+            </div>
+        </div>`;
     });
 }
 
@@ -1128,25 +1145,33 @@ function renderAdminCart() {
     adminCart.forEach((item, idx) => {
         total += item.price * item.qty;
         list.innerHTML += `
-        <div class="pos-cart-item" style="animation: highlight 0.3s ease;">
+        <div class="pos-cart-item">
             <div style="flex:1">
-                <strong>${item.name}</strong><br>
-                <small>₹${item.price} x ${item.qty}</small>
+                <div style="font-weight:600; font-size:0.9rem;">${item.name}</div>
+                <div style="font-size:0.8rem; color:#666;">₹${item.price} x ${item.qty}</div>
             </div>
-            <div style="display:flex; align-items:center; gap:10px;">
+            
+            <div class="pos-cart-controls">
                 <button class="pos-qty-btn" onclick="updatePosQty(${idx}, -1)">-</button>
-                <span style="font-weight:600; width:20px; text-align:center;">${item.qty}</span>
+                <span style="font-weight:600; font-size:0.9rem; min-width:15px; text-align:center;">${item.qty}</span>
                 <button class="pos-qty-btn" onclick="updatePosQty(${idx}, 1)">+</button>
             </div>
-            <div style="font-weight:bold; margin-left:10px; min-width:50px; text-align:right;">₹${item.price * item.qty}</div>
+            
+            <div style="font-weight:bold; margin-left:15px; min-width:50px; text-align:right; font-size:0.95rem;">
+                ₹${item.price * item.qty}
+            </div>
         </div>`;
     });
 
-    if (adminCart.length === 0) list.innerHTML = '<p style="color:#888; text-align:center; padding:10px;">Cart is Empty</p>';
+    if (adminCart.length === 0) {
+        list.innerHTML = `
+            <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; color:#999;">
+                <i class="fas fa-shopping-basket" style="font-size:2rem; margin-bottom:10px; opacity:0.3;"></i>
+                <p>Cart is Empty</p>
+            </div>`;
+    }
 
-    document.getElementById('pos-total-display').innerText = `₹${total}`;
-
-    // Auto-scroll to bottom of cart to show newest item
+    document.getElementById('pos-total-display').innerText = `₹${total.toLocaleString('en-IN')}`;
     list.scrollTop = list.scrollHeight;
 }
 
@@ -1285,5 +1310,86 @@ document.getElementById('order-search').addEventListener('keypress', function (e
         performGlobalSearch();
     }
 });
+
+// --- STORE CONFIGURATION FUNCTIONS (Add this to admin.js) ---
+
+function loadStoreConfig() {
+    // 1. Load General Store Config
+    db.collection("settings").doc("config").get().then(doc => {
+        if (doc.exists) {
+            const data = doc.data();
+            if (document.getElementById('conf-phone')) document.getElementById('conf-phone').value = data.adminPhone || '';
+            if (document.getElementById('conf-upi')) document.getElementById('conf-upi').value = data.upiId || '';
+            if (document.getElementById('conf-del-charge')) document.getElementById('conf-del-charge').value = data.deliveryCharge || '';
+            if (document.getElementById('conf-free-ship')) document.getElementById('conf-free-ship').value = data.freeShippingThreshold || '';
+        }
+    }).catch(err => console.log("Config load error (first run?):", err));
+
+    // 2. Load Layout/Banner Config
+    db.collection("settings").doc("layout").get().then(doc => {
+        if (doc.exists) {
+            const data = doc.data();
+            if (document.getElementById('layout-title')) document.getElementById('layout-title').value = data.heroTitle || '';
+            if (document.getElementById('layout-subtitle')) document.getElementById('layout-subtitle').value = data.heroSubtitle || '';
+            if (document.getElementById('layout-bg')) document.getElementById('layout-bg').value = data.heroImage || '';
+        }
+    });
+}
+
+function saveStoreConfig() {
+    const adminPhone = document.getElementById('conf-phone').value.trim();
+    const upiId = document.getElementById('conf-upi').value.trim();
+    const deliveryCharge = parseFloat(document.getElementById('conf-del-charge').value) || 0;
+    const freeShippingThreshold = parseFloat(document.getElementById('conf-free-ship').value) || 0;
+
+    db.collection("settings").doc("config").set({
+        adminPhone,
+        upiId,
+        deliveryCharge,
+        freeShippingThreshold
+    }, { merge: true })
+        .then(() => showToast("Store Config Saved", "success"))
+        .catch(err => showToast("Error: " + err.message, "error"));
+}
+
+function saveLayoutConfig() {
+    const heroTitle = document.getElementById('layout-title').value.trim();
+    const heroSubtitle = document.getElementById('layout-subtitle').value.trim();
+    const heroImage = document.getElementById('layout-bg').value.trim();
+
+    db.collection("settings").doc("layout").set({
+        heroTitle,
+        heroSubtitle,
+        heroImage
+    }, { merge: true })
+        .then(() => showToast("Layout Updated", "success"))
+        .catch(err => showToast("Error: " + err.message, "error"));
+}
+
+let soundEnabled = false;
+const orderSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+
+function enableSound() {
+    // Attempt to play and immediately pause to unlock AudioContext
+    orderSound.play().then(() => {
+        orderSound.pause();
+        orderSound.currentTime = 0;
+        soundEnabled = true;
+
+        // Update Button UI
+        const btn = document.getElementById('sound-btn');
+        if (btn) {
+            btn.innerHTML = '<i class="fas fa-volume-up"></i> Sound On';
+            btn.classList.remove('btn-outline');
+            btn.classList.add('btn-green');
+            // Optional: Hide button after enabling if you prefer
+            // btn.style.display = 'none'; 
+        }
+        showToast("Order Notifications Enabled", "success");
+    }).catch(e => {
+        console.log("Audio unlock failed", e);
+        showToast("Could not enable sound", "error");
+    });
+}
 
 registerAdminServiceWorker();

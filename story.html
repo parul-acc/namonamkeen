@@ -1,19 +1,20 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Namo Namkeen | Price List</title>
+    <title>Our Story | Namo Namkeen</title>
     <link rel="icon" href="logo.jpg" type="image/jpeg">
     <link rel="stylesheet" href="style.css">
-    <link
-        href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Poppins:wght@300;400;500;600&display=swap"
-        rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
+<body>
 
-<body class="pricelist-body">
+    <div id="announcement-bar" class="announcement-bar" style="display: none;">
+        <p id="announcement-text"></p>
+        <button onclick="closeAnnouncement()">&times;</button>
+    </div>
 
     <nav class="navbar">
         <div class="nav-container">
@@ -24,7 +25,8 @@
             <ul class="nav-menu">
                 <li><a href="index.html" class="nav-link">Home</a></li>
                 <li><a href="index.html#menu-section" class="nav-link">Menu</a></li>
-                <li><a href="story.html" class="nav-link">Our Story</a></li>
+                 <li><a href="pricelist.html" class="nav-link">Price List</a></li>
+                <li><a href="story.html" class="nav-link active">Our Story</a></li>
                 <li><a href="blog.html" class="nav-link">Blog</a></li>
                 <li><a href="faq.html" class="nav-link">FAQs</a></li>
             </ul>
@@ -36,9 +38,9 @@
                         <div class="profile-dropdown" id="profile-menu">
                             <p id="user-name">Guest</p>
                             <hr>
-                            <button onclick="openProfileModal()">Edit Profile</button>
-                            <button onclick="showOrderHistory()">Order History</button>
-                            <button onclick="logout()">Logout</button>
+                            <button onclick="openProfileModal()"><i class="fas fa-user-edit"></i> Edit Profile</button>
+                            <button onclick="showOrderHistory()"><i class="fas fa-history"></i> Order History</button>
+                            <button onclick="logout()" style="color:red;"><i class="fas fa-sign-out-alt"></i> Logout</button>
                         </div>
                     </div>
                 </div>
@@ -56,33 +58,40 @@
     <div class="mobile-nav" id="mobile-nav">
         <div class="mobile-nav-header">
             <span class="mobile-nav-title">Namo Namkeen</span>
-            <button onclick="toggleMobileMenu()"
-                style="background: none; border: none; font-size: 2rem; color: white; cursor: pointer;">&times;</button>
+            <button onclick="toggleMobileMenu()" style="background:none; border:none; font-size:2rem; color:white;">&times;</button>
         </div>
-        <a href="index.html">Home</a>
-        <a href="index.html#menu-section">Menu</a>
-        <a href="story.html">Our Story</a>
-        <a href="blog.html">Blog</a>
-        <a href="faq.html">FAQs</a>
+     <a href="#home" onclick="toggleMobileMenu()"><i class="fas fa-home"></i> Home</a>
+        <a href="#menu-section" onclick="toggleMobileMenu()"><i class="fas fa-utensils"></i> Menu</a>
+        <a href="pricelist.html"><i class="fas fa-book-open"></i>Price List</a>
+        <a href="story.html"><i class="fas fa-book-open"></i> Our Story</a>
+        <a href="blog.html"><i class="fas fa-newspaper"></i> Blog</a>
+        <a href="faq.html"><i class="fas fa-question-circle"></i> FAQs</a>
     </div>
 
-    <button class="fab-print" onclick="window.print()" title="Print Rate Card">
-        <i class="fas fa-print"></i>
-    </button>
-
-    <section class="price-header-section">
+    <header class="section-pad text-center" style="background: var(--cream-bg); padding-top: 60px;">
         <div class="container">
-            <span class="section-subtitle">Official Menu</span>
-            <h2 style="font-size: 2.5rem; margin-top: 5px;">Our Rate Card</h2>
+            <span class="section-subtitle">The Legacy</span>
+            <h1 style="font-size: 3rem; margin-bottom: 10px;">Indore's Flavor, <br>Delivered with Love</h1>
             <div class="separator"></div>
         </div>
-    </section>
+    </header>
 
-    <section class="section-pad price-content">
-        <div class="container" id="dynamic-content">
-            <div style="text-align:center; padding:50px;">
-                <i class="fas fa-spinner fa-spin" style="font-size: 2rem; color: var(--primary);"></i>
-                <p style="margin-top: 10px; color:#777;">Loading Price List...</p>
+    <section class="section-pad">
+        <div class="container" style="max-width: 800px;">
+            <div class="story-content" style="font-size: 1.1rem; line-height: 1.8; color: #555;">
+                <p><span style="font-size: 3rem; float: left; line-height: 0.8; padding-right: 10px; color: var(--primary); font-family: 'Playfair Display';">I</span>t all started in the heart of Madhya Pradesh. Indore isn't just a city; it's the food capital of India, where the aroma of *Sev* and *Jeeravan* fills the streets every morning.</p>
+                <p>At <strong>Namo Namkeen</strong>, we wanted to bottle that authentic taste. What began as a small kitchen experiment by <strong>Parul Gangwal</strong> has now grown into a family of thousands of snack lovers.</p>
+                
+                <h3 style="color: var(--text-dark); margin-top: 30px;">Why "Namo"?</h3>
+                <p>Namo represents devotion—devotion to purity, taste, and tradition. We don't use machines to taste our food; we use our hearts. Every batch is tasted by our family before it reaches yours.</p>
+
+                <div style="margin: 40px 0; padding: 30px; background: #fff8e1; border-left: 5px solid var(--primary); border-radius: 5px;">
+                    <i class="fas fa-quote-left" style="color: var(--primary); font-size: 1.5rem;"></i>
+                    <p style="font-style: italic; margin-top: 10px; font-weight: 500; color: var(--text-dark);">
+                        "We don't sell products that we wouldn't feed to our own children. That is our only quality standard."
+                    </p>
+                    <div style="margin-top: 10px; font-weight: bold;">- The Founders</div>
+                </div>
             </div>
         </div>
     </section>
@@ -211,99 +220,17 @@
 </div>
 
     <div id="login-choice-modal" class="modal-overlay">
-        <div class="modal-content mobile-modal text-center">
+        <div class="modal-content mobile-modal text-center" style="max-width: 350px;">
             <button class="close-modal" onclick="closeModal('login-choice-modal')">&times;</button>
             <h3>Welcome Back</h3>
             <button class="login-option-btn" onclick="handleLoginChoice('google')">Google Login</button>
         </div>
     </div>
-
+    
     <div id="toast-container"></div>
-
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
     <script src="script.js"></script>
-
-    <script>
-        // Specific Logic to Render Price List
-        window.addEventListener('DOMContentLoaded', () => {
-            const db = firebase.firestore();
-            db.collection("products").get().then(snap => {
-                const products = [];
-                snap.forEach(doc => products.push(doc.data()));
-
-                const categories = {
-                    'spicy': { title: 'Spicy Namkeen', icon: 'fa-pepper-hot', items: [] },
-                    'sweet': { title: 'Sweet & Mild', icon: 'fa-cookie-bite', items: [] },
-                    'premium': { title: 'Premium Selection', icon: 'fa-crown', items: [] },
-                    'other': { title: 'Other Snacks', icon: 'fa-utensils', items: [] }
-                };
-
-                products.forEach(p => {
-                    if (p.id === 999) return;
-                    const cat = categories[p.category] ? p.category : 'other';
-                    categories[cat].items.push(p);
-                });
-
-                const container = document.getElementById('dynamic-content');
-                container.innerHTML = '';
-
-                for (const key in categories) {
-                    const section = categories[key];
-                    if (section.items.length === 0) continue;
-                    section.items.sort((a, b) => a.name.localeCompare(b.name));
-
-                    let rows = '';
-                    section.items.forEach(p => {
-                        let sizeInfo = '', priceInfo = '';
-                        if (p.variants && p.variants.length > 0) {
-                            sizeInfo = p.variants.map(v => v.weight).join('<br>');
-                            priceInfo = p.variants.map(v => `₹${v.price}`).join('<br>');
-                        } else {
-                            sizeInfo = 'Standard';
-                            priceInfo = `₹${p.price}`;
-                        }
-
-                        // FIX: Ensure image has a fallback logic in JS as well
-                        const imgSrc = p.image ? p.image : 'logo.jpg';
-
-                        rows += `
-                        <tr>
-                            <td width="60">
-                                <img src="${imgSrc}" class="t-thumb" onerror="this.src='logo.jpg'">
-                            </td>
-                            <td>
-                                <div class="p-name">${p.name}</div>
-                            </td>
-                            <td style="color:#666; font-size:0.85rem;">${sizeInfo}</td>
-                            <td class="p-price">${priceInfo}</td>
-                        </tr>`;
-                    });
-
-                    container.innerHTML += `
-                    <div class="price-category">
-                        <div class="cat-header">
-                            <h3><i class="fas ${section.icon}"></i> ${section.title}</h3>
-                        </div>
-                        <div class="table-responsive">
-                            <table class="price-table">
-                                <thead>
-                                    <tr>
-                                        <th>Image</th>
-                                        <th>Product</th>
-                                        <th>Pack Size</th>
-                                        <th class="text-right">Price</th>
-                                    </tr>
-                                </thead>
-                                <tbody>${rows}</tbody>
-                            </table>
-                        </div>
-                    </div>`;
-                }
-            });
-        });
-    </script>
 </body>
-
 </html>

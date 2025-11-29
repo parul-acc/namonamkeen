@@ -12,8 +12,6 @@
 
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#e85d04">
-    <meta name="description"
-        content="Order authentic Indore Namkeen, Sev, Mixtures, and Sweets online. Freshly homemade, 100% natural ingredients, and fast delivery in Mhow & Indore.">
     <link rel="icon" href="logo.jpg" type="image/jpeg">
 
     <link rel="stylesheet" href="style.css">
@@ -25,6 +23,7 @@
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/fuse.js@6.6.2"></script>
 </head>
 
 <body>
@@ -44,13 +43,15 @@
             <ul class="nav-menu">
                 <li><a href="#home" class="nav-link">Home</a></li>
                 <li><a href="#menu-section" class="nav-link">Menu</a></li>
-                <li><a href="pricelist.html" class="nav-link">Price List</a></li>
-                <li><a href="#testimonials" class="nav-link">Reviews</a></li>
+                 <li><a href="pricelist.html" class="nav-link">Price List</a></li>
+                <li><a href="story.html" class="nav-link">Our Story</a></li>
+                <li><a href="blog.html" class="nav-link">Blog</a></li>
+                <li><a href="faq.html" class="nav-link">FAQs</a></li>
             </ul>
 
             <div class="nav-actions">
                 <div id="user-auth-section">
-                    <button id="login-btn" class="btn-primary small-btn" onclick="googleLogin()">Login</button>
+                    <button id="login-btn" class="btn-primary small-btn" onclick="openLoginChoiceModal()">Login</button>
                     <div id="user-profile" style="display: none;">
                         <img id="user-pic" src="" alt="User" onclick="toggleProfileMenu()">
                         <div class="profile-dropdown" id="profile-menu">
@@ -79,15 +80,14 @@
         <div class="mobile-nav-header">
             <span class="mobile-nav-title">Namo Namkeen</span>
             <button onclick="toggleMobileMenu()"
-                style="background: none; border: none; font-size: 2rem; color: white; cursor: pointer; line-height: 1;">
-                &times;
-            </button>
+                style="background: none; border: none; font-size: 2rem; color: white; cursor: pointer;">&times;</button>
         </div>
-
         <a href="#home" onclick="toggleMobileMenu()"><i class="fas fa-home"></i> Home</a>
         <a href="#menu-section" onclick="toggleMobileMenu()"><i class="fas fa-utensils"></i> Menu</a>
-        <a href="pricelist.html"><i class="fas fa-file-invoice-dollar"></i> Price List</a>
-        <a href="#testimonials" onclick="toggleMobileMenu()"><i class="fas fa-comment-alt"></i> Reviews</a>
+        <a href="pricelist.html"><i class="fas fa-book-open"></i>Price List</a>
+        <a href="story.html"><i class="fas fa-book-open"></i> Our Story</a>
+        <a href="blog.html"><i class="fas fa-newspaper"></i> Blog</a>
+        <a href="faq.html"><i class="fas fa-question-circle"></i> FAQs</a>
 
         <div class="mobile-install-box">
             <button id="pwa-install-btn"
@@ -115,16 +115,16 @@
 
     <section class="trust-badges bg-cream">
         <div class="container badge-grid">
-            <div class="badge-item">
-                <i class="fas fa-mortar-pestle"></i>
+            <div class="badge-item"><i class="fas fa-mortar-pestle"></i>
                 <h4>Freshly Homemade</h4>
             </div>
-            <div class="badge-item">
-                <i class="fas fa-leaf"></i>
+            <div class="badge-item"><i class="fas fa-leaf"></i>
                 <h4>100% Natural</h4>
             </div>
-            <div class="badge-item">
-                <i class="fas fa-shipping-fast"></i>
+            <div class="badge-item"><i class="fas fa-certificate" style="color: #27ae60;"></i>
+                <h4>FSSAI Certified</h4>
+            </div>
+            <div class="badge-item"><i class="fas fa-shipping-fast"></i>
                 <h4>Fast Delivery</h4>
             </div>
         </div>
@@ -136,22 +136,18 @@
                 <span class="section-subtitle">Select Your Favorites</span>
                 <div class="separator"></div>
             </div>
-
             <div class="search-container">
                 <i class="fas fa-search"></i>
                 <input type="search" id="menu-search" placeholder="Search for Sev, Mixture..." enterkeyhint="search">
                 <div id="search-suggestions" class="search-suggestions"></div>
             </div>
-
             <div class="menu-filters">
                 <button class="filter-btn active" onclick="filterMenu('all')">All</button>
                 <button class="filter-btn" onclick="filterMenu('spicy')">Spicy</button>
                 <button class="filter-btn" onclick="filterMenu('sweet')">Sweet/Mix</button>
                 <button class="filter-btn" onclick="filterMenu('premium')">Premium</button>
             </div>
-
-            <div id="menu-grid" class="product-grid">
-            </div>
+            <div id="menu-grid" class="product-grid"></div>
         </div>
     </section>
 
@@ -161,14 +157,12 @@
             <h2>Make Your Own Hamper</h2>
             <p>Pick any 3 packs for just <strong>₹250</strong>!</p>
             <div class="separator"></div>
-
             <div class="hamper-builder">
                 <div class="hamper-grid" id="hamper-options"></div>
                 <div class="hamper-action">
                     <div class="selected-count">Selected: <span id="hamper-count">0</span>/3</div>
-                    <button id="add-hamper-btn" class="btn-primary disabled" onclick="addHamperToCart()">
-                        Add Box to Cart - ₹250
-                    </button>
+                    <button id="add-hamper-btn" class="btn-primary disabled" onclick="addHamperToCart()">Add Box to Cart
+                        - ₹250</button>
                 </div>
             </div>
         </div>
@@ -227,16 +221,13 @@
         <div class="cart-header">
             <h3>Your Order</h3>
             <div class="cart-header-actions">
-                <button id="clear-cart-btn" class="clear-btn" onclick="clearCart()" style="display: none;">
-                    <i class="fas fa-trash-alt"></i> Clear
-                </button>
+                <button id="clear-cart-btn" class="clear-btn" onclick="clearCart()" style="display: none;"><i
+                        class="fas fa-trash-alt"></i> Clear</button>
                 <button class="close-cart" onclick="toggleCart()"><i class="fas fa-times"></i></button>
             </div>
         </div>
-
         <div class="cart-scrollable-content">
             <div id="cart-items" class="cart-items-list"></div>
-
             <div class="cart-details-block">
                 <div class="coupon-section">
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
@@ -254,7 +245,6 @@
                         style="display:none; background:#f9f9f9; padding:10px; margin-top:5px; border-radius:5px; border:1px solid #eee; max-height:150px; overflow-y:auto;">
                     </div>
                 </div>
-
                 <div id="customer-details-inputs">
                     <label class="input-label">Mobile Number <span style="color:red">*</span></label>
                     <div class="phone-input-group">
@@ -262,52 +252,41 @@
                         <input type="tel" id="cust-phone" maxlength="10" placeholder="9876543210" inputmode="numeric"
                             pattern="[0-9]*">
                     </div>
-
                     <label class="input-label">Delivery Address <span style="color:red">*</span></label>
                     <textarea id="cust-address" placeholder="House No, Street, Area, City..." rows="2"></textarea>
                 </div>
-
                 <div class="payment-section" style="margin-top: 20px;">
                     <label class="input-label">Select Payment Method</label>
                     <div class="payment-options">
                         <label class="payment-card">
                             <input type="radio" name="paymentMethod" value="UPI" checked onchange="togglePaymentUI()">
-                            <div class="pay-content">
-                                <i class="fas fa-qrcode" style="color: var(--primary); font-size: 1.2rem;"></i>
-                                <span>Pay via UPI</span>
-                            </div>
+                            <div class="pay-content"><i class="fas fa-qrcode"
+                                    style="color: var(--primary); font-size: 1.2rem;"></i><span>Pay via UPI</span></div>
                         </label>
                         <label class="payment-card">
                             <input type="radio" name="paymentMethod" value="COD" onchange="togglePaymentUI()">
-                            <div class="pay-content">
-                                <i class="fas fa-money-bill-wave" style="color: #27ae60; font-size: 1.2rem;"></i>
-                                <span>Cash on Delivery</span>
-                            </div>
+                            <div class="pay-content"><i class="fas fa-money-bill-wave"
+                                    style="color: #27ae60; font-size: 1.2rem;"></i><span>Cash on Delivery</span></div>
                         </label>
                     </div>
                 </div>
-
                 <label class="input-label" style="margin-top:15px;">Delivery Note (Optional)</label>
                 <textarea id="delivery-note" placeholder="e.g. Leave at security, Don't ring bell..." rows="1"
                     class="form-control" style="font-size:0.9rem;"></textarea>
-
                 <div class="total-row" style="margin-top: 20px; border-top: 1px dashed #ddd; padding-top: 15px;">
                     <span>Total Amount:</span>
                     <span id="cart-total">₹0</span>
                 </div>
             </div>
         </div>
-
         <div class="cart-footer">
             <div id="guest-login-option" style="text-align:center; margin-bottom:12px; font-size:0.9rem;">
                 <span style="color:#666;">Have an account?</span>
                 <a href="javascript:void(0)" onclick="openLoginChoiceModal()"
                     style="color:var(--primary); font-weight:700; text-decoration:none; margin-left: 5px;">Login</a>
             </div>
-
-            <button id="btn-main-checkout" class="btn-whatsapp-checkout" onclick="handleCheckout()">
-                Proceed to Pay <i class="fas fa-arrow-right"></i>
-            </button>
+            <button id="btn-main-checkout" class="btn-whatsapp-checkout" onclick="handleCheckout()">Proceed to Pay <i
+                    class="fas fa-arrow-right"></i></button>
         </div>
     </div>
 
@@ -339,8 +318,7 @@
     <div id="history-modal" class="cart-overlay">
         <div class="cart-sidebar" style="left:0; right:auto;">
             <div class="cart-header">
-                <h3>My Past Orders</h3>
-                <button class="close-cart" onclick="closeHistory()">&times;</button>
+                <h3>My Past Orders</h3><button class="close-cart" onclick="closeHistory()">&times;</button>
             </div>
             <div id="history-content" class="cart-items-container">
                 <p style="padding:20px;">Loading history...</p>
@@ -353,19 +331,14 @@
             <button class="close-modal" onclick="closeModal('payment-modal')">&times;</button>
             <h3 style="color:var(--primary);">Scan & Pay</h3>
             <p>Total Amount: <strong id="pay-modal-total">₹0</strong></p>
-
             <div
                 style="background: #fff8e1; padding: 15px; border-radius: 10px; border: 2px dashed var(--primary); display: inline-block; margin: 10px 0;">
                 <img id="payment-qr-img" src="" alt="QR Code"
                     style="width: 150px; height: 150px; mix-blend-mode: multiply;">
             </div>
-
             <p style="font-size: 0.85rem; color: #555;">Scan with GPay, PhonePe, or Paytm</p>
-
             <button class="btn-primary full-width" onclick="finalizeOrder('UPI')"
-                style="margin-top: 15px; width: 100%;">
-                <i class="fas fa-check-circle"></i> I Have Paid
-            </button>
+                style="margin-top: 15px; width: 100%;"><i class="fas fa-check-circle"></i> I Have Paid</button>
         </div>
     </div>
 
@@ -373,16 +346,13 @@
         <div class="modal-content mobile-modal text-center">
             <div
                 style="width: 60px; height: 60px; background: #e8f5e9; color: #2ecc71; font-size: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 15px;">
-                <i class="fas fa-check"></i>
-            </div>
+                <i class="fas fa-check"></i></div>
             <h2>Order Placed!</h2>
             <p>Your order has been received successfully.</p>
             <p style="font-size: 0.9rem; color: #666;">Order ID: <strong id="success-order-id">#</strong></p>
-
             <button id="wa-link-btn" class="btn-whatsapp-checkout"
-                style="background: #25D366; color: white; margin-top: 15px;">
-                <i class="fab fa-whatsapp"></i> Send Confirmation
-            </button>
+                style="background: #25D366; color: white; margin-top: 15px;"><i class="fab fa-whatsapp"></i> Send
+                Confirmation</button>
             <button onclick="closeSuccessModal()"
                 style="background:none; border:none; margin-top:10px; color:#999; text-decoration:underline;">Close</button>
         </div>
@@ -397,19 +367,13 @@
 
     <div id="invoice-modal" class="modal-overlay" style="z-index: 4000;">
         <div class="invoice-container">
-
             <div class="invoice-actions no-print">
-                <button onclick="downloadPDF()" class="btn-primary" style="background:#2c3e50;">
-                    <i class="fas fa-file-pdf"></i> Download PDF
-                </button>
-                <button onclick="window.print()" class="btn-primary">
-                    <i class="fas fa-print"></i> Print
-                </button>
+                <button onclick="downloadPDF()" class="btn-primary" style="background:#2c3e50;"><i
+                        class="fas fa-file-pdf"></i> Download PDF</button>
+                <button onclick="window.print()" class="btn-primary"><i class="fas fa-print"></i> Print</button>
                 <button onclick="closeInvoice()" class="close-invoice" style="font-size: 2rem;">&times;</button>
             </div>
-
             <div id="invoice-print-area">
-
                 <div class="inv-header">
                     <img src="logo.jpg" alt="Namo Namkeen" class="inv-logo">
                     <div class="inv-company text-right">
@@ -418,22 +382,17 @@
                         <p>+91 98266 98822</p>
                     </div>
                 </div>
-
                 <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
-
                 <div class="inv-details">
-                    <div>
-                        <strong>Billed To:</strong>
+                    <div><strong>Billed To:</strong>
                         <p id="inv-customer-name">Customer Name</p>
                         <p id="inv-customer-email" style="color: #666; font-size: 0.9rem;">email@example.com</p>
                     </div>
-                    <div class="text-right">
-                        <strong>Order Receipt</strong>
+                    <div class="text-right"><strong>Order Receipt</strong>
                         <p>ID: <span id="inv-order-id">#12345</span></p>
                         <p>Date: <span id="inv-date">--/--/----</span></p>
                     </div>
                 </div>
-
                 <table class="inv-table">
                     <thead>
                         <tr>
@@ -443,14 +402,11 @@
                             <th class="text-right">Total</th>
                         </tr>
                     </thead>
-                    <tbody id="inv-items-body">
-                    </tbody>
+                    <tbody id="inv-items-body"></tbody>
                 </table>
-
                 <div class="inv-total">
                     <h3>Grand Total: <span id="inv-grand-total">₹0</span></h3>
                 </div>
-
                 <div id="inv-qr-section"
                     style="text-align:center; margin-top:30px; padding:20px; border:2px dashed #e85d04; border-radius:10px; background:#fff8e1;">
                     <p style="margin:0 0 10px; font-weight:bold; color:#d35400;">Scan to Pay Instantly</p>
@@ -458,7 +414,6 @@
                         style="width:120px; height:120px; mix-blend-mode: multiply;">
                     <p style="margin:10px 0 0; font-size:0.8rem; color:#555;">Accepted: GPay, PhonePe, Paytm</p>
                 </div>
-
                 <div class="inv-footer" style="text-align: center; margin-top: 40px; font-size: 0.8rem; color: #888;">
                     <p>Thank you for your order!</p>
                     <p>Visit: <a href="https://www.namonamkeen.shop" style="color: inherit;">www.namonamkeen.shop</a>
@@ -476,10 +431,7 @@
                 <img id="review-p-img" src=""
                     style="width: 80px; height: 80px; border-radius: 10px; object-fit: cover; margin-bottom: 10px;">
                 <p id="review-p-name" style="font-weight: 600; margin-bottom: 15px;">Product Name</p>
-
-                <input type="hidden" id="review-pid">
-                <input type="hidden" id="review-oid">
-
+                <input type="hidden" id="review-pid"><input type="hidden" id="review-oid">
                 <div class="star-rating-input">
                     <input type="radio" id="star5" name="rating" value="5" /><label for="star5"
                         title="5 stars">★</label>
@@ -491,10 +443,8 @@
                         title="2 stars">★</label>
                     <input type="radio" id="star1" name="rating" value="1" /><label for="star1" title="1 star">★</label>
                 </div>
-
                 <textarea id="review-comment" rows="3" placeholder="How was the taste? (Optional)" class="form-control"
                     style="margin-top: 15px;"></textarea>
-
                 <button id="btn-submit-review" class="btn-primary full-width" onclick="submitReview()"
                     style="margin-top: 15px; width: 100%;">Submit Review</button>
             </div>
@@ -506,20 +456,13 @@
             <button class="close-modal" onclick="closeModal('login-choice-modal')">&times;</button>
             <h3 style="margin-bottom: 5px; font-size: 1.5rem;">Welcome Back</h3>
             <p style="color:#666; margin-bottom: 25px; font-size: 0.9rem;">Choose how you want to login</p>
-
-            <button class="login-option-btn" onclick="handleLoginChoice('google')">
-                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="20">
-                Continue with Google
-            </button>
-
-            <button class="login-option-btn" onclick="handleLoginChoice('mobile')">
-                <i class="fas fa-mobile-alt" style="color: var(--primary); font-size: 1.2rem;"></i>
-                Login via Mobile OTP
-            </button>
-
-            <p style="font-size: 0.75rem; color: #999; margin-top: 15px;">
-                By continuing, you agree to our Terms & Privacy Policy.
-            </p>
+            <button class="login-option-btn" onclick="handleLoginChoice('google')"><img
+                    src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="20"> Continue with
+                Google</button>
+            <button class="login-option-btn" onclick="handleLoginChoice('mobile')"><i class="fas fa-mobile-alt"
+                    style="color: var(--primary); font-size: 1.2rem;"></i> Login via Mobile OTP</button>
+            <p style="font-size: 0.75rem; color: #999; margin-top: 15px;">By continuing, you agree to our Terms &
+                Privacy Policy.</p>
         </div>
     </div>
 
@@ -539,8 +482,8 @@
                     <ul>
                         <li><a href="#home">Home</a></li>
                         <li><a href="#menu-section">Menu</a></li>
-                        <li><a href="pricelist.html">Price List</a></li>
-                        <li><a href="#testimonials">Testimonials</a></li>
+                        <li><a href="story.html">Our Story</a></li>
+                        <li><a href="blog.html">Blog</a></li>
                     </ul>
                 </div>
                 <div class="footer-section links">
@@ -564,15 +507,10 @@
         </div>
     </footer>
 
-    <button id="scrollTopBtn" onclick="scrollToTop()" title="Go to top">
-        <i class="fas fa-arrow-up"></i>
-    </button>
-
+    <button id="scrollTopBtn" onclick="scrollToTop()" title="Go to top"><i class="fas fa-arrow-up"></i></button>
     <a href="https://wa.me/919826698822" target="_blank" class="float-wa"
-        style="position:fixed; bottom:90px; right:30px; background:#25d366; color:white; width:50px; height:50px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:30px; box-shadow: 2px 2px 3px #999; z-index:100;">
-        <i class="fab fa-whatsapp"></i>
-    </a>
-
+        style="position:fixed; bottom:90px; right:30px; background:#25d366; color:white; width:50px; height:50px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:30px; box-shadow: 2px 2px 3px #999; z-index:100;"><i
+            class="fab fa-whatsapp"></i></a>
     <div id="toast-container"></div>
 
     <script src="script.js"></script>
