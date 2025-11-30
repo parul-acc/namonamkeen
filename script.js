@@ -561,12 +561,12 @@ function updateCartUI() {
     if (cart.length === 0) {
         con.innerHTML = '<p style="text-align:center; padding:20px;">Cart is empty</p>';
         if (clearBtn) clearBtn.style.display = 'none'; // Safe check
-        
+
         appliedDiscount = { type: 'none', value: 0, code: null };
         if (promoCodeInput) promoCodeInput.value = ''; // Safe check
     } else {
         if (clearBtn) clearBtn.style.display = 'flex'; // Safe check
-        
+
         cart.forEach(i => {
             subtotal += i.price * i.qty;
             count += i.qty;
@@ -596,7 +596,7 @@ function updateCartUI() {
         if (couponRule && couponRule.minOrder && subtotal < couponRule.minOrder) {
             appliedDiscount = { type: 'none', value: 0, code: null };
             if (promoCodeInput) promoCodeInput.value = '';
-            
+
             if (promoMsg) {
                 promoMsg.innerText = `Coupon removed. Min order is ₹${couponRule.minOrder}`;
                 promoMsg.style.color = "red";
@@ -993,7 +993,7 @@ async function repeatOrder(orderId) {
         // 2. Check if product exists and is globally in stock
         if (liveProduct && liveProduct.in_stock) {
             isAvailable = true;
-            
+
             // 3. If it has variants, check if the specific size is in stock
             if (liveProduct.variants) {
                 const variant = liveProduct.variants.find(v => v.weight === item.weight);
@@ -1210,7 +1210,8 @@ function toggleBtnLoading(btnId, isLoading) {
 
 // --- NEW RAZORPAY PAYMENT LOGIC ---
 
-function initiateRazorpayPayment() {
+// Change function to 'async' so we can wait for user input
+async function initiateRazorpayPayment() {
     if (cart.length === 0) return showToast("Your cart is empty!", "error");
 
     const phone = document.getElementById('cust-phone').value.trim();
@@ -1220,8 +1221,7 @@ function initiateRazorpayPayment() {
     if (!/^[0-9]{10}$/.test(phone)) return showToast("Please enter a valid 10-digit mobile number.", "error");
     if (address.length < 5) return showToast("Please enter a complete address.", "error");
 
-    // Check Payment Method (Assuming you added the radio buttons from previous step)
-    // If you haven't added radio buttons, we default to Online Payment
+    // Check Payment Method
     const methodElem = document.querySelector('input[name="paymentMethod"]:checked');
     const paymentMethod = methodElem ? methodElem.value : 'Online';
 
@@ -1236,7 +1236,8 @@ function initiateRazorpayPayment() {
 
     if (paymentMethod === 'COD') {
         // Cash on Delivery Flow
-        if (showConfirm(`Place order for ₹${finalAmountINR} via Cash on Delivery?`)) {
+        // FIX: Added 'await' here. The code will now PAUSE here until you click Yes or No.
+        if (await showConfirm(`Place order for ₹${finalAmountINR} via Cash on Delivery?`)) {
             saveOrderToFirebase('COD', 'Pending', null);
         }
     } else {
@@ -1409,18 +1410,26 @@ function openReviewModal(pid, oid, name, img) {
 }
 
 async function submitReview() {
-    const pid = parseInt(document.getElementById('review-pid').value);
+    // 1. Get Values
+    const pidStr = document.getElementById('review-pid').value;
     const oid = document.getElementById('review-oid').value;
     const comment = document.getElementById('review-comment').value.trim();
     const ratingElem = document.querySelector('input[name="rating"]:checked');
 
+    // 2. Validation
     if (!ratingElem) return showToast("Please select a star rating!", "error");
     const rating = parseInt(ratingElem.value);
+
+    if (!currentUser) return showToast("You must be logged in to review.", "error");
+
+    // 3. Handle Product ID Type (Keep as number if it is one, else string)
+    // This fixes issues if you have alphanumeric IDs like "Mix123"
+    const pid = isNaN(Number(pidStr)) ? pidStr : Number(pidStr);
 
     toggleBtnLoading('btn-submit-review', true);
 
     try {
-        // 1. Check duplicates
+        // 4. Check for Duplicates
         const check = await db.collection("reviews")
             .where("orderId", "==", oid)
             .where("productId", "==", pid)
@@ -1428,36 +1437,41 @@ async function submitReview() {
 
         if (!check.empty) {
             showToast("You have already reviewed this item!", "warning");
-            closeModal('review-modal'); // FIX: Close modal if duplicate
+            closeModal('review-modal');
+            toggleBtnLoading('btn-submit-review', false);
             return;
         }
 
-        // 2. Add Review
+        // 5. Add Review (FIX: Added fallback for userName to prevent crashes)
         await db.collection("reviews").add({
             productId: pid,
             orderId: oid,
             userId: currentUser.uid,
-            userName: currentUser.displayName,
+            userName: currentUser.displayName || 'Customer', // Fixes "undefined" error
             rating: rating,
             comment: comment,
             timestamp: new Date()
         });
 
-        // 3. Update Product Stats
+        // 6. Update Product Stats
+        // Note: We use String(pid) because Document IDs are always strings
         const productRef = db.collection("products").doc(String(pid));
+
         await productRef.update({
             ratingSum: firebase.firestore.FieldValue.increment(rating),
             ratingCount: firebase.firestore.FieldValue.increment(1)
         });
 
         showToast("Thanks for your feedback!", "success");
-        closeModal('review-modal'); // FIX: Ensure modal closes on success
+        closeModal('review-modal');
+
+        // Refresh to show new rating on cards
         fetchData();
 
     } catch (error) {
         console.error("Review Error:", error);
-        showToast("Error submitting review. Please try later.", "error");
-        closeModal('review-modal'); // FIX: Close modal even on error to prevent stuck UI
+        // Show specific error message to help debug
+        showToast("Error: " + error.message, "error");
     } finally {
         toggleBtnLoading('btn-submit-review', false);
     }
