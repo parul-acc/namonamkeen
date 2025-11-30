@@ -113,6 +113,7 @@ function fetchData() {
         products = [];
         snap.forEach(doc => products.push(doc.data()));
         products = products.filter(p => p.id !== 999);
+        initFuzzySearch();
         renderMenu();
         renderHamperOptions();
     }).catch(err => console.error("Products Error:", err));

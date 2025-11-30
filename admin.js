@@ -270,13 +270,15 @@ function filterCustomers() {
 // In admin.js inside exportCustomersToCSV()
 
 function exportCustomersToCSV() {
-    if (!state.customers.data || state.customers.data.length === 0) return showToast("No data to export", "error");
+    // FIX: Use filteredData if available, otherwise use all data
+    const dataToExport = state.customers.filteredData || state.customers.data;
+
+    if (!dataToExport || dataToExport.length === 0) return showToast("No data to export", "error");
 
     let csv = "Name,Email,Phone,Address,Last Login\n";
-    state.customers.data.forEach(u => {
-        // FIX: Escape double quotes inside data and wrap fields in quotes
+    dataToExport.forEach(u => {
         const addr = u.address ? u.address.replace(/"/g, '""') : "";
-        const name = u.name ? u.name.replace(/"/g, '""') : "";
+        const name = u.name ? u.name.replace(/"/g, '""') : "Guest";
 
         csv += `"${name}","${u.email || ''}","${u.phone || ''}","${addr}","${u.displayDate}"\n`;
     });
@@ -1390,6 +1392,91 @@ function enableSound() {
         console.log("Audio unlock failed", e);
         showToast("Could not enable sound", "error");
     });
+}
+
+// --- CUSTOMER VIEW LOGIC (Missing Function) ---
+function viewCustomer(uid) {
+    const u = state.customers.data.find(x => x.uid === uid);
+    if (!u) return;
+
+    // Show loading state
+    const content = document.getElementById('cust-profile-content');
+    content.innerHTML = '<p style="text-align:center; padding:20px;">Loading customer history...</p>';
+    document.getElementById('customer-modal').style.display = 'flex';
+
+    // Fetch orders for this user
+    db.collection("orders")
+        .where("userId", "==", uid)
+        .orderBy("timestamp", "desc")
+        .limit(20)
+        .get()
+        .then(snap => {
+            let totalSpent = 0;
+            let ordersHtml = '';
+
+            if (snap.empty) {
+                ordersHtml = '<p style="color:#666; text-align:center; padding:10px;">No orders found for this customer.</p>';
+            } else {
+                ordersHtml = '<table style="width:100%; border-collapse:collapse; margin-top:10px;"><thead><tr style="background:#f9f9f9; text-align:left;"><th style="padding:8px; font-size:0.85rem;">Date</th><th style="padding:8px; font-size:0.85rem;">Order ID</th><th style="padding:8px; font-size:0.85rem;">Total</th></tr></thead><tbody>';
+
+                snap.forEach(doc => {
+                    const o = doc.data();
+                    totalSpent += o.total;
+                    const date = o.timestamp ? new Date(o.timestamp.seconds * 1000).toLocaleDateString() : '-';
+
+                    ordersHtml += `
+                    <tr>
+                        <td style="padding:8px; border-bottom:1px solid #eee; font-size:0.9rem;">${date}</td>
+                        <td style="padding:8px; border-bottom:1px solid #eee; font-size:0.9rem;">#${o.id}</td>
+                        <td style="padding:8px; border-bottom:1px solid #eee; font-weight:bold; font-size:0.9rem;">₹${o.total}</td>
+                    </tr>
+                `;
+                });
+                ordersHtml += '</tbody></table>';
+            }
+
+            // Build Profile HTML
+            const lastLogin = u.lastLogin ? (u.lastLogin.seconds ? new Date(u.lastLogin.seconds * 1000).toLocaleDateString() : new Date(u.lastLogin).toLocaleDateString()) : 'Never';
+            const initial = u.name ? u.name.charAt(0).toUpperCase() : 'U';
+
+            const html = `
+            <div style="display:flex; gap:20px; align-items:center; margin-bottom:20px; padding-bottom:20px; border-bottom:1px solid #eee;">
+                <div style="width:60px; height:60px; background:#e85d04; color:white; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:1.5rem; font-weight:bold;">
+                    ${initial}
+                </div>
+                <div>
+                    <h2 style="margin:0; color:var(--dark); font-size:1.4rem;">${u.name || 'Guest User'}</h2>
+                    <p style="margin:2px 0; color:#666; font-size:0.9rem;">${u.email || ''}</p>
+                    <p style="margin:0; color:#666; font-size:0.9rem;">${u.phone || 'No Phone'}</p>
+                </div>
+                <div style="margin-left:auto; text-align:right;">
+                    <div style="font-size:0.8rem; color:#888;">Lifetime Value</div>
+                    <div style="font-size:1.4rem; font-weight:bold; color:#27ae60;">₹${totalSpent.toLocaleString()}</div>
+                </div>
+            </div>
+
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px; margin-bottom:20px;">
+                <div style="background:#f9fafb; padding:15px; border-radius:8px;">
+                    <strong style="display:block; font-size:0.75rem; color:#888; text-transform:uppercase;">Address</strong>
+                    <div style="margin-top:5px; font-size:0.9rem;">${u.address || 'No Address Saved'}</div>
+                </div>
+                <div style="background:#f9fafb; padding:15px; border-radius:8px;">
+                    <strong style="display:block; font-size:0.75rem; color:#888; text-transform:uppercase;">Last Active</strong>
+                    <div style="margin-top:5px; font-size:0.9rem;">${lastLogin}</div>
+                </div>
+            </div>
+
+            <h4 style="margin-bottom:10px; border-bottom:2px solid #eee; padding-bottom:5px;">Recent Orders</h4>
+            <div style="max-height:250px; overflow-y:auto;">
+                ${ordersHtml}
+            </div>
+        `;
+
+            content.innerHTML = html;
+        }).catch(err => {
+            console.error(err);
+            content.innerHTML = '<p style="color:red; text-align:center;">Failed to load customer details.</p>';
+        });
 }
 
 registerAdminServiceWorker();

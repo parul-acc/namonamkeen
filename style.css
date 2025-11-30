@@ -1553,11 +1553,12 @@ h4 {
     border-top: 1px solid #3a3a3a;
     padding-top: 20px;
     display: flex;
-    justify-content: space-between;
+    justify-content: center;
     align-items: center;
     flex-wrap: wrap;
     font-size: 0.85rem;
     color: #888;
+    gap: 20px;
 }
 
 @media (max-width: 768px) {
@@ -3219,12 +3220,12 @@ textarea:focus,
     .table-responsive {
         display: block;
         width: 100%;
-        overflow-x: auto; /* Safety scroll if screen is extremely small */
+        overflow-x: hidden; /* Safety scroll if screen is extremely small */
     }
     
     .price-table {
         width: 100%;
-        table-layout: auto; /* Let browser calculate optimal width */
+        table-layout: fixed; /* Let browser calculate optimal width */
         border-collapse: collapse;
     }
 
@@ -3277,7 +3278,7 @@ textarea:focus,
     .price-table th:nth-child(4), 
     .price-table td:nth-child(4) {
         white-space: nowrap;
-        text-align: right;
+        text-align: middle;
         width: 15%;
         color: var(--primary);
         font-weight: 700;
@@ -3310,7 +3311,7 @@ textarea:focus,
     background: var(--white);
     padding: 60px 0 40px;
     border-bottom: 1px solid #eee;
-    text-align: center;
+    text-align: middle;
 }
 
 .price-category {
@@ -3372,7 +3373,7 @@ textarea:focus,
 
 .p-name {
     font-weight: 600;
-    font-size: 0.95rem;
+    font-size: 0.8rem;
     color: var(--text-dark);
 }
 
@@ -3380,7 +3381,7 @@ textarea:focus,
     font-family: 'Playfair Display', serif;
     font-weight: 700;
     color: var(--primary);
-    font-size: 1.1rem;
+    font-size: 1.0rem;
     text-align: right;
 }
 
