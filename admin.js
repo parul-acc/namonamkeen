@@ -523,7 +523,10 @@ function renderOrderRows(tbody, items) {
         const statusClass = `status-${o.status.toLowerCase()}`;
         const itemCount = o.items.length;
         const isHighValue = o.total > 350 ? 'high-value-row' : '';
-        const addressHtml = `<span class="copy-addr" onclick="copyToClipboard('${escapeHtml(o.userAddress)}')" title="Click to Copy">${escapeHtml(o.userAddress)}</span>`;
+        
+        // FIX: Use data attributes to store messy strings (addresses with quotes/newlines)
+        // instead of passing them directly into the onclick function which breaks syntax.
+        const safeAddress = escapeHtml(o.userAddress); 
 
         const cancelBtn = (o.status === 'Pending' || o.status === 'Packed') ?
             `<button class="icon-btn btn-danger" onclick="adminCancelOrder('${o.docId}')" title="Cancel Order"><i class="fas fa-ban"></i></button>` : '';
@@ -538,7 +541,16 @@ function renderOrderRows(tbody, items) {
                 </td>
                 <td>${itemCount} Items</td>
                 <td style="font-weight:bold;">₹${o.total}</td>
-                <td>${addressHtml}</td>
+                
+                <td>
+                    <span class="copy-addr" 
+                          data-addr="${safeAddress}" 
+                          onclick="copyToClipboard(this.getAttribute('data-addr'))" 
+                          title="Click to Copy">
+                        ${safeAddress.substring(0, 25)}${safeAddress.length > 25 ? '...' : ''}
+                    </span>
+                </td>
+                
                 <td><span class="status-pill ${statusClass}">${o.status}</span></td>
                 <td>
                     <button class="icon-btn btn-blue" onclick="viewOrder('${o.docId}')" title="View"><i class="fas fa-eye"></i></button>
@@ -758,24 +770,37 @@ async function adminRemoveItem(orderId, itemIdx) {
     recalculateAndSave(orderId, newItems, orderDoc);
 }
 
+// FIND THIS FUNCTION IN admin.js
 function recalculateAndSave(orderId, newItems, orderDoc) {
     let newItemTotal = newItems.reduce((sum, i) => sum + (i.price * i.qty), 0);
     let discountVal = 0;
+
     if (orderDoc.discount && orderDoc.discount.value > 0) {
-        if (newItemTotal === 0) discountVal = 0;
-        else if (orderDoc.discount.type === 'percent') discountVal = Math.round(newItemTotal * (orderDoc.discount.value / 100));
-        else {
+        if (newItemTotal === 0) {
+            discountVal = 0;
+        } else if (orderDoc.discount.type === 'percent') {
+            discountVal = Math.round(newItemTotal * (orderDoc.discount.value / 100));
+        } else {
+            // FIX: Allow full flat discount up to the total amount (Match script.js logic)
             discountVal = orderDoc.discount.value;
-            if (discountVal > (newItemTotal * 0.5)) discountVal = Math.floor(newItemTotal * 0.5);
+            if (discountVal > newItemTotal) {
+                discountVal = newItemTotal;
+            }
         }
     }
+
+    // Calculate Final Total
     const finalTotal = Math.max(0, newItemTotal - discountVal);
 
-    db.collection("orders").doc(orderId).update({ items: newItems, total: finalTotal }).then(() => {
-        orderDoc.items = newItems; orderDoc.total = finalTotal; viewOrder(orderId);
+    db.collection("orders").doc(orderId).update({
+        items: newItems,
+        total: finalTotal
+    }).then(() => {
+        orderDoc.items = newItems;
+        orderDoc.total = finalTotal;
+        viewOrder(orderId); // Refresh view
     }).catch(err => showToast("Update failed: " + err.message));
 }
-
 function sendUpdateNotification(orderId) {
     const o = state.orders.data.find(x => x.docId === orderId);
     if (!o) return;
@@ -1098,38 +1123,26 @@ function showToast(message, type = 'neutral') {
 }
 
 // --- POS LOGIC ---
-function renderPosProducts() {
-    const grid = document.getElementById('pos-grid');
-    if (!grid) return;
-    const query = document.getElementById('pos-search').value.toLowerCase();
-    grid.innerHTML = '';
+function addToAdminCart(id, name, price, weight, image) {
+    vibrate(50); // <--- TACTILE FEEDBACK
 
-    state.inventory.data.forEach(p => {
-        if (!p.name.toLowerCase().includes(query)) return;
+    const existing = adminCart.find(i => i.productId == id);
+    if (existing) {
+        existing.qty++;
+        showToast(`Updated: ${name} (+1)`, "success"); // Optional: Small toast
+    } else {
+        adminCart.push({
+            productId: id,
+            name: name,
+            price: parseInt(price),
+            weight: weight,
+            image: image,
+            qty: 1
+        });
+        showToast(`Added: ${name}`, "success");
+    }
 
-        let price = p.price;
-        let weight = 'Standard';
-        // Use first variant if available
-        if (p.variants && p.variants.length > 0) {
-            price = p.variants[0].price;
-            weight = p.variants[0].weight;
-        }
-
-        // New Card HTML Structure
-        grid.innerHTML += `
-        <div class="pos-card" onclick="addToAdminCart('${p.id}', '${escapeHtml(p.name)}', ${price}, '${weight}', '${p.image}')">
-            <div class="pos-card-img-wrap">
-                <img src="${p.image}" onerror="this.onerror=null; this.src='logo.jpg';">
-            </div>
-            <div class="pos-card-info">
-                <h4>${p.name}</h4>
-                <div class="pos-meta">
-                    <span class="pos-weight">${weight}</span>
-                    <span class="pos-price">₹${price}</span>
-                </div>
-            </div>
-        </div>`;
-    });
+    renderAdminCart();
 }
 
 function addToAdminCart(id, name, price, weight, image) {
@@ -1301,13 +1314,13 @@ async function performGlobalSearch() {
 
         // Strategy 2: If no ID found, Search by Phone Number
         if (results.length === 0) {
-            // Ensure we search using the exact format stored (usually 10 digits)
+            // Note: This requires the phone number to match exactly how it's stored
             const phoneSnap = await db.collection("orders").where("userPhone", "==", query).get();
             phoneSnap.forEach(doc => { let d = doc.data(); d.docId = doc.id; results.push(d); });
         }
 
         if (results.length > 0) {
-            state.orders.data = results; // Replace current table data
+            state.orders.data = results; // Replace current table data with search results
             state.orders.filteredData = null;
             state.orders.page = 1;
             renderTable('orders');
@@ -1319,6 +1332,16 @@ async function performGlobalSearch() {
         console.error(e);
         showToast("Search failed: " + e.message, "error");
     }
+}
+
+// 2. BIND THE ENTER KEY (Add this listener at the bottom of admin.js)
+const orderSearchInput = document.getElementById('order-search');
+if (orderSearchInput) {
+    orderSearchInput.addEventListener('keypress', function (e) {
+        if (e.key === 'Enter') {
+            performGlobalSearch();
+        }
+    });
 }
 
 // 2. Bind 'Enter' key to this function

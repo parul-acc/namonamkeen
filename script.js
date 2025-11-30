@@ -599,7 +599,6 @@ function updateCartUI() {
     const checkoutBtn = document.getElementById('btn-main-checkout');
 
     if (cart.length === 0) {
-        // --- FEATURE 1: Better Empty State ---
         con.innerHTML = `
             <div class="empty-cart-state">
                 <i class="fas fa-shopping-basket"></i>
@@ -619,15 +618,20 @@ function updateCartUI() {
         if (checkoutBtn) checkoutBtn.style.display = 'flex';
 
         // --- FEATURE 2: Free Shipping Meter ---
-        const freeShipLimit = shopConfig.freeShippingThreshold || 500; // Default 500
+        const freeShipLimit = shopConfig.freeShippingThreshold || 250;
+        const deliveryFee = shopConfig.deliveryCharge || 0;
         let currentTotal = cart.reduce((sum, i) => sum + (i.price * i.qty), 0);
         let percent = Math.min(100, (currentTotal / freeShipLimit) * 100);
         let shipMsg = '';
 
-        if (currentTotal >= freeShipLimit) {
-            shipMsg = `🎉 You've unlocked <strong>FREE Delivery!</strong>`;
-        } else {
-            shipMsg = `Add <strong>₹${freeShipLimit - currentTotal}</strong> for Free Delivery`;
+        if (cart.length > 0) {
+            if (subtotal >= freeShipLimit) {
+                shipMsg = `🎉 You've unlocked <strong>FREE Delivery!</strong>`;
+                finalDeliveryCost = 0;
+            } else {
+                shipMsg = `Add <strong>₹${freeShipLimit - subtotal}</strong> for Free Delivery`;
+                finalDeliveryCost = deliveryFee;
+            }
         }
 
         con.innerHTML += `
@@ -683,7 +687,7 @@ function updateCartUI() {
         discountAmount = appliedDiscount.value;
     }
     if (discountAmount > subtotal) discountAmount = subtotal;
-    const final = subtotal - discountAmount;
+    const final = (subtotal - discountAmount) + finalDeliveryCost;
     const freeShipLimit = shopConfig.freeShippingThreshold || 250;
 
     // Suggest an item if they are < ₹150 away from free shipping
@@ -918,7 +922,6 @@ function googleLogin(isCheckoutFlow = false) {
     else toggleBtnLoading('login-btn', true);
 
     auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()).then(res => {
-        // Only save phone/address if the user actually entered them
         const enteredPhone = document.getElementById('cust-phone').value;
         const enteredAddress = document.getElementById('cust-address').value;
 
@@ -928,13 +931,14 @@ function googleLogin(isCheckoutFlow = false) {
             lastLogin: new Date()
         };
 
-        // Only update these if they exist, otherwise preserve what's in DB
         if (enteredPhone) updateData.phone = enteredPhone;
         if (enteredAddress) updateData.address = enteredAddress;
 
         db.collection("users").doc(res.user.uid).set(updateData, { merge: true });
 
         if (isCheckoutFlow) {
+            // FIX: Reset button before opening modal
+            toggleBtnLoading('btn-main-checkout', false);
             initiateRazorpayPayment();
         }
 
@@ -1108,7 +1112,9 @@ function openInvoice(orderId) {
         tbody.innerHTML += `<tr><td>${i.name} <br><small>${i.weight}</small></td><td class="text-center">${i.qty}</td><td class="text-right">₹${i.price}</td><td class="text-right">₹${i.price * i.qty}</td></tr>`;
     });
     document.getElementById('inv-grand-total').innerText = `₹${order.total}`;
-    const upiLink = `upi://pay?pa=9826698822@paytm&pn=NamoNamkeen&am=${order.total}&cu=INR`;
+
+    // FIX: Use Dynamic UPI ID from Config
+    const upiLink = `upi://pay?pa=${shopConfig.upiId}&pn=NamoNamkeen&am=${order.total}&cu=INR`;
     document.getElementById('inv-qr-img').src = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(upiLink)}`;
     document.getElementById('invoice-modal').style.display = 'flex';
 }
@@ -1419,12 +1425,14 @@ function toggleBtnLoading(btnId, isLoading) {
     if (!btn) return;
 
     if (isLoading) {
-        btn.dataset.originalText = btn.innerHTML; // Save original text/icon
+        if (!btn.disabled) {
+            btn.dataset.originalText = btn.innerHTML;
+        }
         btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Processing...';
         btn.disabled = true;
         btn.style.opacity = "0.7";
     } else {
-        if (btn.dataset.originalText) btn.innerHTML = btn.dataset.originalText; // Restore
+        if (btn.dataset.originalText) btn.innerHTML = btn.dataset.originalText;
         btn.disabled = false;
         btn.style.opacity = "1";
     }
