@@ -43,7 +43,7 @@
             <ul class="nav-menu">
                 <li><a href="#home" class="nav-link">Home</a></li>
                 <li><a href="#menu-section" class="nav-link">Menu</a></li>
-                 <li><a href="pricelist.html" class="nav-link">Price List</a></li>
+                <li><a href="pricelist.html" class="nav-link">Price List</a></li>
                 <li><a href="story.html" class="nav-link">Our Story</a></li>
                 <li><a href="blog.html" class="nav-link">Blog</a></li>
                 <li><a href="faq.html" class="nav-link">FAQs</a></li>
@@ -141,11 +141,23 @@
                 <input type="search" id="menu-search" placeholder="Search for Sev, Mixture..." enterkeyhint="search">
                 <div id="search-suggestions" class="search-suggestions"></div>
             </div>
-            <div class="menu-filters">
-                <button class="filter-btn active" onclick="filterMenu('all')">All</button>
-                <button class="filter-btn" onclick="filterMenu('spicy')">Spicy</button>
-                <button class="filter-btn" onclick="filterMenu('sweet')">Sweet/Mix</button>
-                <button class="filter-btn" onclick="filterMenu('premium')">Premium</button>
+            <div class="category-slider">
+                <div class="cat-item active" onclick="filterMenu('all'); highlightCat(this)">
+                    <div class="cat-icon-box"><i class="fas fa-th-large"></i></div>
+                    <span class="cat-name">All</span>
+                </div>
+                <div class="cat-item" onclick="filterMenu('spicy'); highlightCat(this)">
+                    <div class="cat-icon-box"><i class="fas fa-pepper-hot"></i></div>
+                    <span class="cat-name">Spicy</span>
+                </div>
+                <div class="cat-item" onclick="filterMenu('sweet'); highlightCat(this)">
+                    <div class="cat-icon-box"><i class="fas fa-cookie-bite"></i></div>
+                    <span class="cat-name">Sweet</span>
+                </div>
+                <div class="cat-item" onclick="filterMenu('premium'); highlightCat(this)">
+                    <div class="cat-icon-box"><i class="fas fa-crown"></i></div>
+                    <span class="cat-name">Premium</span>
+                </div>
             </div>
             <div id="menu-grid" class="product-grid"></div>
         </div>
@@ -346,7 +358,8 @@
         <div class="modal-content mobile-modal text-center">
             <div
                 style="width: 60px; height: 60px; background: #e8f5e9; color: #2ecc71; font-size: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 15px;">
-                <i class="fas fa-check"></i></div>
+                <i class="fas fa-check"></i>
+            </div>
             <h2>Order Placed!</h2>
             <p>Your order has been received successfully.</p>
             <p style="font-size: 0.9rem; color: #666;">Order ID: <strong id="success-order-id">#</strong></p>
@@ -370,7 +383,7 @@
             <div class="invoice-actions no-print">
                 <button onclick="downloadPDF()" class="btn-primary" style="background:#2c3e50;"><i
                         class="fas fa-file-pdf"></i> Download PDF</button>
-               <button onclick="closeInvoice()" class="close-invoice" style="font-size: 2rem;">&times;</button>
+                <button onclick="closeInvoice()" class="close-invoice" style="font-size: 2rem;">&times;</button>
             </div>
             <div id="invoice-print-area">
                 <div class="inv-header">
