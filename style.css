@@ -292,6 +292,18 @@ h4 {
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
+/* FIX: Hide inner close button on mobile since Hamburger acts as X */
+@media (max-width: 768px) {
+    .mobile-nav-header button {
+        display: none !important;
+    }
+
+    /* Add top padding to compensate for missing header space if needed */
+    .mobile-nav {
+        padding-top: 60px;
+    }
+}
+
 .mobile-nav-title {
     color: var(--primary);
     font-family: 'Playfair Display', serif;
@@ -2540,6 +2552,17 @@ textarea:focus,
     text-align: center;
 }
 
+/* FIX: Timeline labels overlapping on small screens */
+@media (max-width: 400px) {
+    .step-label {
+        width: 70px;
+        /* Reduce width */
+        font-size: 0.6rem;
+        /* Smaller font */
+        line-height: 1.1;
+    }
+}
+
 /* Active State */
 .timeline-step.active .step-dot {
     background: #2ecc71;
@@ -3215,25 +3238,30 @@ textarea:focus,
         padding: 20px !important;
     }
 
-   /* 6. Price List Table - Fit to Screen */
-/* 6. Price List Table - FIXED MOBILE LAYOUT */
+    /* 6. Price List Table - Fit to Screen */
+    /* 6. Price List Table - FIXED MOBILE LAYOUT */
     .table-responsive {
         display: block;
         width: 100%;
-        overflow-x: hidden; /* Safety scroll if screen is extremely small */
+        overflow-x: hidden;
+        /* Safety scroll if screen is extremely small */
     }
-    
+
     .price-table {
         width: 100%;
-        table-layout: fixed; /* Let browser calculate optimal width */
+        table-layout: fixed;
+        /* Let browser calculate optimal width */
         border-collapse: collapse;
     }
 
     /* 7. Column Styling */
     .price-table th {
-        white-space: nowrap; /* CRITICAL: Prevents vertical stacking */
-        font-size: 0.75rem;  /* Compact header font */
-        padding: 10px 5px;   /* Comfortable padding */
+        white-space: nowrap;
+        /* CRITICAL: Prevents vertical stacking */
+        font-size: 0.75rem;
+        /* Compact header font */
+        padding: 10px 5px;
+        /* Comfortable padding */
         background-color: #f8f9fa;
         color: #555;
         font-weight: 700;
@@ -3249,9 +3277,9 @@ textarea:focus,
     }
 
     /* Column Specifics */
-    
+
     /* Image Column: Fixed small width */
-    .price-table th:nth-child(1), 
+    .price-table th:nth-child(1),
     .price-table td:nth-child(1) {
         width: 50px;
         min-width: 50px;
@@ -3259,15 +3287,16 @@ textarea:focus,
     }
 
     /* Product Name: Takes all remaining space & wraps text */
-    .price-table th:nth-child(2), 
+    .price-table th:nth-child(2),
     .price-table td:nth-child(2) {
         width: auto;
-        white-space: normal; /* Allow long names to wrap nicely */
+        white-space: normal;
+        /* Allow long names to wrap nicely */
         font-weight: 600;
     }
 
     /* Pack Size: Prevent wrapping */
-    .price-table th:nth-child(3), 
+    .price-table th:nth-child(3),
     .price-table td:nth-child(3) {
         white-space: nowrap;
         text-align: center;
@@ -3275,7 +3304,7 @@ textarea:focus,
     }
 
     /* Price: Prevent wrapping */
-    .price-table th:nth-child(4), 
+    .price-table th:nth-child(4),
     .price-table td:nth-child(4) {
         white-space: nowrap;
         text-align: middle;
@@ -3368,7 +3397,8 @@ textarea:focus,
     border-radius: 50%;
     object-fit: cover;
     border: 2px solid #eee;
-    display: block; /* Ensures it renders */
+    display: block;
+    /* Ensures it renders */
 }
 
 .p-name {
@@ -3389,7 +3419,8 @@ textarea:focus,
 .fab-print {
     position: fixed;
     bottom: 30px;
-    left: 30px; /* Moved to left to avoid overlapping WhatsApp/ScrollTop */
+    left: 30px;
+    /* Moved to left to avoid overlapping WhatsApp/ScrollTop */
     width: 50px;
     height: 50px;
     background: var(--text-dark);
@@ -3399,7 +3430,7 @@ textarea:focus,
     font-size: 1.2rem;
     cursor: pointer;
     z-index: 99;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
     transition: 0.3s;
     display: flex;
     align-items: center;
@@ -3413,7 +3444,24 @@ textarea:focus,
 }
 
 @media print {
-    .navbar, .nav-actions, .footer, .fab-print, .float-wa, #scrollTopBtn { display: none !important; }
-    .price-category { break-inside: avoid; box-shadow: none; border: 1px solid #ccc; margin-bottom: 20px; }
-    body { background: white; }
+
+    .navbar,
+    .nav-actions,
+    .footer,
+    .fab-print,
+    .float-wa,
+    #scrollTopBtn {
+        display: none !important;
+    }
+
+    .price-category {
+        break-inside: avoid;
+        box-shadow: none;
+        border: 1px solid #ccc;
+        margin-bottom: 20px;
+    }
+
+    body {
+        background: white;
+    }
 }

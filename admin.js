@@ -806,8 +806,18 @@ function saveSettings() {
 function toggleStock(id, s) { db.collection("products").doc(id).update({ in_stock: s }); }
 async function delProduct(id) { if (await showConfirm("Delete?")) db.collection("products").doc(id).delete(); }
 function closeModal(id) { document.getElementById(id).style.display = 'none'; }
-function toggleSidebar() { document.getElementById('sidebar').classList.toggle('active'); }
+// FIX: Toggle Overlay with Sidebar
+function toggleSidebar() {
+    const sb = document.getElementById('sidebar');
+    const ov = document.getElementById('sidebar-overlay');
+    sb.classList.toggle('active');
 
+    if (sb.classList.contains('active')) {
+        if (ov) ov.style.display = 'block';
+    } else {
+        if (ov) ov.style.display = 'none';
+    }
+}
 function switchView(v) {
     console.log("Switching view to:", v);
     // 1. Hide all sections
@@ -837,7 +847,12 @@ function switchView(v) {
 
     // Mobile fix
     const sidebar = document.getElementById('sidebar');
-    if (sidebar) sidebar.classList.remove('active');
+    if (sidebar) {
+        sidebar.classList.remove('active');
+        // FIX: Also hide overlay
+        const ov = document.getElementById('sidebar-overlay');
+        if (ov) ov.style.display = 'none';
+    }
 
     // Load data
     if (v === 'orders') loadOrders();

@@ -370,7 +370,10 @@ function openQuiz() {
     document.getElementById('quiz-modal').style.display = 'flex';
     startQuiz();
 }
-function closeQuiz() { document.getElementById('quiz-modal').style.display = 'none'; }
+
+function closeQuiz() { 
+    document.getElementById('quiz-modal').style.display = 'none'; 
+}
 
 function startQuiz() {
     document.getElementById('quiz-content').innerHTML = `
@@ -653,11 +656,10 @@ async function clearCart() {
     }
 }
 
-function toggleCart() { document.getElementById('cart-sidebar').classList.toggle('active'); document.querySelector('.cart-overlay').classList.toggle('active'); }
-
-// --- 10. CHECKOUT FLOW (Split Logic) ---
-
-// --- NEW CHECKOUT LOGIC ---
+function toggleCart() { 
+    document.getElementById('cart-sidebar').classList.toggle('active'); 
+    document.querySelector('.cart-overlay').classList.toggle('active'); 
+}
 
 // --- UNIFIED CHECKOUT HANDLER ---
 function handleCheckout() {
@@ -834,55 +836,58 @@ function updateUserUI(loggedIn) {
 }
 
 function showOrderHistory() {
-    const modal = document.getElementById('history-modal');
-    const content = document.getElementById('history-content');
-    modal.classList.add('active');
+        ensureModalExists('history-modal'); // <--- Inject if missing
+        ensureModalExists('invoice-modal'); // <--- Needed for invoice button inside history
 
-    if (!currentUser) {
-        content.innerHTML = '<p style="padding:20px; text-align:center;">Please login to view your past orders.</p>';
-        return;
-    }
+        const modal = document.getElementById('history-modal');
+        const content = document.getElementById('history-content');
+        modal.classList.add('active');
 
-    content.innerHTML = '<p style="padding:20px; text-align:center;">Loading history...</p>';
+        if (!currentUser) {
+            content.innerHTML = '<p style="padding:20px; text-align:center;">Please login to view your past orders.</p>';
+            return;
+        }
 
-    db.collection("orders")
-        .where("userId", "==", currentUser.uid)
-        .orderBy("timestamp", "desc")
-        .limit(20)
-        .get()
-        .then(snap => {
-            if (snap.empty) {
-                content.innerHTML = '<p style="padding:20px; text-align:center;">No past orders found.</p>';
-                return;
-            }
+        content.innerHTML = '<p style="padding:20px; text-align:center;">Loading history...</p>';
 
-            let html = '';
-            historyOrders = []; // 1. FIX: Reset the global array for Invoices
-
-            snap.forEach(doc => {
-                const o = doc.data();
-                o.docId = doc.id; // 2. FIX: Save the REAL Document ID for Cancellation
-                historyOrders.push(o); // 3. FIX: Store data so Invoice works
-
-                const date = o.timestamp ? o.timestamp.toDate().toLocaleDateString() : 'N/A';
-
-                // 1. Timeline Logic
-                let progress = '0%';
-                let lineClass = ''; // For red line
-                let s1 = '', s2 = '', s3 = '';
-
-                if (o.status === 'Pending') {
-                    progress = '0%'; s1 = 'active';
-                } else if (o.status === 'Packed') {
-                    progress = '50%'; s1 = 'active'; s2 = 'active';
-                } else if (o.status === 'Delivered') {
-                    progress = '100%'; s1 = 'active'; s2 = 'active'; s3 = 'active';
-                } else if (o.status === 'Cancelled') {
-                    progress = '100%';
-                    lineClass = 'cancelled'; // Triggers red CSS
-                    s1 = 'cancelled'; s2 = 'cancelled'; s3 = 'cancelled'; // All red dots
+        db.collection("orders")
+            .where("userId", "==", currentUser.uid)
+            .orderBy("timestamp", "desc")
+            .limit(20)
+            .get()
+            .then(snap => {
+                if (snap.empty) {
+                    content.innerHTML = '<p style="padding:20px; text-align:center;">No past orders found.</p>';
+                    return;
                 }
-                const timelineHTML = `
+
+                let html = '';
+                historyOrders = []; // 1. FIX: Reset the global array for Invoices
+
+                snap.forEach(doc => {
+                    const o = doc.data();
+                    o.docId = doc.id; // 2. FIX: Save the REAL Document ID for Cancellation
+                    historyOrders.push(o); // 3. FIX: Store data so Invoice works
+
+                    const date = o.timestamp ? o.timestamp.toDate().toLocaleDateString() : 'N/A';
+
+                    // 1. Timeline Logic
+                    let progress = '0%';
+                    let lineClass = ''; // For red line
+                    let s1 = '', s2 = '', s3 = '';
+
+                    if (o.status === 'Pending') {
+                        progress = '0%'; s1 = 'active';
+                    } else if (o.status === 'Packed') {
+                        progress = '50%'; s1 = 'active'; s2 = 'active';
+                    } else if (o.status === 'Delivered') {
+                        progress = '100%'; s1 = 'active'; s2 = 'active'; s3 = 'active';
+                    } else if (o.status === 'Cancelled') {
+                        progress = '100%';
+                        lineClass = 'cancelled'; // Triggers red CSS
+                        s1 = 'cancelled'; s2 = 'cancelled'; s3 = 'cancelled'; // All red dots
+                    }
+                    const timelineHTML = `
 <div class="timeline-container">
     <div class="timeline-line-bg"></div>
     <div class="timeline-line-fill ${lineClass}" style="width: ${progress}"></div>
@@ -899,37 +904,37 @@ function showOrderHistory() {
     </div>
 </div>`;
 
-                // 2. Button Logic (Hide controls if Cancelled)
-                let actionButtons = '';
-                if (o.status === 'Pending') {
-                    actionButtons = `
+                    // 2. Button Logic (Hide controls if Cancelled)
+                    let actionButtons = '';
+                    if (o.status === 'Pending') {
+                        actionButtons = `
         <button onclick="cancelOrder('${o.docId}')" style="flex:1; padding:8px; background:#ffebee; color:#c62828; border:1px solid #ef9a9a; border-radius:5px; cursor:pointer;">Cancel Order</button>
         <button onclick="openInvoice('${o.id}')" style="flex:1; padding:8px; border:1px solid #e85d04; background:white; color:#e85d04; border-radius:5px; cursor:pointer;">Invoice</button>
     `;
-                } else if (o.status === 'Cancelled') {
-                    actionButtons = `
+                    } else if (o.status === 'Cancelled') {
+                        actionButtons = `
         <button disabled style="flex:1; padding:8px; background:#eee; color:#999; border:none; border-radius:5px; cursor:not-allowed;">Order Cancelled</button>
         <button onclick="repeatOrder('${o.id}')" style="flex:1; padding:8px; background:#e85d04; color:white; border:none; border-radius:5px; cursor:pointer;">Re-Order</button>
     `;
-                } else {
-                    actionButtons = `
+                    } else {
+                        actionButtons = `
         <button onclick="openInvoice('${o.id}')" style="flex:1; padding:8px; border:1px solid #e85d04; background:white; color:#e85d04; border-radius:5px; cursor:pointer;">Invoice</button>
         <button onclick="repeatOrder('${o.id}')" style="flex:1; padding:8px; background:#e85d04; color:white; border:none; border-radius:5px; cursor:pointer;">Repeat</button>
     `;
-                }
+                    }
 
-                // Items List
-                const itemsList = o.items.map(i =>
-                    `<div style="display:flex; justify-content:space-between; align-items:center; font-size:0.9rem; color:#555; margin-bottom:8px; border-bottom:1px solid #f0f0f0; padding-bottom:5px;">
+                    // Items List
+                    const itemsList = o.items.map(i =>
+                        `<div style="display:flex; justify-content:space-between; align-items:center; font-size:0.9rem; color:#555; margin-bottom:8px; border-bottom:1px solid #f0f0f0; padding-bottom:5px;">
                         <div style="display:flex; align-items:center;">
                             <img src="${i.image}" style="width:30px; height:30px; border-radius:4px; margin-right:8px; object-fit:cover;">
                             <div><div>${i.name}</div><small>x ${i.qty}</small></div>
                         </div>
                         <button class="btn-rate" onclick="openReviewModal('${i.productId}', '${o.id}', '${encodeURIComponent(i.name)}', '${encodeURIComponent(i.image)}')"><i class="far fa-star"></i> Rate</button>
                     </div>`
-                ).join('');
+                    ).join('');
 
-                html += `
+                    html += `
                     <div style="background:white; border:1px solid #eee; border-radius:10px; padding:15px; margin-bottom:15px; box-shadow:0 2px 5px rgba(0,0,0,0.05);">
                         <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
                             <div><strong style="color:#333;">${date}</strong><div style="font-size:0.75rem; color:#999;">#${o.id}</div></div>
@@ -939,675 +944,755 @@ function showOrderHistory() {
                         <div style="margin-top:25px; border-top:1px dashed #ddd; padding-top:10px;">${itemsList}</div>
                         <div style="display:flex; gap:10px; margin-top:15px;">${actionButtons}</div>
                     </div>`;
+                });
+
+                content.innerHTML = html;
+            })
+            .catch(err => {
+                console.error("History Error:", err);
+                content.innerHTML = '<p style="padding:20px; color:red; text-align:center;">Failed to load history.</p>';
             });
+}
 
-            content.innerHTML = html;
-        })
-        .catch(err => {
-            console.error("History Error:", err);
-            content.innerHTML = '<p style="padding:20px; color:red; text-align:center;">Failed to load history.</p>';
+    function closeHistory() { 
+        document.getElementById('history-modal').classList.remove('active'); 
+    }
+
+    // Invoice & Repeat
+    function openInvoice(orderId) {
+        const order = historyOrders.find(o => o.id === orderId);
+        if (!order) return showToast("Order details not found.", "error");
+        document.getElementById('inv-customer-name').innerText = order.userName;
+        document.getElementById('inv-customer-email').innerText = currentUser.email || '-';
+        document.getElementById('inv-order-id').innerText = `#${order.id}`;
+        document.getElementById('inv-date').innerText = order.timestamp ? new Date(order.timestamp.seconds * 1000).toLocaleDateString() : '-';
+        const tbody = document.getElementById('inv-items-body');
+        tbody.innerHTML = '';
+        order.items.forEach(i => {
+            tbody.innerHTML += `<tr><td>${i.name} <br><small>${i.weight}</small></td><td class="text-center">${i.qty}</td><td class="text-right">₹${i.price}</td><td class="text-right">₹${i.price * i.qty}</td></tr>`;
         });
-}
+        document.getElementById('inv-grand-total').innerText = `₹${order.total}`;
+        const upiLink = `upi://pay?pa=9826698822@paytm&pn=NamoNamkeen&am=${order.total}&cu=INR`;
+        document.getElementById('inv-qr-img').src = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(upiLink)}`;
+        document.getElementById('invoice-modal').style.display = 'flex';
+    }
+    
+    function closeInvoice() { 
+        document.getElementById('invoice-modal').style.display = 'none'; 
+    }
+    function printInvoice() { 
+        window.print(); 
+    }
+    // In script.js
 
-function closeHistory() { document.getElementById('history-modal').classList.remove('active'); }
+    // --- SMART RE-ORDER FUNCTION ---
+    async function repeatOrder(orderId) {
+        const order = historyOrders.find(o => o.id === orderId);
+        if (!order) return;
 
-// Invoice & Repeat
-function openInvoice(orderId) {
-    const order = historyOrders.find(o => o.id === orderId);
-    if (!order) return showToast("Order details not found.", "error");
-    document.getElementById('inv-customer-name').innerText = order.userName;
-    document.getElementById('inv-customer-email').innerText = currentUser.email || '-';
-    document.getElementById('inv-order-id').innerText = `#${order.id}`;
-    document.getElementById('inv-date').innerText = order.timestamp ? new Date(order.timestamp.seconds * 1000).toLocaleDateString() : '-';
-    const tbody = document.getElementById('inv-items-body');
-    tbody.innerHTML = '';
-    order.items.forEach(i => {
-        tbody.innerHTML += `<tr><td>${i.name} <br><small>${i.weight}</small></td><td class="text-center">${i.qty}</td><td class="text-right">₹${i.price}</td><td class="text-right">₹${i.price * i.qty}</td></tr>`;
-    });
-    document.getElementById('inv-grand-total').innerText = `₹${order.total}`;
-    const upiLink = `upi://pay?pa=9826698822@paytm&pn=NamoNamkeen&am=${order.total}&cu=INR`;
-    document.getElementById('inv-qr-img').src = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(upiLink)}`;
-    document.getElementById('invoice-modal').style.display = 'flex';
-}
-function closeInvoice() { document.getElementById('invoice-modal').style.display = 'none'; }
-function printInvoice() { window.print(); }
-// In script.js
+        // FIX: Use await to actually wait for user click
+        if (!await showConfirm("Add available items from this order to your cart?")) return;
 
-// --- SMART RE-ORDER FUNCTION ---
-async function repeatOrder(orderId) {
-    const order = historyOrders.find(o => o.id === orderId);
-    if (!order) return;
+        let addedCount = 0;
+        let outOfStockItems = [];
 
-    // FIX: Use await to actually wait for user click
-    if (!await showConfirm("Add available items from this order to your cart?")) return;
+        order.items.forEach(item => {
+            // 1. Find the current live product info to check real-time stock/price
+            const liveProduct = products.find(p => p.id === item.productId);
 
-    let addedCount = 0;
-    let outOfStockItems = [];
+            let isAvailable = false;
+            let currentPrice = item.price;
 
-    order.items.forEach(item => {
-        // 1. Find the current live product info to check real-time stock/price
-        const liveProduct = products.find(p => p.id === item.productId);
+            // 2. Check if product exists and is globally in stock
+            if (liveProduct && liveProduct.in_stock) {
+                isAvailable = true;
 
-        let isAvailable = false;
-        let currentPrice = item.price;
-
-        // 2. Check if product exists and is globally in stock
-        if (liveProduct && liveProduct.in_stock) {
-            isAvailable = true;
-
-            // 3. If it has variants, check if the specific size is in stock
-            if (liveProduct.variants) {
-                const variant = liveProduct.variants.find(v => v.weight === item.weight);
-                if (variant) {
-                    currentPrice = variant.price; // Update to current price
-                    if (variant.inStock === false) {
-                        isAvailable = false; // Variant specific out-of-stock
+                // 3. If it has variants, check if the specific size is in stock
+                if (liveProduct.variants) {
+                    const variant = liveProduct.variants.find(v => v.weight === item.weight);
+                    if (variant) {
+                        currentPrice = variant.price; // Update to current price
+                        if (variant.inStock === false) {
+                            isAvailable = false; // Variant specific out-of-stock
+                        }
                     }
                 }
             }
-        }
 
-        if (isAvailable) {
-            const cartId = `${item.productId}-${item.weight.replace(/\s/g, '')}`;
-            const existing = cart.find(c => c.cartId === cartId);
+            if (isAvailable) {
+                const cartId = `${item.productId}-${item.weight.replace(/\s/g, '')}`;
+                const existing = cart.find(c => c.cartId === cartId);
 
-            if (existing) {
-                existing.qty += item.qty;
+                if (existing) {
+                    existing.qty += item.qty;
+                } else {
+                    cart.push({
+                        ...item,
+                        price: currentPrice, // Use updated price
+                        image: liveProduct.image // Use updated image
+                    });
+                }
+                addedCount++;
             } else {
-                cart.push({
-                    ...item,
-                    price: currentPrice, // Use updated price
-                    image: liveProduct.image // Use updated image
-                });
+                outOfStockItems.push(item.name);
             }
-            addedCount++;
-        } else {
-            outOfStockItems.push(item.name);
-        }
-    });
-
-    updateCartUI();
-    toggleCart();
-    closeHistory();
-
-    // 4. Smart Feedback
-    if (outOfStockItems.length > 0) {
-        // If only a few items are missing, list them
-        const missingText = outOfStockItems.length <= 2 ? outOfStockItems.join(", ") : `${outOfStockItems.length} items`;
-        showToast(`${addedCount} added. ${missingText} out of stock.`, "neutral");
-    } else {
-        showToast("All items added to cart!", "success");
-    }
-    saveCartLocal();
-}
-
-// --- HELPER ---
-function logout() { auth.signOut().then(() => location.reload()); }
-function toggleProfileMenu() { document.getElementById('profile-menu').classList.toggle('active'); }
-function closeSuccessModal() { document.getElementById('success-modal').style.display = 'none'; }
-function toggleCouponList() { const l = document.getElementById('coupon-list'); l.style.display = l.style.display === 'none' ? 'block' : 'none'; }
-function useCoupon(code) { document.getElementById('promo-code').value = code; applyPromo(); document.getElementById('coupon-list').style.display = 'none'; }
-function applyPromo() {
-    const input = document.getElementById('promo-code').value.toUpperCase().trim();
-    const msgElement = document.getElementById('promo-msg');
-
-    // Reset state
-    appliedDiscount = { type: 'none', value: 0, code: null };
-    msgElement.innerText = "";
-
-    if (!input) {
-        updateCartUI();
-        return;
-    }
-
-    const coupon = activeCoupons.find(c => c.code === input);
-
-    if (coupon) {
-        // Check Min Order
-        let currentTotal = cart.reduce((sum, i) => sum + (i.price * i.qty), 0);
-        if (coupon.minOrder && currentTotal < coupon.minOrder) {
-            msgElement.innerText = `Add items worth ₹${coupon.minOrder} to use this!`;
-            msgElement.style.color = "orange";
-        } else {
-            // Apply Coupon
-            appliedDiscount = { type: coupon.type, value: coupon.value, code: coupon.code };
-            msgElement.innerText = "Coupon Applied! 🎉";
-            msgElement.style.color = "green";
-        }
-    } else {
-        msgElement.innerText = "Invalid Code";
-        msgElement.style.color = "red";
-    }
-    updateCartUI();
-}
-function openProfileModal() {
-    document.getElementById('profile-modal').style.display = 'flex';
-    document.getElementById('profile-menu').classList.remove('active');
-
-    if (currentUser) {
-        document.getElementById('edit-name').value = currentUser.displayName || '';
-
-        // Populate from the fetched Firestore profile
-        if (userProfile) {
-            document.getElementById('edit-phone').value = userProfile.phone || '';
-            document.getElementById('edit-address').value = userProfile.address || '';
-        }
-    }
-}
-
-function closeProfileModal() { document.getElementById('profile-modal').style.display = 'none'; }
-function saveProfile() {
-    const phone = document.getElementById('edit-phone').value;
-    const address = document.getElementById('edit-address').value;
-
-    db.collection("users").doc(currentUser.uid).set({
-        phone: phone,
-        address: address
-    }, { merge: true }).then(() => {
-        // Update local variable
-        if (!userProfile) userProfile = {};
-        userProfile.phone = phone;
-        userProfile.address = address;
-
-        // Also update checkout fields to reflect changes immediately
-        const phoneInput = document.getElementById('cust-phone');
-        const addrInput = document.getElementById('cust-address');
-        if (phoneInput) phoneInput.value = phone;
-        if (addrInput) addrInput.value = address;
-
-        closeProfileModal();
-        showToast("Profile Updated", "success");
-    });
-}
-
-function playVideo(w) { const v = w.querySelector('video'); document.querySelectorAll('.video-wrapper.playing video').forEach(o => { if (o !== v) { o.pause(); o.closest('.video-wrapper').classList.remove('playing'); } }); if (v.paused) { w.classList.add('playing'); v.play(); } else { w.classList.remove('playing'); v.pause(); } }
-function closeAnnouncement() { document.getElementById('announcement-bar').style.display = 'none'; }
-function filterMenu(c) {
-    currentCategory = c;
-    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-    event.target.classList.add('active');
-
-    renderMenu();
-    vibrate(30); // Haptic feedback on filter click
-
-    // Scroll to top of grid
-    const grid = document.getElementById('menu-grid');
-    const yOffset = -130; // Offset for Sticky Header + Sticky Filter
-    const y = grid.getBoundingClientRect().top + window.pageYOffset + yOffset;
-    window.scrollTo({ top: y, behavior: 'smooth' });
-}
-function searchMenu() {
-    searchQuery = document.getElementById('menu-search').value;
-    renderMenu();
-}
-function toggleLanguage() { currentLang = currentLang === 'en' ? 'hi' : 'en'; renderMenu(); updateCartUI(); }
-function toggleMobileMenu() {
-    const nav = document.getElementById('mobile-nav');
-    const hamburger = document.querySelector('.hamburger');
-
-    // Toggle classes on both
-    nav.classList.toggle('active');
-    hamburger.classList.toggle('active');
-}
-
-// Close menu when clicking outside (Optional but good UX)
-document.addEventListener('click', (e) => {
-    const nav = document.getElementById('mobile-nav');
-    const hamburger = document.querySelector('.hamburger');
-
-    // If menu is open AND click is NOT on menu AND NOT on hamburger
-    if (nav.classList.contains('active') && !nav.contains(e.target) && !hamburger.contains(e.target)) {
-        nav.classList.remove('active');
-        hamburger.classList.remove('active');
-    }
-});
-function scrollToTop() { window.scrollTo({ top: 0, behavior: 'smooth' }); }
-
-// --- COUPON LIST RENDERER (Missing Function) ---
-function renderCouponList() {
-    const listContainer = document.getElementById('coupon-list');
-    if (!listContainer) return;
-    listContainer.innerHTML = '';
-
-    if (activeCoupons.length === 0) {
-        listContainer.innerHTML = '<p style="font-size:0.8rem; color:#777;">No active coupons.</p>';
-        return;
-    }
-
-    activeCoupons.forEach(c => {
-        const desc = c.type === 'percent' ? `${c.value}% OFF` : `₹${c.value} OFF`;
-        listContainer.innerHTML += `
-            <div class="coupon-item" onclick="useCoupon('${c.code}')" style="padding:10px; border-bottom:1px solid #eee; cursor:pointer;">
-                <strong style="color:var(--primary)">${c.code}</strong> - ${desc}
-            </div>`;
-    });
-}
-
-function registerServiceWorker() {
-    // Only register if supported AND running on http/https (not file://)
-    if ('serviceWorker' in navigator && (window.location.protocol === 'http:' || window.location.protocol === 'https:')) {
-        navigator.serviceWorker.register('sw.js')
-            .then(reg => console.log("Service Worker Registered"))
-            .catch(err => console.log("SW Registration Failed:", err));
-    }
-}
-
-// NEW HELPER: Toggles button loading state
-function toggleBtnLoading(btnId, isLoading) {
-    const btn = document.getElementById(btnId);
-    if (!btn) return;
-
-    if (isLoading) {
-        btn.dataset.originalText = btn.innerHTML; // Save original text/icon
-        btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Processing...';
-        btn.disabled = true;
-        btn.style.opacity = "0.7";
-    } else {
-        if (btn.dataset.originalText) btn.innerHTML = btn.dataset.originalText; // Restore
-        btn.disabled = false;
-        btn.style.opacity = "1";
-    }
-}
-
-// --- NEW RAZORPAY PAYMENT LOGIC ---
-
-// Change function to 'async' so we can wait for user input
-async function initiateRazorpayPayment() {
-    if (cart.length === 0) return showToast("Your cart is empty!", "error");
-
-    const phone = document.getElementById('cust-phone').value.trim();
-    const address = document.getElementById('cust-address').value.trim();
-
-    // Basic Validation
-    if (!/^[0-9]{10}$/.test(phone)) return showToast("Please enter a valid 10-digit mobile number.", "error");
-    if (address.length < 5) return showToast("Please enter a complete address.", "error");
-
-    // Check Payment Method
-    const methodElem = document.querySelector('input[name="paymentMethod"]:checked');
-    const paymentMethod = methodElem ? methodElem.value : 'Online';
-
-    // Calculate Amount
-    let total = cart.reduce((sum, i) => sum + (i.price * i.qty), 0);
-    let discount = 0;
-    if (appliedDiscount.type === 'percent') discount = Math.round(total * (appliedDiscount.value / 100));
-    else if (appliedDiscount.type === 'flat') discount = appliedDiscount.value;
-
-    const finalAmountINR = Math.max(0, total - discount); // Amount in Rupees
-    const amountPaise = finalAmountINR * 100; // Razorpay takes amount in Paise
-
-    if (paymentMethod === 'COD') {
-        // Cash on Delivery Flow
-        // FIX: Added 'await' here. The code will now PAUSE here until you click Yes or No.
-        if (await showConfirm(`Place order for ₹${finalAmountINR} via Cash on Delivery?`)) {
-            saveOrderToFirebase('COD', 'Pending', null);
-        }
-    } else {
-        // Online Payment Flow (Razorpay)
-        openRazorpayModal(amountPaise, finalAmountINR, phone);
-    }
-}
-
-function openRazorpayModal(amountPaise, amountINR, userPhone) {
-    // Determine User Details (Guest or Logged In)
-    const userName = currentUser ? currentUser.displayName : "Guest User";
-    const userEmail = currentUser ? currentUser.email : "guest@namonamkeen.com";
-
-    var options = {
-        "key": razorpayKeyId,
-        "amount": amountPaise,
-        "currency": "INR",
-        "name": "Namo Namkeen",
-        "description": "Order Payment",
-        "image": "logo.jpg",
-        "handler": function (response) {
-            console.log("Payment ID: ", response.razorpay_payment_id);
-            saveOrderToFirebase('Online', 'Paid', response.razorpay_payment_id);
-        },
-        "prefill": {
-            "name": userName,
-            "email": userEmail,
-            "contact": userPhone
-        },
-        "theme": { "color": "#e85d04" },
-        "modal": {
-            "ondismiss": function () { showToast("Payment cancelled.", "error"); }
-        }
-    };
-
-    var rzp1 = new Razorpay(options);
-    rzp1.on('payment.failed', function (response) {
-        showToast("Payment Failed: " + response.error.description);
-    });
-    rzp1.open();
-}
-
-async function saveOrderToFirebase(method, paymentStatus, txnId) {
-    toggleBtnLoading('btn-main-checkout', true);
-
-    const phone = document.getElementById('cust-phone').value.trim();
-    const address = document.getElementById('cust-address').value.trim();
-    const orderId = 'ORD-' + Date.now().toString().slice(-6);
-
-    // 1. Determine User ID (Guest or Registered)
-    let uid = currentUser ? currentUser.uid : `guest_${phone}`;
-    let uName = currentUser ? currentUser.displayName : "Guest";
-
-    // 2. Calculate Totals (Missing part fixed here)
-    let total = cart.reduce((sum, i) => sum + (i.price * i.qty), 0);
-
-    let discount = 0; // <--- Defined here
-    if (appliedDiscount.type === 'percent') {
-        discount = Math.round(total * (appliedDiscount.value / 100));
-    } else if (appliedDiscount.type === 'flat') {
-        discount = appliedDiscount.value;
-    }
-
-    const finalAmount = Math.max(0, total - discount);
-
-    // 3. Optional: Capture Delivery Note
-    const deliveryNote = document.getElementById('delivery-note') ? document.getElementById('delivery-note').value.trim() : '';
-
-    try {
-        const batch = db.batch();
-
-        // A. Create Order Document
-        const orderRef = db.collection("orders").doc(String(orderId));
-        batch.set(orderRef, {
-            id: orderId,
-            userId: uid,
-            userName: uName,
-            userPhone: phone,
-            userAddress: address,
-            deliveryNote: deliveryNote,
-            items: cart,
-            total: finalAmount,
-            discount: appliedDiscount,
-            paymentMethod: method,
-            status: 'Pending',
-            paymentStatus: paymentStatus,
-            transactionId: txnId || '',
-            timestamp: new Date()
         });
 
-        // B. Update/Create User Profile (Sync Guest Data)
-        const userRef = db.collection("users").doc(String(uid));
-        batch.set(userRef, {
-            name: uName,
-            phone: phone,
-            address: address, // Updates to latest address used
-            lastOrder: new Date(),
-            type: currentUser ? 'Registered' : 'Guest'
-        }, { merge: true });
-
-        // Commit both updates
-        await batch.commit();
-
-        // C. Success UI
-        showSuccessModal(orderId, finalAmount, method);
-
-        // D. Cleanup
-        cart = [];
-        appliedDiscount = { type: 'none', value: 0, code: null }; // Reset discount
-        saveCartLocal();
         updateCartUI();
-        if (document.getElementById('cart-sidebar').classList.contains('active')) toggleCart();
+        toggleCart();
+        closeHistory();
 
-    } catch (error) {
-        console.error("Order Error:", error);
-        showToast("Error placing order. Please try again.", "error");
-    } finally {
-        toggleBtnLoading('btn-main-checkout', false);
-    }
-}
-
-function showSuccessModal(orderId, amount, method) {
-    // FIX: Check if currentUser exists, otherwise use Guest
-    const custName = currentUser ? currentUser.displayName : "Guest";
-    const address = document.getElementById('cust-address').value;
-
-    // Optional Delivery Note
-    const noteElem = document.getElementById('delivery-note');
-    const noteText = (noteElem && noteElem.value.trim()) ? `\n*Note:* ${noteElem.value.trim()}` : '';
-
-    const msg = `*New Order: ${orderId}*\n*Method:* ${method}\n*Amount:* ₹${amount}\n*Customer:* ${custName}\n*Address:* ${address}${noteText}\n\n*Payment:* ${method === 'Online' ? 'PAID ✅' : 'Cash on Delivery 🚚'}`;
-
-    const orderIdElem = document.getElementById('success-order-id');
-    if (orderIdElem) orderIdElem.innerText = orderId;
-
-    const waBtn = document.getElementById('wa-link-btn');
-    if (waBtn) {
-        waBtn.onclick = () => {
-            window.open(`https://wa.me/${shopConfig.adminPhone}?text=${encodeURIComponent(msg)}`, '_blank');
-        };
-    }
-
-    const modal = document.getElementById('success-modal');
-    if (modal) {
-        modal.style.display = 'flex';
-
-        // TRIGGER CONFETTI
-        if (typeof confetti === 'function') {
-            confetti({
-                particleCount: 150,
-                spread: 70,
-                origin: { y: 0.6 },
-                colors: ['#e85d04', '#faa307', '#ffffff'] // Your brand colors
-            });
+        // 4. Smart Feedback
+        if (outOfStockItems.length > 0) {
+            // If only a few items are missing, list them
+            const missingText = outOfStockItems.length <= 2 ? outOfStockItems.join(", ") : `${outOfStockItems.length} items`;
+            showToast(`${addedCount} added. ${missingText} out of stock.`, "neutral");
+        } else {
+            showToast("All items added to cart!", "success");
         }
+        saveCartLocal();
     }
-}
-// --- USER REVIEW SYSTEM ---
 
-function openReviewModal(pid, oid, name, img) {
-    document.getElementById('review-modal').style.display = 'flex';
-    document.getElementById('review-pid').value = pid;
-    document.getElementById('review-oid').value = oid;
-    document.getElementById('review-p-name').innerText = decodeURIComponent(name);
-    document.getElementById('review-p-img').src = decodeURIComponent(img);
-    document.getElementById('review-comment').value = '';
+    // --- HELPER ---
+    function logout() { auth.signOut().then(() => location.reload()); }
+    function toggleProfileMenu() { document.getElementById('profile-menu').classList.toggle('active'); }
+    function closeSuccessModal() { document.getElementById('success-modal').style.display = 'none'; }
+    function toggleCouponList() { const l = document.getElementById('coupon-list'); l.style.display = l.style.display === 'none' ? 'block' : 'none'; }
+    function useCoupon(code) { document.getElementById('promo-code').value = code; applyPromo(); document.getElementById('coupon-list').style.display = 'none'; }
+    function applyPromo() {
+        const input = document.getElementById('promo-code').value.toUpperCase().trim();
+        const msgElement = document.getElementById('promo-msg');
 
-    // Reset stars
-    document.querySelectorAll('input[name="rating"]').forEach(r => r.checked = false);
-}
+        // Reset state
+        appliedDiscount = { type: 'none', value: 0, code: null };
+        msgElement.innerText = "";
 
-async function submitReview() {
-    // 1. Get Values
-    const pidStr = document.getElementById('review-pid').value;
-    const oid = document.getElementById('review-oid').value;
-    const comment = document.getElementById('review-comment').value.trim();
-    const ratingElem = document.querySelector('input[name="rating"]:checked');
-
-    // 2. Validation
-    if (!ratingElem) return showToast("Please select a star rating!", "error");
-    const rating = parseInt(ratingElem.value);
-
-    if (!currentUser) return showToast("You must be logged in to review.", "error");
-
-    // 3. Handle Product ID Type (Keep as number if it is one, else string)
-    // This fixes issues if you have alphanumeric IDs like "Mix123"
-    const pid = isNaN(Number(pidStr)) ? pidStr : Number(pidStr);
-
-    toggleBtnLoading('btn-submit-review', true);
-
-    try {
-        // 4. Check for Duplicates
-        const check = await db.collection("reviews")
-            .where("orderId", "==", oid)
-            .where("productId", "==", pid)
-            .get();
-
-        if (!check.empty) {
-            showToast("You have already reviewed this item!", "warning");
-            closeModal('review-modal');
-            toggleBtnLoading('btn-submit-review', false);
+        if (!input) {
+            updateCartUI();
             return;
         }
 
-        // 5. Add Review (FIX: Added fallback for userName to prevent crashes)
-        await db.collection("reviews").add({
-            productId: pid,
-            orderId: oid,
-            userId: currentUser.uid,
-            userName: currentUser.displayName || 'Customer', // Fixes "undefined" error
-            rating: rating,
-            comment: comment,
-            timestamp: new Date()
-        });
+        const coupon = activeCoupons.find(c => c.code === input);
 
-        // 6. Update Product Stats
-        // Note: We use String(pid) because Document IDs are always strings
-        const productRef = db.collection("products").doc(String(pid));
-
-        await productRef.update({
-            ratingSum: firebase.firestore.FieldValue.increment(rating),
-            ratingCount: firebase.firestore.FieldValue.increment(1)
-        });
-
-        showToast("Thanks for your feedback!", "success");
-        closeModal('review-modal');
-
-        // Refresh to show new rating on cards
-        fetchData();
-
-    } catch (error) {
-        console.error("Review Error:", error);
-        // Show specific error message to help debug
-        showToast("Error: " + error.message, "error");
-    } finally {
-        toggleBtnLoading('btn-submit-review', false);
-    }
-}
-
-// --- TOAST FUNCTION ---
-function showToast(message, type = 'neutral') {
-    const container = document.getElementById('toast-container');
-    const toast = document.createElement('div');
-    toast.className = `toast ${type}`;
-
-    let icon = '';
-    if (type === 'success') icon = '<i class="fas fa-check-circle" style="color:#2ecc71"></i>';
-    if (type === 'error') icon = '<i class="fas fa-exclamation-circle" style="color:#e74c3c"></i>';
-
-    toast.innerHTML = `${icon} <span>${message}</span>`;
-    container.appendChild(toast);
-
-    // Remove after 3 seconds
-    setTimeout(() => {
-        toast.style.opacity = '0';
-        setTimeout(() => toast.remove(), 400);
-    }, 3000);
-}
-
-// --- SEO HELPER FUNCTION ---
-function updateSchema(p) {
-    // 1. Remove old schema if exists to prevent duplicates
-    const oldSchema = document.getElementById('json-ld-product');
-    if (oldSchema) oldSchema.remove();
-
-    // 2. Create new Schema JSON
-    const schemaData = {
-        "@context": "https://schema.org/",
-        "@type": "Product",
-        "name": p.name,
-        "image": ["https://namonamkeen.shop/" + p.image],
-        "description": p.desc || "Authentic Indore Namkeen",
-        "brand": {
-            "@type": "Brand",
-            "name": "Namo Namkeen"
-        },
-        "offers": {
-            "@type": "Offer",
-            "url": "https://namonamkeen.shop",
-            "priceCurrency": "INR",
-            "price": p.price,
-            "availability": p.in_stock ? "https://schema.org/InStock" : "https://schema.org/OutOfStock"
+        if (coupon) {
+            // Check Min Order
+            let currentTotal = cart.reduce((sum, i) => sum + (i.price * i.qty), 0);
+            if (coupon.minOrder && currentTotal < coupon.minOrder) {
+                msgElement.innerText = `Add items worth ₹${coupon.minOrder} to use this!`;
+                msgElement.style.color = "orange";
+            } else {
+                // Apply Coupon
+                appliedDiscount = { type: coupon.type, value: coupon.value, code: coupon.code };
+                msgElement.innerText = "Coupon Applied! 🎉";
+                msgElement.style.color = "green";
+            }
+        } else {
+            msgElement.innerText = "Invalid Code";
+            msgElement.style.color = "red";
         }
-    };
-
-    // 3. Inject into Head
-    const script = document.createElement('script');
-    script.id = "json-ld-product";
-    script.type = "application/ld+json";
-    script.text = JSON.stringify(schemaData);
-    document.head.appendChild(script);
-}
-
-// --- SEO HELPER ---
-// --- PWA INSTALLATION LOGIC ---
-let deferredPrompt;
-
-window.addEventListener('beforeinstallprompt', (e) => {
-    // 1. Prevent Chrome 67 and earlier from automatically showing the prompt
-    e.preventDefault();
-    // 2. Stash the event so it can be triggered later.
-    deferredPrompt = e;
-    // 3. Update UI notify the user they can add to home screen
-    const installBtn = document.getElementById('pwa-install-btn');
-    if (installBtn) {
-        installBtn.style.display = 'block'; // Show the button
-
-        installBtn.addEventListener('click', () => {
-            // Hide our user interface that shows our A2HS button
-            installBtn.style.display = 'none';
-            // Show the prompt
-            deferredPrompt.prompt();
-            // Wait for the user to respond to the prompt
-            deferredPrompt.userChoice.then((choiceResult) => {
-                if (choiceResult.outcome === 'accepted') {
-                    console.log('User accepted the A2HS prompt');
-                } else {
-                    console.log('User dismissed the A2HS prompt');
-                }
-                deferredPrompt = null;
-            });
-        });
-    }
-});
-
-// Optional: Analytics to track if app was installed successfully
-window.addEventListener('appinstalled', () => {
-    console.log('PWA was installed');
-    // You could save this event to Firestore to track how many users installed the app
-});
-
-function saveCartLocal() {
-    localStorage.setItem('namoCart', JSON.stringify(cart));
-    // NEW: Save the discount object
-    localStorage.setItem('namoDiscount', JSON.stringify(appliedDiscount));
-}
-
-function loadCartLocal() {
-    const savedCart = localStorage.getItem('namoCart');
-    const savedDiscount = localStorage.getItem('namoDiscount');
-
-    if (savedCart) {
-        cart = JSON.parse(savedCart);
+        updateCartUI();
     }
 
-    // NEW: Restore the discount
-    if (savedDiscount) {
-        appliedDiscount = JSON.parse(savedDiscount);
-        // Visual feedback if a code is applied
-        if (appliedDiscount.code) {
-            const input = document.getElementById('promo-code');
-            const msg = document.getElementById('promo-msg');
-            if (input) input.value = appliedDiscount.code;
-            if (msg) {
-                msg.innerText = "Code Applied!";
-                msg.style.color = "green";
+    // --- DYNAMIC MODAL INJECTION (Fix for Secondary Pages) ---
+    function ensureModalExists(modalId) {
+        if (document.getElementById(modalId)) return; // Already exists
+
+        let modalHTML = '';
+
+        if (modalId === 'profile-modal') {
+            modalHTML = `
+        <div id="profile-modal" class="modal-overlay">
+            <div class="modal-content">
+                <button class="close-modal" onclick="closeProfileModal()">&times;</button>
+                <h2 style="color:var(--primary); margin-top:0;">Edit Profile</h2>
+                <label style="font-weight:bold; display:block; margin-top:15px;">Your Name</label>
+                <input type="text" id="edit-name" disabled style="width:100%; padding:10px; border:1px solid #eee; background:#f9f9f9; border-radius:5px; color:#777;">
+                <label style="font-weight:bold; display:block; margin-top:15px;">Mobile Number</label>
+                <input type="tel" id="edit-phone" placeholder="10-digit number" style="width:100%; padding:10px; border:1px solid #ccc; border-radius:5px;">
+                <label style="font-weight:bold; display:block; margin-top:15px;">Default Address</label>
+                <textarea id="edit-address" rows="3" placeholder="Your full address..." style="width:100%; padding:10px; border:1px solid #ccc; border-radius:5px; resize:none;"></textarea>
+                <button onclick="saveProfile()" class="btn-primary" style="width:100%; margin-top:20px; padding:12px;">Save Changes</button>
+            </div>
+        </div>`;
+        }
+        else if (modalId === 'history-modal') {
+            modalHTML = `
+        <div id="history-modal" class="cart-overlay">
+            <div class="cart-sidebar" style="left:0; right:auto;">
+                <div class="cart-header">
+                    <h3>My Past Orders</h3><button class="close-cart" onclick="closeHistory()">&times;</button>
+                </div>
+                <div id="history-content" class="cart-items-container">
+                    <p style="padding:20px;">Loading history...</p>
+                </div>
+            </div>
+        </div>`;
+        } else if (modalId === 'invoice-modal') {
+            modalHTML = `
+        <div id="invoice-modal" class="modal-overlay" style="z-index: 4000;">
+            <div class="invoice-container">
+                <div class="invoice-actions no-print">
+                    <button onclick="downloadPDF()" class="btn-primary" style="background:#2c3e50;"><i class="fas fa-file-pdf"></i> Download PDF</button>
+                    <button onclick="closeInvoice()" class="close-invoice" style="font-size: 2rem;">&times;</button>
+                </div>
+                <div id="invoice-print-area">
+                    <div class="inv-header">
+                        <img src="logo.jpg" alt="Namo Namkeen" class="inv-logo">
+                        <div class="inv-company text-right">
+                            <h2>Namo Namkeen</h2>
+                            <p>131, Keshav Park, Mhow (M.P.)</p>
+                            <p>+91 98266 98822</p>
+                        </div>
+                    </div>
+                    <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
+                    <div class="inv-details">
+                        <div><strong>Billed To:</strong><p id="inv-customer-name">Customer Name</p><p id="inv-customer-email" style="color: #666; font-size: 0.9rem;">email@example.com</p></div>
+                        <div class="text-right"><strong>Order Receipt</strong><p>ID: <span id="inv-order-id">#12345</span></p><p>Date: <span id="inv-date">--/--/----</span></p></div>
+                    </div>
+                    <table class="inv-table"><thead><tr><th>Item</th><th class="text-center">Qty</th><th class="text-right">Price</th><th class="text-right">Total</th></tr></thead><tbody id="inv-items-body"></tbody></table>
+                    <div class="inv-total"><h3>Grand Total: <span id="inv-grand-total">₹0</span></h3></div>
+                    <div id="inv-qr-section" style="text-align:center; margin-top:30px; padding:20px; border:2px dashed #e85d04; border-radius:10px; background:#fff8e1;">
+                        <p style="margin:0 0 10px; font-weight:bold; color:#d35400;">Scan to Pay Instantly</p>
+                        <img id="inv-qr-img" src="" alt="QR Code" style="width:120px; height:120px; mix-blend-mode: multiply;">
+                        <p style="margin:10px 0 0; font-size:0.8rem; color:#555;">Accepted: GPay, PhonePe, Paytm</p>
+                    </div>
+                    <div class="inv-footer" style="text-align: center; margin-top: 40px; font-size: 0.8rem; color: #888;"><p>Thank you for your order!</p><p>Visit: <a href="https://www.namonamkeen.shop" style="color: inherit;">www.namonamkeen.shop</a></p></div>
+                </div>
+            </div>
+        </div>`;
+        }
+
+        if (modalHTML) document.body.insertAdjacentHTML('beforeend', modalHTML);
+    }
+
+    function openProfileModal() {
+        ensureModalExists('profile-modal'); // <--- Inject if missing
+
+        document.getElementById('profile-modal').style.display = 'flex';
+        document.getElementById('profile-menu').classList.remove('active');
+
+        if (currentUser) {
+            document.getElementById('edit-name').value = currentUser.displayName || '';
+            if (userProfile) {
+                document.getElementById('edit-phone').value = userProfile.phone || '';
+                document.getElementById('edit-address').value = userProfile.address || '';
             }
         }
     }
 
-    updateCartUI();
-}
+    function closeProfileModal() { document.getElementById('profile-modal').style.display = 'none'; }
+    function saveProfile() {
+        const phone = document.getElementById('edit-phone').value;
+        const address = document.getElementById('edit-address').value;
 
-// --- CUSTOM CONFIRMATION HELPER ---
-function showConfirm(message) {
-    return new Promise((resolve) => {
-        // 1. Create Modal HTML if not exists
-        if (!document.getElementById('custom-confirm-modal')) {
-            const modalHtml = `
+        db.collection("users").doc(currentUser.uid).set({
+            phone: phone,
+            address: address
+        }, { merge: true }).then(() => {
+            // Update local variable
+            if (!userProfile) userProfile = {};
+            userProfile.phone = phone;
+            userProfile.address = address;
+
+            // Also update checkout fields to reflect changes immediately
+            const phoneInput = document.getElementById('cust-phone');
+            const addrInput = document.getElementById('cust-address');
+            if (phoneInput) phoneInput.value = phone;
+            if (addrInput) addrInput.value = address;
+
+            closeProfileModal();
+            showToast("Profile Updated", "success");
+        });
+    }
+
+    function playVideo(w) { const v = w.querySelector('video'); document.querySelectorAll('.video-wrapper.playing video').forEach(o => { if (o !== v) { o.pause(); o.closest('.video-wrapper').classList.remove('playing'); } }); if (v.paused) { w.classList.add('playing'); v.play(); } else { w.classList.remove('playing'); v.pause(); } }
+    function closeAnnouncement() { document.getElementById('announcement-bar').style.display = 'none'; }
+    function filterMenu(c) {
+        currentCategory = c;
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        event.target.classList.add('active');
+
+        renderMenu();
+        vibrate(30); // Haptic feedback on filter click
+
+        // Scroll to top of grid
+        const grid = document.getElementById('menu-grid');
+        const yOffset = -130; // Offset for Sticky Header + Sticky Filter
+        const y = grid.getBoundingClientRect().top + window.pageYOffset + yOffset;
+        window.scrollTo({ top: y, behavior: 'smooth' });
+    }
+    function searchMenu() {
+        searchQuery = document.getElementById('menu-search').value;
+        renderMenu();
+    }
+    function toggleLanguage() { currentLang = currentLang === 'en' ? 'hi' : 'en'; renderMenu(); updateCartUI(); }
+    function toggleMobileMenu() {
+        const nav = document.getElementById('mobile-nav');
+        const hamburger = document.querySelector('.hamburger');
+
+        // Toggle classes on both
+        nav.classList.toggle('active');
+        hamburger.classList.toggle('active');
+    }
+
+    // Close menu when clicking outside (Optional but good UX)
+    document.addEventListener('click', (e) => {
+        const nav = document.getElementById('mobile-nav');
+        const hamburger = document.querySelector('.hamburger');
+
+        // If menu is open AND click is NOT on menu AND NOT on hamburger
+        if (nav.classList.contains('active') && !nav.contains(e.target) && !hamburger.contains(e.target)) {
+            nav.classList.remove('active');
+            hamburger.classList.remove('active');
+        }
+    });
+    function scrollToTop() { window.scrollTo({ top: 0, behavior: 'smooth' }); }
+
+    // --- COUPON LIST RENDERER (Missing Function) ---
+    function renderCouponList() {
+        const listContainer = document.getElementById('coupon-list');
+        if (!listContainer) return;
+        listContainer.innerHTML = '';
+
+        if (activeCoupons.length === 0) {
+            listContainer.innerHTML = '<p style="font-size:0.8rem; color:#777;">No active coupons.</p>';
+            return;
+        }
+
+        activeCoupons.forEach(c => {
+            const desc = c.type === 'percent' ? `${c.value}% OFF` : `₹${c.value} OFF`;
+            listContainer.innerHTML += `
+            <div class="coupon-item" onclick="useCoupon('${c.code}')" style="padding:10px; border-bottom:1px solid #eee; cursor:pointer;">
+                <strong style="color:var(--primary)">${c.code}</strong> - ${desc}
+            </div>`;
+        });
+    }
+
+    function registerServiceWorker() {
+        // Only register if supported AND running on http/https (not file://)
+        if ('serviceWorker' in navigator && (window.location.protocol === 'http:' || window.location.protocol === 'https:')) {
+            navigator.serviceWorker.register('sw.js')
+                .then(reg => console.log("Service Worker Registered"))
+                .catch(err => console.log("SW Registration Failed:", err));
+        }
+    }
+
+    // NEW HELPER: Toggles button loading state
+    function toggleBtnLoading(btnId, isLoading) {
+        const btn = document.getElementById(btnId);
+        if (!btn) return;
+
+        if (isLoading) {
+            btn.dataset.originalText = btn.innerHTML; // Save original text/icon
+            btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Processing...';
+            btn.disabled = true;
+            btn.style.opacity = "0.7";
+        } else {
+            if (btn.dataset.originalText) btn.innerHTML = btn.dataset.originalText; // Restore
+            btn.disabled = false;
+            btn.style.opacity = "1";
+        }
+    }
+
+    // --- NEW RAZORPAY PAYMENT LOGIC ---
+
+    // Change function to 'async' so we can wait for user input
+    async function initiateRazorpayPayment() {
+        if (cart.length === 0) return showToast("Your cart is empty!", "error");
+
+        const phone = document.getElementById('cust-phone').value.trim();
+        const address = document.getElementById('cust-address').value.trim();
+
+        // Basic Validation
+        if (!/^[0-9]{10}$/.test(phone)) return showToast("Please enter a valid 10-digit mobile number.", "error");
+        if (address.length < 5) return showToast("Please enter a complete address.", "error");
+
+        // Check Payment Method
+        const methodElem = document.querySelector('input[name="paymentMethod"]:checked');
+        const paymentMethod = methodElem ? methodElem.value : 'Online';
+
+        // Calculate Amount
+        let total = cart.reduce((sum, i) => sum + (i.price * i.qty), 0);
+        let discount = 0;
+        if (appliedDiscount.type === 'percent') discount = Math.round(total * (appliedDiscount.value / 100));
+        else if (appliedDiscount.type === 'flat') discount = appliedDiscount.value;
+
+        const finalAmountINR = Math.max(0, total - discount); // Amount in Rupees
+        const amountPaise = finalAmountINR * 100; // Razorpay takes amount in Paise
+
+        if (paymentMethod === 'COD') {
+            // Cash on Delivery Flow
+            // FIX: Added 'await' here. The code will now PAUSE here until you click Yes or No.
+            if (await showConfirm(`Place order for ₹${finalAmountINR} via Cash on Delivery?`)) {
+                saveOrderToFirebase('COD', 'Pending', null);
+            }
+        } else {
+            // Online Payment Flow (Razorpay)
+            openRazorpayModal(amountPaise, finalAmountINR, phone);
+        }
+    }
+
+    function openRazorpayModal(amountPaise, amountINR, userPhone) {
+        // Determine User Details (Guest or Logged In)
+        const userName = currentUser ? currentUser.displayName : "Guest User";
+        const userEmail = currentUser ? currentUser.email : "guest@namonamkeen.com";
+
+        var options = {
+            "key": razorpayKeyId,
+            "amount": amountPaise,
+            "currency": "INR",
+            "name": "Namo Namkeen",
+            "description": "Order Payment",
+            "image": "logo.jpg",
+            "handler": function (response) {
+                console.log("Payment ID: ", response.razorpay_payment_id);
+                saveOrderToFirebase('Online', 'Paid', response.razorpay_payment_id);
+            },
+            "prefill": {
+                "name": userName,
+                "email": userEmail,
+                "contact": userPhone
+            },
+            "theme": { "color": "#e85d04" },
+            "modal": {
+                "ondismiss": function () { showToast("Payment cancelled.", "error"); }
+            }
+        };
+
+        var rzp1 = new Razorpay(options);
+        rzp1.on('payment.failed', function (response) {
+            showToast("Payment Failed: " + response.error.description);
+        });
+        rzp1.open();
+    }
+
+    async function saveOrderToFirebase(method, paymentStatus, txnId) {
+        toggleBtnLoading('btn-main-checkout', true);
+
+        const phone = document.getElementById('cust-phone').value.trim();
+        const address = document.getElementById('cust-address').value.trim();
+        const orderId = 'ORD-' + Date.now().toString().slice(-6);
+
+        // 1. Determine User ID (Guest or Registered)
+        let uid = currentUser ? currentUser.uid : `guest_${phone}`;
+        let uName = currentUser ? currentUser.displayName : "Guest";
+
+        // 2. Calculate Totals (Missing part fixed here)
+        let total = cart.reduce((sum, i) => sum + (i.price * i.qty), 0);
+
+        let discount = 0; // <--- Defined here
+        if (appliedDiscount.type === 'percent') {
+            discount = Math.round(total * (appliedDiscount.value / 100));
+        } else if (appliedDiscount.type === 'flat') {
+            discount = appliedDiscount.value;
+        }
+
+        const finalAmount = Math.max(0, total - discount);
+
+        // 3. Optional: Capture Delivery Note
+        const deliveryNote = document.getElementById('delivery-note') ? document.getElementById('delivery-note').value.trim() : '';
+
+        try {
+            const batch = db.batch();
+
+            // A. Create Order Document
+            const orderRef = db.collection("orders").doc(String(orderId));
+            batch.set(orderRef, {
+                id: orderId,
+                userId: uid,
+                userName: uName,
+                userPhone: phone,
+                userAddress: address,
+                deliveryNote: deliveryNote,
+                items: cart,
+                total: finalAmount,
+                discount: appliedDiscount,
+                paymentMethod: method,
+                status: 'Pending',
+                paymentStatus: paymentStatus,
+                transactionId: txnId || '',
+                timestamp: new Date()
+            });
+
+            // B. Update/Create User Profile (Sync Guest Data)
+            const userRef = db.collection("users").doc(String(uid));
+            batch.set(userRef, {
+                name: uName,
+                phone: phone,
+                address: address, // Updates to latest address used
+                lastOrder: new Date(),
+                type: currentUser ? 'Registered' : 'Guest'
+            }, { merge: true });
+
+            // Commit both updates
+            await batch.commit();
+
+            // C. Success UI
+            showSuccessModal(orderId, finalAmount, method);
+
+            // D. Cleanup
+            cart = [];
+            appliedDiscount = { type: 'none', value: 0, code: null }; // Reset discount
+            saveCartLocal();
+            updateCartUI();
+            if (document.getElementById('cart-sidebar').classList.contains('active')) toggleCart();
+
+        } catch (error) {
+            console.error("Order Error:", error);
+            showToast("Error placing order. Please try again.", "error");
+        } finally {
+            toggleBtnLoading('btn-main-checkout', false);
+        }
+    }
+
+    function showSuccessModal(orderId, amount, method) {
+        // FIX: Check if currentUser exists, otherwise use Guest
+        const custName = currentUser ? currentUser.displayName : "Guest";
+        const address = document.getElementById('cust-address').value;
+
+        // Optional Delivery Note
+        const noteElem = document.getElementById('delivery-note');
+        const noteText = (noteElem && noteElem.value.trim()) ? `\n*Note:* ${noteElem.value.trim()}` : '';
+
+        const msg = `*New Order: ${orderId}*\n*Method:* ${method}\n*Amount:* ₹${amount}\n*Customer:* ${custName}\n*Address:* ${address}${noteText}\n\n*Payment:* ${method === 'Online' ? 'PAID ✅' : 'Cash on Delivery 🚚'}`;
+
+        const orderIdElem = document.getElementById('success-order-id');
+        if (orderIdElem) orderIdElem.innerText = orderId;
+
+        const waBtn = document.getElementById('wa-link-btn');
+        if (waBtn) {
+            waBtn.onclick = () => {
+                window.open(`https://wa.me/${shopConfig.adminPhone}?text=${encodeURIComponent(msg)}`, '_blank');
+            };
+        }
+
+        const modal = document.getElementById('success-modal');
+        if (modal) {
+            modal.style.display = 'flex';
+
+            // TRIGGER CONFETTI
+            if (typeof confetti === 'function') {
+                confetti({
+                    particleCount: 150,
+                    spread: 70,
+                    origin: { y: 0.6 },
+                    colors: ['#e85d04', '#faa307', '#ffffff'] // Your brand colors
+                });
+            }
+        }
+    }
+    // --- USER REVIEW SYSTEM ---
+
+    function openReviewModal(pid, oid, name, img) {
+        document.getElementById('review-modal').style.display = 'flex';
+        document.getElementById('review-pid').value = pid;
+        document.getElementById('review-oid').value = oid;
+        document.getElementById('review-p-name').innerText = decodeURIComponent(name);
+        document.getElementById('review-p-img').src = decodeURIComponent(img);
+        document.getElementById('review-comment').value = '';
+
+        // Reset stars
+        document.querySelectorAll('input[name="rating"]').forEach(r => r.checked = false);
+    }
+
+    async function submitReview() {
+        // 1. Get Values
+        const pidStr = document.getElementById('review-pid').value;
+        const oid = document.getElementById('review-oid').value;
+        const comment = document.getElementById('review-comment').value.trim();
+        const ratingElem = document.querySelector('input[name="rating"]:checked');
+
+        // 2. Validation
+        if (!ratingElem) return showToast("Please select a star rating!", "error");
+        const rating = parseInt(ratingElem.value);
+
+        if (!currentUser) return showToast("You must be logged in to review.", "error");
+
+        // 3. Handle Product ID Type (Keep as number if it is one, else string)
+        // This fixes issues if you have alphanumeric IDs like "Mix123"
+        const pid = isNaN(Number(pidStr)) ? pidStr : Number(pidStr);
+
+        toggleBtnLoading('btn-submit-review', true);
+
+        try {
+            // 4. Check for Duplicates
+            const check = await db.collection("reviews")
+                .where("orderId", "==", oid)
+                .where("productId", "==", pid)
+                .get();
+
+            if (!check.empty) {
+                showToast("You have already reviewed this item!", "warning");
+                closeModal('review-modal');
+                toggleBtnLoading('btn-submit-review', false);
+                return;
+            }
+
+            // 5. Add Review (FIX: Added fallback for userName to prevent crashes)
+            await db.collection("reviews").add({
+                productId: pid,
+                orderId: oid,
+                userId: currentUser.uid,
+                userName: currentUser.displayName || 'Customer', // Fixes "undefined" error
+                rating: rating,
+                comment: comment,
+                timestamp: new Date()
+            });
+
+            // 6. Update Product Stats
+            // Note: We use String(pid) because Document IDs are always strings
+            const productRef = db.collection("products").doc(String(pid));
+
+            await productRef.update({
+                ratingSum: firebase.firestore.FieldValue.increment(rating),
+                ratingCount: firebase.firestore.FieldValue.increment(1)
+            });
+
+            showToast("Thanks for your feedback!", "success");
+            closeModal('review-modal');
+
+            // Refresh to show new rating on cards
+            fetchData();
+
+        } catch (error) {
+            console.error("Review Error:", error);
+            // Show specific error message to help debug
+            showToast("Error: " + error.message, "error");
+        } finally {
+            toggleBtnLoading('btn-submit-review', false);
+        }
+    }
+
+    // --- TOAST FUNCTION ---
+    function showToast(message, type = 'neutral') {
+        const container = document.getElementById('toast-container');
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+
+        let icon = '';
+        if (type === 'success') icon = '<i class="fas fa-check-circle" style="color:#2ecc71"></i>';
+        if (type === 'error') icon = '<i class="fas fa-exclamation-circle" style="color:#e74c3c"></i>';
+
+        toast.innerHTML = `${icon} <span>${message}</span>`;
+        container.appendChild(toast);
+
+        // Remove after 3 seconds
+        setTimeout(() => {
+            toast.style.opacity = '0';
+            setTimeout(() => toast.remove(), 400);
+        }, 3000);
+    }
+
+    // --- SEO HELPER FUNCTION ---
+    function updateSchema(p) {
+        // 1. Remove old schema if exists to prevent duplicates
+        const oldSchema = document.getElementById('json-ld-product');
+        if (oldSchema) oldSchema.remove();
+
+        // 2. Create new Schema JSON
+        const schemaData = {
+            "@context": "https://schema.org/",
+            "@type": "Product",
+            "name": p.name,
+            "image": ["https://namonamkeen.shop/" + p.image],
+            "description": p.desc || "Authentic Indore Namkeen",
+            "brand": {
+                "@type": "Brand",
+                "name": "Namo Namkeen"
+            },
+            "offers": {
+                "@type": "Offer",
+                "url": "https://namonamkeen.shop",
+                "priceCurrency": "INR",
+                "price": p.price,
+                "availability": p.in_stock ? "https://schema.org/InStock" : "https://schema.org/OutOfStock"
+            }
+        };
+
+        // 3. Inject into Head
+        const script = document.createElement('script');
+        script.id = "json-ld-product";
+        script.type = "application/ld+json";
+        script.text = JSON.stringify(schemaData);
+        document.head.appendChild(script);
+    }
+
+    // --- SEO HELPER ---
+    // --- PWA INSTALLATION LOGIC ---
+    let deferredPrompt;
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+        // 1. Prevent Chrome 67 and earlier from automatically showing the prompt
+        e.preventDefault();
+        // 2. Stash the event so it can be triggered later.
+        deferredPrompt = e;
+        // 3. Update UI notify the user they can add to home screen
+        const installBtn = document.getElementById('pwa-install-btn');
+        if (installBtn) {
+            installBtn.style.display = 'block'; // Show the button
+
+            installBtn.addEventListener('click', () => {
+                // Hide our user interface that shows our A2HS button
+                installBtn.style.display = 'none';
+                // Show the prompt
+                deferredPrompt.prompt();
+                // Wait for the user to respond to the prompt
+                deferredPrompt.userChoice.then((choiceResult) => {
+                    if (choiceResult.outcome === 'accepted') {
+                        console.log('User accepted the A2HS prompt');
+                    } else {
+                        console.log('User dismissed the A2HS prompt');
+                    }
+                    deferredPrompt = null;
+                });
+            });
+        }
+    });
+
+    // Optional: Analytics to track if app was installed successfully
+    window.addEventListener('appinstalled', () => {
+        console.log('PWA was installed');
+        // You could save this event to Firestore to track how many users installed the app
+    });
+
+    function saveCartLocal() {
+        localStorage.setItem('namoCart', JSON.stringify(cart));
+        // NEW: Save the discount object
+        localStorage.setItem('namoDiscount', JSON.stringify(appliedDiscount));
+    }
+
+    function loadCartLocal() {
+        const savedCart = localStorage.getItem('namoCart');
+        const savedDiscount = localStorage.getItem('namoDiscount');
+
+        if (savedCart) {
+            cart = JSON.parse(savedCart);
+        }
+
+        // NEW: Restore the discount
+        if (savedDiscount) {
+            appliedDiscount = JSON.parse(savedDiscount);
+            // Visual feedback if a code is applied
+            if (appliedDiscount.code) {
+                const input = document.getElementById('promo-code');
+                const msg = document.getElementById('promo-msg');
+                if (input) input.value = appliedDiscount.code;
+                if (msg) {
+                    msg.innerText = "Code Applied!";
+                    msg.style.color = "green";
+                }
+            }
+        }
+
+        updateCartUI();
+    }
+
+    // --- CUSTOM CONFIRMATION HELPER ---
+    function showConfirm(message) {
+        return new Promise((resolve) => {
+            // 1. Create Modal HTML if not exists
+            if (!document.getElementById('custom-confirm-modal')) {
+                const modalHtml = `
             <div id="custom-confirm-modal" class="modal-overlay">
                 <div class="modal-content confirm-box">
                     <h3 style="margin-bottom:10px; color:var(--text-dark);">Please Confirm</h3>
@@ -1618,95 +1703,93 @@ function showConfirm(message) {
                     </div>
                 </div>
             </div>`;
-            document.body.insertAdjacentHTML('beforeend', modalHtml);
-        }
+                document.body.insertAdjacentHTML('beforeend', modalHtml);
+            }
 
-        // 2. Set Message & Show
-        document.getElementById('custom-confirm-msg').innerText = message;
-        const modal = document.getElementById('custom-confirm-modal');
-        modal.style.display = 'flex';
+            // 2. Set Message & Show
+            document.getElementById('custom-confirm-msg').innerText = message;
+            const modal = document.getElementById('custom-confirm-modal');
+            modal.style.display = 'flex';
 
-        // 3. Handle Clicks
-        const btnYes = document.getElementById('btn-confirm-yes');
-        const btnNo = document.getElementById('btn-confirm-no');
+            // 3. Handle Clicks
+            const btnYes = document.getElementById('btn-confirm-yes');
+            const btnNo = document.getElementById('btn-confirm-no');
 
-        // Clone buttons to remove old event listeners (safety)
-        const newYes = btnYes.cloneNode(true);
-        const newNo = btnNo.cloneNode(true);
-        btnYes.parentNode.replaceChild(newYes, btnYes);
-        btnNo.parentNode.replaceChild(newNo, btnNo);
+            // Clone buttons to remove old event listeners (safety)
+            const newYes = btnYes.cloneNode(true);
+            const newNo = btnNo.cloneNode(true);
+            btnYes.parentNode.replaceChild(newYes, btnYes);
+            btnNo.parentNode.replaceChild(newNo, btnNo);
 
-        newYes.onclick = () => {
-            modal.style.display = 'none';
-            resolve(true);
-        };
+            newYes.onclick = () => {
+                modal.style.display = 'none';
+                resolve(true);
+            };
 
-        newNo.onclick = () => {
-            modal.style.display = 'none';
-            resolve(false);
-        };
-    });
-}
-
-// --- LOGIN MODAL HANDLERS ---
-
-// --- LOGIN MODAL HANDLERS ---
-
-function openLoginChoiceModal() {
-    // 1. Do NOT close the cart. 
-    // The modal should stack on top of the sidebar.
-    // (Ensure your CSS z-indexes are correct: Sidebar ~5001, Modal ~6000+)
-
-    document.getElementById('login-choice-modal').style.display = 'flex';
-}
-
-function handleLoginChoice(method) {
-    closeModal('login-choice-modal'); // Close the selection modal
-
-    if (method === 'google') {
-        // 2. Trigger Google Login as 'Checkout Flow' (true)
-        // This ensures that after login, initiateRazorpayPayment() is called automatically.
-        googleLogin(true);
+            newNo.onclick = () => {
+                modal.style.display = 'none';
+                resolve(false);
+            };
+        });
     }
-    else if (method === 'mobile') {
-        showToast("Mobile Login coming soon! Please use Google or Guest Checkout.", "neutral");
+
+    // --- LOGIN MODAL HANDLERS ---
+
+    function openLoginChoiceModal() {
+        // 1. Do NOT close the cart. 
+        // The modal should stack on top of the sidebar.
+        // (Ensure your CSS z-indexes are correct: Sidebar ~5001, Modal ~6000+)
+
+        document.getElementById('login-choice-modal').style.display = 'flex';
     }
-}
 
-// --- SMART SEARCH LOGIC ---
-const searchInput = document.getElementById('menu-search');
-const suggestionsBox = document.getElementById('search-suggestions');
-let fuse; // Hold the Fuse instance
+    function handleLoginChoice(method) {
+        closeModal('login-choice-modal'); // Close the selection modal
 
-// Initialize Fuse once products are loaded
-function initFuzzySearch() {
-    const options = {
-        keys: ['name', 'nameHi', 'category', 'desc'], // Fields to search
-        threshold: 0.4, // 0.0 = perfect match, 1.0 = match anything. 0.4 is good for typos.
-        distance: 100   // How close the match needs to be
-    };
-    fuse = new Fuse(products, options);
-}
-
-if (searchInput) {
-    searchInput.addEventListener('input', function () {
-        const query = this.value.toLowerCase().trim();
-
-        // 1. Hide if empty
-        if (query.length === 0) {
-            suggestionsBox.classList.remove('active');
-            searchMenu(); // Reset grid to show all
-            return;
+        if (method === 'google') {
+            // 2. Trigger Google Login as 'Checkout Flow' (true)
+            // This ensures that after login, initiateRazorpayPayment() is called automatically.
+            googleLogin(true);
         }
+        else if (method === 'mobile') {
+            showToast("Mobile Login coming soon! Please use Google or Guest Checkout.", "neutral");
+        }
+    }
 
-        // 2. Perform Fuzzy Search
-        // Fuse returns results in { item: ... } format
-        const results = fuse.search(query);
-        const matches = results.map(result => result.item).slice(0, 5); // Limit to top 5
+    // --- SMART SEARCH LOGIC ---
+    const searchInput = document.getElementById('menu-search');
+    const suggestionsBox = document.getElementById('search-suggestions');
+    let fuse; // Hold the Fuse instance
 
-        // 3. Render Suggestions
-        if (matches.length > 0) {
-            suggestionsBox.innerHTML = matches.map(p => `
+    // Initialize Fuse once products are loaded
+    function initFuzzySearch() {
+        const options = {
+            keys: ['name', 'nameHi', 'category', 'desc'], // Fields to search
+            threshold: 0.4, // 0.0 = perfect match, 1.0 = match anything. 0.4 is good for typos.
+            distance: 100   // How close the match needs to be
+        };
+        fuse = new Fuse(products, options);
+    }
+
+    if (searchInput) {
+        searchInput.addEventListener('input', function () {
+            const query = this.value.toLowerCase().trim();
+
+            // 1. Hide if empty
+            if (query.length === 0) {
+                suggestionsBox.classList.remove('active');
+                searchMenu(); // Reset grid to show all
+                return;
+            }
+
+            // 2. Perform Fuzzy Search
+            // Fuse returns results in { item: ... } format
+            const results = fuse.search(query);
+            const matches = results.map(result => result.item).slice(0, 5); // Limit to top 5
+
+            // 3. Render Suggestions
+            if (matches.length > 0) {
+                suggestionsBox.innerHTML = matches.map(p => `
                 <div class="suggestion-item" onclick="selectSuggestion(${p.id})">
                     <img src="${p.image}" class="suggestion-img" onerror="this.onerror=null; this.src='logo.jpg';">
                     <div class="suggestion-info">
@@ -1715,78 +1798,80 @@ if (searchInput) {
                     </div>
                 </div>
             `).join('');
-            suggestionsBox.classList.add('active');
-        } else {
-            suggestionsBox.classList.remove('active');
-        }
-
-        // Also filter the main grid
-        searchMenu();
-    });
-
-    // Hide when clicking outside
-    document.addEventListener('click', (e) => {
-        if (!searchInput.contains(e.target) && !suggestionsBox.contains(e.target)) {
-            suggestionsBox.classList.remove('active');
-        }
-    });
-}
-
-function selectSuggestion(id) {
-    openProductDetail(id);
-    document.getElementById('search-suggestions').classList.remove('active');
-    document.getElementById('menu-search').value = ''; // Optional: clear search
-    searchMenu(); // Reset grid
-}
-
-// --- PDF DOWNLOAD FUNCTION ---
-function downloadPDF() {
-    const element = document.getElementById('invoice-print-area');
-    const orderId = document.getElementById('inv-order-id').innerText.replace('#', '');
-
-    // Configuration for the PDF
-    const opt = {
-        margin: 10,
-        filename: `Namo_Invoice_${orderId}.pdf`,
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true }, // scale: 2 improves quality
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-    };
-
-    // Show loading state
-    const btn = document.querySelector('button[onclick="downloadPDF()"]');
-    const originalText = btn.innerHTML;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
-
-    // Generate and Save
-    html2pdf().set(opt).from(element).save().then(() => {
-        btn.innerHTML = originalText; // Restore button
-        showToast("Invoice Downloaded!", "success");
-    }).catch(err => {
-        console.error(err);
-        btn.innerHTML = originalText;
-        showToast("Failed to generate PDF", "error");
-    });
-}
-
-// Add function to bottom of script.js
-function loadStorefront() {
-    db.collection("settings").doc("layout").get().then(doc => {
-        if (doc.exists) {
-            const data = doc.data();
-            if (data.heroTitle) document.getElementById('hero-title').innerHTML = data.heroTitle.replace(/\n/g, '<br>');
-            if (data.heroSubtitle) document.getElementById('hero-subtitle').innerText = data.heroSubtitle;
-            if (data.heroImage) {
-                document.getElementById('home').style.backgroundImage = `url('${data.heroImage}')`;
+                suggestionsBox.classList.add('active');
+            } else {
+                suggestionsBox.classList.remove('active');
             }
-        }
-    }).catch(e => console.log("Layout load error (using default)", e));
-}
 
-function vibrate(ms = 50) {
-    if (navigator.vibrate) {
-        navigator.vibrate(ms);
+            // Also filter the main grid
+            searchMenu();
+        });
+
+        // Hide when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!searchInput.contains(e.target) && !suggestionsBox.contains(e.target)) {
+                suggestionsBox.classList.remove('active');
+            }
+        });
     }
-}
 
-function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+    function selectSuggestion(id) {
+        openProductDetail(id);
+        document.getElementById('search-suggestions').classList.remove('active');
+        document.getElementById('menu-search').value = ''; // Optional: clear search
+        searchMenu(); // Reset grid
+    }
+
+    // --- PDF DOWNLOAD FUNCTION ---
+    function downloadPDF() {
+        const element = document.getElementById('invoice-print-area');
+        const orderId = document.getElementById('inv-order-id').innerText.replace('#', '');
+
+        // Configuration for the PDF
+        const opt = {
+            margin: 10,
+            filename: `Namo_Invoice_${orderId}.pdf`,
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 2, useCORS: true }, // scale: 2 improves quality
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        };
+
+        // Show loading state
+        const btn = document.querySelector('button[onclick="downloadPDF()"]');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
+
+        // Generate and Save
+        html2pdf().set(opt).from(element).save().then(() => {
+            btn.innerHTML = originalText; // Restore button
+            showToast("Invoice Downloaded!", "success");
+        }).catch(err => {
+            console.error(err);
+            btn.innerHTML = originalText;
+            showToast("Failed to generate PDF", "error");
+        });
+    }
+
+    // Add function to bottom of script.js
+    function loadStorefront() {
+        db.collection("settings").doc("layout").get().then(doc => {
+            if (doc.exists) {
+                const data = doc.data();
+                if (data.heroTitle) document.getElementById('hero-title').innerHTML = data.heroTitle.replace(/\n/g, '<br>');
+                if (data.heroSubtitle) document.getElementById('hero-subtitle').innerText = data.heroSubtitle;
+                if (data.heroImage) {
+                    document.getElementById('home').style.backgroundImage = `url('${data.heroImage}')`;
+                }
+            }
+        }).catch(e => console.log("Layout load error (using default)", e));
+    }
+
+    function vibrate(ms = 50) {
+        if (navigator.vibrate) {
+            navigator.vibrate(ms);
+        }
+    }
+
+    function closeModal(id) { 
+        document.getElementById(id).style.display = 'none'; 
+    }

@@ -29,6 +29,10 @@
         </button>
     </div>
 
+    <div id="sidebar-overlay" onclick="toggleSidebar()"
+        style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:99;">
+    </div>
+
     <nav class="sidebar" id="sidebar">
         <div class="brand">
             <div class="brand-left">
@@ -192,17 +196,18 @@
             <div class="card">
                 <div class="card-header">
                     <h3>Product List</h3>
-                    <div class="card-header">
-                        <h3>Product List</h3>
-                        <input type="text" id="inv-search" class="search-input" placeholder="Search inventory..."
-                            onkeyup="filterInventory()" style="max-width: 200px;">
+                    <input type="text" id="inv-search" class="search-input" placeholder="Search inventory..."
+                        onkeyup="filterInventory()" style="max-width: 200px;">
 
-                        <div class="header-actions">
-                            <input type="file" id="csv-upload" style="display:none" accept=".csv"
-                                onchange="handleFileUpload(this)">
-                            <button class="btn btn-blue" onclick="importFromSheet()">Import</button>
-                            <button class="btn btn-primary" onclick="openProductModal()">+ Add</button>
-                        </div>
+                    <div class="header-actions">
+                        <input type="file" id="csv-upload" style="display:none" accept=".csv"
+                            onchange="handleFileUpload(this)">
+                        <button class="btn btn-outline" onclick="document.getElementById('csv-upload').click()"
+                            title="Upload CSV"><i class="fas fa-file-upload"></i> Upload</button>
+
+                        <button class="btn btn-blue" onclick="importFromSheet()"
+                            title="Import from Google Sheet">Sheet</button>
+                        <button class="btn btn-primary" onclick="openProductModal()">+ Add</button>
                     </div>
                 </div>
                 <div class="table-responsive">
