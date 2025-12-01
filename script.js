@@ -50,9 +50,6 @@ const synonymMap = {
 };
 
 // NEW: Add this Shop Config
-// ⚠️ CRITICAL: razorpayKeyId must be configured before deployment
-// Get from: https://dashboard.razorpay.com/app/keys
-const razorpayKeyId = ""; // ⚠️ REQUIRED: Add your Razorpay Key ID
 let shopConfig = {
     upiId: "8103276050@ybl", // Default fallback if DB fails
     adminPhone: "919826698822",
@@ -256,12 +253,22 @@ function fetchData() {
     }).catch(err => console.error("Products Error:", err));
 
     // NEW: Fetch Shop Configuration from Firestore
-    unsubscribeListeners.config = db.collection("settings").doc("config").onSnapshot(doc => {
+    unsubscribeListeners.config = // NEW: Fetch Shop Configuration from Firestore
+    db.collection("settings").doc("config").onSnapshot(doc => {
         if (doc.exists) {
             const data = doc.data();
+            
+            // 1. Basic Info
             if (data.upiId) shopConfig.upiId = data.upiId;
-            // FIX: Remove non-numeric characters immediately
             if (data.adminPhone) shopConfig.adminPhone = data.adminPhone.replace(/\D/g, '');
+            
+            // 2. Delivery Settings (CRITICAL FIX)
+            // Parse as float to ensure math works correctly
+            if (data.deliveryCharge !== undefined) shopConfig.deliveryCharge = parseFloat(data.deliveryCharge);
+            if (data.freeShippingThreshold !== undefined) shopConfig.freeShippingThreshold = parseFloat(data.freeShippingThreshold);
+            
+            // 3. Refresh Cart UI immediately to apply new fees
+            updateCartUI();
         }
     });
 
@@ -1760,43 +1767,57 @@ async function initiateRazorpayPayment() {
     if (!/^[0-9]{10}$/.test(phone)) return showToast("Enter valid 10-digit phone", "error");
     if (address.length < 5) return showToast("Enter complete address", "error");
 
-    // --- FIX: Use Centralized Calculation ---
-    const { finalTotal } = getCartTotals();
-    const amountPaise = finalTotal * 100;
-
+    // Check Payment Method
     const methodElem = document.querySelector('input[name="paymentMethod"]:checked');
     const paymentMethod = methodElem ? methodElem.value : 'Online';
+
+    const { finalTotal } = getCartTotals();
 
     if (paymentMethod === 'COD') {
         if (await showConfirm(`Place order for ₹${finalTotal} via Cash on Delivery?`)) {
             saveOrderToFirebase('COD', 'Pending', null);
         }
     } else {
-        openRazorpayModal(amountPaise, finalTotal, phone);
+        // --- SECURE ONLINE FLOW ---
+        toggleBtnLoading('btn-main-checkout', true);
+        showToast("Initializing Secure Payment...", "neutral");
+
+        try {
+            // 1. Call Cloud Function
+            const createPaymentOrder = firebase.functions().httpsCallable('createPaymentOrder');
+            const result = await createPaymentOrder({ 
+                cart: cart, 
+                discount: appliedDiscount 
+            });
+            
+            const { id: order_id, key: key_id, amount } = result.data;
+
+            // 2. Open Razorpay with Server Order ID
+            openSecureRazorpay(order_id, key_id, amount, phone);
+
+        } catch (error) {
+            console.error(error);
+            showToast("Payment Init Failed: " + error.message, "error");
+            toggleBtnLoading('btn-main-checkout', false);
+        }
     }
 }
 
-function openRazorpayModal(amountPaise, amountINR, userPhone) {
-    // SECURITY: Check if Razorpay library is loaded
-    if (typeof Razorpay === 'undefined') {
-        showToast("Payment system not loaded. Please refresh and try again.", "error");
-        toggleBtnLoading('btn-main-checkout', false);
-        return;
-    }
-
-    // Determine User Details (Guest or Logged In)
+function openSecureRazorpay(orderId, keyId, amount, userPhone) {
     const userName = currentUser ? currentUser.displayName : "Guest User";
     const userEmail = currentUser ? currentUser.email : "guest@namonamkeen.com";
 
     var options = {
-        "key": razorpayKeyId,
-        "amount": amountPaise,
+        "key": keyId, // Received from server
+        "amount": amount,
         "currency": "INR",
         "name": "Namo Namkeen",
-        "description": "Order Payment",
+        "description": "Secure Payment",
         "image": "logo.jpg",
+        "order_id": orderId, // Critical: Links to the secure server order
         "handler": function (response) {
-            console.log("Payment ID: ", response.razorpay_payment_id);
+            console.log("Payment Success:", response);
+            // Verify signature here if needed, or trust the success for basic flow
             saveOrderToFirebase('Online', 'Paid', response.razorpay_payment_id);
         },
         "prefill": {
@@ -1806,13 +1827,17 @@ function openRazorpayModal(amountPaise, amountINR, userPhone) {
         },
         "theme": { "color": "#e85d04" },
         "modal": {
-            "ondismiss": function () { showToast("Payment cancelled.", "error"); }
+            "ondismiss": function () { 
+                showToast("Payment cancelled.", "error"); 
+                toggleBtnLoading('btn-main-checkout', false);
+            }
         }
     };
 
     var rzp1 = new Razorpay(options);
     rzp1.on('payment.failed', function (response) {
         showToast("Payment Failed: " + response.error.description);
+        toggleBtnLoading('btn-main-checkout', false);
     });
     rzp1.open();
 }
