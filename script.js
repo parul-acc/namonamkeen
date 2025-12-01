@@ -124,6 +124,35 @@ function fetchData() {
         products = [];
         snap.forEach(doc => products.push(doc.data()));
         products = products.filter(p => p.id !== 999);
+
+        // --- NEW: SYNC CART PRICES ---
+        if (cart.length > 0) {
+            let cartUpdated = false;
+            cart.forEach(item => {
+                const freshProduct = products.find(p => p.id === item.productId);
+                if (freshProduct) {
+                    // Find matching variant to get correct price
+                    let freshPrice = freshProduct.price; // Default base price
+                    if (freshProduct.variants) {
+                        const variant = freshProduct.variants.find(v => v.weight === item.weight);
+                        if (variant) freshPrice = variant.price;
+                    }
+
+                    // Update if price changed
+                    if (item.price !== freshPrice) {
+                        item.price = freshPrice;
+                        cartUpdated = true;
+                    }
+                }
+            });
+
+            if (cartUpdated) {
+                saveCartLocal();
+                updateCartUI();
+                showToast("Cart prices updated", "neutral");
+            }
+        }
+
         initFuzzySearch();
         renderMenu();
         renderHamperOptions();
@@ -589,7 +618,7 @@ function updateCartUI() {
     const con = document.getElementById('cart-items');
     if (!con) return;
     con.innerHTML = '';
-   // FIX 1: Initialize variables at the top
+    // FIX 1: Initialize variables at the top
     let subtotal = 0, count = 0;
     let finalDeliveryCost = 50;
 
@@ -773,11 +802,12 @@ function highlightCat(el) {
 function changeQty(id, d) {
     const i = cart.find(x => x.cartId === id);
     if (i) {
-        i.qty += d; if (i.qty <= 0)
+        i.qty += d;
+        if (i.qty <= 0) {
             removeFromCart(id);
-    }
-    else {
-        updateCartUI();
+        } else {
+            updateCartUI(); // <--- ADD THIS LINE
+        }
     }
     saveCartLocal();
     vibrate(30);
@@ -817,7 +847,7 @@ function handleCheckout() {
     if (!currentUser) {
         showToast("Please login to place an order", "neutral");
         openLoginChoiceModal(); // Opens the "Welcome Back" modal
-        return; 
+        return;
     }
     // -----------------------------------
 
@@ -1460,32 +1490,22 @@ async function initiateRazorpayPayment() {
     const phone = document.getElementById('cust-phone').value.trim();
     const address = document.getElementById('cust-address').value.trim();
 
-    // Basic Validation
-    if (!/^[0-9]{10}$/.test(phone)) return showToast("Please enter a valid 10-digit mobile number.", "error");
-    if (address.length < 3) return showToast("Please enter a complete address.", "error");
+    if (!/^[0-9]{10}$/.test(phone)) return showToast("Enter valid 10-digit phone", "error");
+    if (address.length < 5) return showToast("Enter complete address", "error");
 
-    // Check Payment Method
+    // --- FIX: Use Centralized Calculation ---
+    const { finalTotal } = getCartTotals();
+    const amountPaise = finalTotal * 100;
+
     const methodElem = document.querySelector('input[name="paymentMethod"]:checked');
     const paymentMethod = methodElem ? methodElem.value : 'Online';
 
-    // Calculate Amount
-    let total = cart.reduce((sum, i) => sum + (i.price * i.qty), 0);
-    let discount = 0;
-    if (appliedDiscount.type === 'percent') discount = Math.round(total * (appliedDiscount.value / 100));
-    else if (appliedDiscount.type === 'flat') discount = appliedDiscount.value;
-
-    const finalAmountINR = Math.max(0, total - discount); // Amount in Rupees
-    const amountPaise = finalAmountINR * 100; // Razorpay takes amount in Paise
-
     if (paymentMethod === 'COD') {
-        // Cash on Delivery Flow
-        // FIX: Added 'await' here. The code will now PAUSE here until you click Yes or No.
-        if (await showConfirm(`Place order for ₹${finalAmountINR} via Cash on Delivery?`)) {
+        if (await showConfirm(`Place order for ₹${finalTotal} via Cash on Delivery?`)) {
             saveOrderToFirebase('COD', 'Pending', null);
         }
     } else {
-        // Online Payment Flow (Razorpay)
-        openRazorpayModal(amountPaise, finalAmountINR, phone);
+        openRazorpayModal(amountPaise, finalTotal, phone);
     }
 }
 
@@ -1547,13 +1567,12 @@ async function saveOrderToFirebase(method, paymentStatus, txnId) {
     const finalAmount = Math.max(0, total - discount);
 
     // 3. Optional: Capture Delivery Note
-    const deliveryNote = document.getElementById('delivery-note') ? document.getElementById('delivery-note').value.trim() : '';
+    const { subtotal, discountAmount, shipping, finalTotal } = getCartTotals();
 
     try {
         const batch = db.batch();
-
-        // A. Create Order Document
         const orderRef = db.collection("orders").doc(String(orderId));
+
         batch.set(orderRef, {
             id: orderId,
             userId: uid,
@@ -1562,8 +1581,11 @@ async function saveOrderToFirebase(method, paymentStatus, txnId) {
             userAddress: address,
             deliveryNote: deliveryNote,
             items: cart,
-            total: finalAmount,
-            discount: appliedDiscount,
+            subtotal: subtotal,        // Save Subtotal
+            shippingCost: shipping,    // Save Shipping Cost
+            discount: appliedDiscount, // Save Discount Info
+            discountAmt: discountAmount,// Save Discount Amount
+            total: finalTotal,         // Final Paid Amount
             paymentMethod: method,
             status: 'Pending',
             paymentStatus: paymentStatus,
@@ -1576,27 +1598,23 @@ async function saveOrderToFirebase(method, paymentStatus, txnId) {
         batch.set(userRef, {
             name: uName,
             phone: phone,
-            address: address, // Updates to latest address used
+            address: address,
             lastOrder: new Date(),
             type: currentUser ? 'Registered' : 'Guest'
         }, { merge: true });
 
-        // Commit both updates
         await batch.commit();
+        showSuccessModal(orderId, finalTotal, method);
 
-        // C. Success UI
-        showSuccessModal(orderId, finalAmount, method);
-
-        // D. Cleanup
         cart = [];
-        appliedDiscount = { type: 'none', value: 0, code: null }; // Reset discount
+        appliedDiscount = { type: 'none', value: 0, code: null };
         saveCartLocal();
         updateCartUI();
         if (document.getElementById('cart-sidebar').classList.contains('active')) toggleCart();
 
     } catch (error) {
         console.error("Order Error:", error);
-        showToast("Error placing order. Please try again.", "error");
+        showToast("Error placing order.", "error");
     } finally {
         toggleBtnLoading('btn-main-checkout', false);
     }
@@ -1930,6 +1948,7 @@ function initFuzzySearch() {
 
 if (searchInput) {
     searchInput.addEventListener('input', function () {
+        if (!fuse) return;
         const query = this.value.toLowerCase().trim();
 
         // 1. Hide if empty
@@ -2036,4 +2055,32 @@ function vibrate(ms = 50) {
 
 function closeModal(id) {
     document.getElementById(id).style.display = 'none';
+}
+
+// --- HELPER: Centralized Price Calculation ---
+function getCartTotals() {
+    const subtotal = cart.reduce((sum, i) => sum + (i.price * i.qty), 0);
+
+    // 1. Calculate Discount
+    let discountAmount = 0;
+    if (appliedDiscount && appliedDiscount.value > 0) {
+        if (appliedDiscount.type === 'percent') {
+            discountAmount = Math.round(subtotal * (appliedDiscount.value / 100));
+        } else if (appliedDiscount.type === 'flat') {
+            discountAmount = appliedDiscount.value;
+        }
+    }
+    if (discountAmount > subtotal) discountAmount = subtotal;
+
+    // 2. Calculate Delivery
+    const freeShipLimit = shopConfig.freeShippingThreshold || 250;
+    const deliveryFee = shopConfig.deliveryCharge || 0;
+
+    // Delivery based on subtotal (before discount) is standard, 
+    // but if you want it based on post-discount price, change 'subtotal' to 'subtotal - discountAmount' below.
+    const shipping = (subtotal >= freeShipLimit) ? 0 : deliveryFee;
+
+    const finalTotal = subtotal - discountAmount + shipping;
+
+    return { subtotal, discountAmount, shipping, finalTotal };
 }

@@ -495,7 +495,7 @@ function loadOrders() {
         ordersUnsubscribe();
     }
 
-    const query = db.collection("orders").orderBy("timestamp", "desc").limit(20);
+    const query = db.collection("orders").orderBy("timestamp", "desc").limit(100);
 
     // 2. Assign the new listener to the global variable
     ordersUnsubscribe = query.onSnapshot(snap => {
@@ -746,12 +746,22 @@ function viewOrder(id) {
         </div>`;
     }
 
+    // --- ADD THIS BLOCK ---
+    let shippingHtml = '';
+    if (o.shippingCost > 0) {
+        shippingHtml = `<div style="display:flex; justify-content:space-between; color:#666; margin-top:5px; font-size:0.9rem;">
+            <span>Delivery Charge:</span>
+            <span>₹${o.shippingCost}</span>
+        </div>`;
+    }
+
     const html = `
         <div style="background:#f9fafb; padding:15px; border-radius:10px; margin-bottom:20px; border:1px solid #e5e7eb;">
             <h4 style="margin:0 0 10px 0; color:var(--dark);">Customer Details</h4>
             <p style="margin:5px 0;"><strong>Name:</strong> ${escapeHtml(o.userName)}</p>
             <p style="margin:5px 0;"><strong>Phone:</strong> ${escapeHtml(o.userPhone)}</p>
             <p style="margin:5px 0;"><strong>Address:</strong> ${escapeHtml(o.userAddress)}</p>
+            ${o.deliveryNote ? `<p style="margin:5px 0; color:#d35400;"><strong>Note:</strong> ${escapeHtml(o.deliveryNote)}</p>` : ''}
         </div>
         
         <h4 style="margin-bottom:15px; display:flex; justify-content:space-between; align-items:center;">
@@ -760,8 +770,9 @@ function viewOrder(id) {
         <div id="admin-order-items" style="max-height:300px; overflow-y:auto; padding-right:5px;">${itemsHtml}</div>
         
         <div style="margin-top:20px; border-top:2px dashed #ddd; padding-top:15px;">
+            ${shippingHtml} 
             ${discountHtml}
-            <div style="display:flex; justify-content:space-between; align-items:center;"><h3>Total: ₹${o.total}</h3></div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px;"><h3>Total: ₹${o.total}</h3></div>
         </div>
 
         <div style="margin-top:20px; display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
@@ -802,7 +813,7 @@ function recalculateAndSave(orderId, newItems, orderDoc) {
         } else if (orderDoc.discount.type === 'percent') {
             discountVal = Math.round(newItemTotal * (orderDoc.discount.value / 100));
         } else {
-            // FIX: Allow full flat discount up to the total amount (Match script.js logic)
+            // Flat discount logic
             discountVal = orderDoc.discount.value;
             if (discountVal > newItemTotal) {
                 discountVal = newItemTotal;
@@ -810,8 +821,13 @@ function recalculateAndSave(orderId, newItems, orderDoc) {
         }
     }
 
-    // Calculate Final Total
-    const finalTotal = Math.max(0, newItemTotal - discountVal);
+    // --- FIX STARTS HERE ---
+    // Retrieve shipping cost (default to 0 if missing)
+    const shipping = orderDoc.shippingCost || 0;
+
+    // Calculate Final Total including Shipping
+    const finalTotal = Math.max(0, newItemTotal - discountVal) + shipping;
+    // --- FIX ENDS HERE ---
 
     db.collection("orders").doc(orderId).update({
         items: newItems,
@@ -820,8 +836,10 @@ function recalculateAndSave(orderId, newItems, orderDoc) {
         orderDoc.items = newItems;
         orderDoc.total = finalTotal;
         viewOrder(orderId); // Refresh view
+        showToast("Order updated. Total: ₹" + finalTotal, "success");
     }).catch(err => showToast("Update failed: " + err.message));
 }
+
 function sendUpdateNotification(orderId) {
     const o = state.orders.data.find(x => x.docId === orderId);
     if (!o) return;
@@ -1145,14 +1163,19 @@ function showToast(message, type = 'neutral') {
 
 // --- POS LOGIC ---
 function addToAdminCart(id, name, price, weight, image) {
-    vibrate(50); // <--- TACTILE FEEDBACK
+    vibrate(50);
 
-    const existing = adminCart.find(i => i.productId == id);
+    // FIX: Generate a unique ID based on Product ID AND Weight
+    const uniqueKey = `${id}-${weight}`;
+
+    const existing = adminCart.find(i => i.uniqueKey === uniqueKey);
+
     if (existing) {
         existing.qty++;
-        showToast(`Updated: ${name} (+1)`, "success"); // Optional: Small toast
+        showToast(`Updated: ${name} (+1)`, "success");
     } else {
         adminCart.push({
+            uniqueKey: uniqueKey, // Store the key
             productId: id,
             name: name,
             price: parseInt(price),
