@@ -36,6 +36,9 @@ let historyOrders = [];
 let currentModalQty = 1;
 let confirmationResult = null; // Stores the OTP result object
 
+// Add at the top with other vars
+const messaging = firebase.messaging();
+
 // Add this mapping object at the top of script.js
 const synonymMap = {
     "kaju": "cashew",
@@ -53,7 +56,8 @@ const synonymMap = {
 let shopConfig = {
     upiId: "8103276050@ybl", // Default fallback if DB fails
     adminPhone: "919826698822",
-    deliveryCharge: 0
+    deliveryCharge: 50, // Set default to 50
+    freeShippingThreshold: 250 // Set default threshold
 };
 
 // --- STATE: Store unsubscribe functions to prevent memory leaks ---
@@ -280,23 +284,24 @@ function fetchData() {
     }).catch(err => console.error("Products Error:", err));
 
     unsubscribeListeners.config =
+        // NEW: Fetch Shop Configuration from Firestore
         db.collection("settings").doc("config").onSnapshot(doc => {
             if (doc.exists) {
-                // 'data' is defined HERE inside this block
                 const data = doc.data();
 
-                // 1. Basic Info
+                // 1. Contact & Pay Info
                 if (data.upiId) shopConfig.upiId = data.upiId;
                 if (data.adminPhone) shopConfig.adminPhone = data.adminPhone.replace(/\D/g, '');
 
-                // 2. Delivery & Order Settings (ALL inside the if block)
-                if (data.deliveryCharge !== undefined) shopConfig.deliveryCharge = parseFloat(data.deliveryCharge);
-                if (data.freeShippingThreshold !== undefined) shopConfig.freeShippingThreshold = parseFloat(data.freeShippingThreshold);
+                // 2. Delivery Settings (The Fix)
+                if (data.deliveryCharge !== undefined) {
+                    shopConfig.deliveryCharge = parseFloat(data.deliveryCharge);
+                }
+                if (data.freeShippingThreshold !== undefined) {
+                    shopConfig.freeShippingThreshold = parseFloat(data.freeShippingThreshold);
+                }
 
-                // This was the line causing the error - now it is safely inside
-                if (data.minOrderValue !== undefined) shopConfig.minOrderValue = parseFloat(data.minOrderValue);
-
-                // 3. Refresh Cart UI immediately to apply these new settings
+                // 3. Refresh Cart immediately to show new fees
                 updateCartUI();
             }
         });
@@ -1039,15 +1044,12 @@ function previewProfilePic(input) {
     if (input.files && input.files[0]) {
         const reader = new FileReader();
         reader.onload = function (e) {
-            // Update the preview image in the modal
             document.getElementById('edit-profile-pic').src = e.target.result;
-            // Store the Base64 string in the hidden input
             document.getElementById('profile-pic-base64').value = e.target.result;
         }
         reader.readAsDataURL(input.files[0]);
     }
 }
-
 function toggleLoyalty(amount) {
     const chk = document.getElementById('use-coins');
     if (chk.checked) {
@@ -1117,52 +1119,41 @@ function toggleCart() {
     document.querySelector('.cart-overlay').classList.toggle('active');
 }
 
-// --- UNIFIED CHECKOUT HANDLER ---
-// --- UNIFIED CHECKOUT HANDLER ---
-async function handleCheckout() {
+function handleCheckout() {
     // 1. Check Connectivity
     if (!navigator.onLine) {
         showToast("No Internet Connection", "error");
         return;
     }
 
-    // --- NEW: Force Login for Guests ---
-    // If the user is not logged in, stop here and ask them to login.
+    // 2. Force Login for Guests
     if (!currentUser) {
         showToast("Please login to place an order", "neutral");
-        openLoginChoiceModal(); // Opens the "Welcome Back" modal
+        openLoginChoiceModal();
         return;
     }
-    // -----------------------------------
 
-    // 2. Get Elements safely
+    // 3. Get Elements safely (UPDATED)
     const phoneInput = document.getElementById('cust-phone');
-    const addressInput = document.getElementById('cust-address');
+    // Check for the new street input to ensure form is loaded
+    const streetInput = document.getElementById('cust-addr-street');
 
-    // Safety Check to prevent the "null" error
-    if (!phoneInput || !addressInput) {
+    if (!phoneInput || !streetInput) {
         showToast("Error: Checkout form not loaded correctly. Please refresh.", "error");
         return;
     }
 
     const phone = phoneInput.value.trim();
-    const address = addressInput.value.trim();
 
-    // 3. Validate
-    if (cart.length === 0) return showToast("Cart is empty", "error");
-    if (!/^[0-9]{10}$/.test(phone)) return showToast("Invalid phone", "error");
+    // 4. Validate
+    if (cart.length === 0) return showToast("Your cart is empty!", "error");
+    if (!/^[0-9]{10}$/.test(phone)) return showToast("Please enter a valid 10-digit mobile number.", "error");
 
-    // Check Address Inputs
-    const street = document.getElementById('cust-addr-street').value.trim();
-    const pin = document.getElementById('cust-addr-pin').value.trim();
-    if (street.length < 3 || pin.length < 6) return showToast("Complete address & Pincode required", "error");
-    try {
-        await validateCartIntegrity(); // <--- ADD THIS
-    } catch (e) {
-        return showToast(e.message, "error");
-    }
+    // Validate Address using the helper
+    const addrObj = getAddressFromInputs('cust');
+    if (!addrObj) return showToast("Please enter a complete delivery address.", "error");
 
-    // 4. PROCEED 
+    // 5. Proceed
     vibrate(50);
     initiateRazorpayPayment();
 }
@@ -1277,6 +1268,7 @@ function googleLogin(isCheckoutFlow = false) {
             toggleBtnLoading('btn-main-checkout', false);
             initiateRazorpayPayment();
         }
+        requestUserNotifications();
 
     }).catch(e => {
         showToast(e.message, "error");
@@ -1711,34 +1703,34 @@ function ensureModalExists(modalId) {
 }
 
 function openProfileModal() {
-    ensureModalExists('profile-modal');
+    // If modal is missing from HTML, inject it (use your ensureModalExists function if you have it)
+    const modal = document.getElementById('profile-modal');
+    if (!modal) return console.error("Profile modal not found in HTML");
 
-    document.getElementById('profile-modal').style.display = 'flex';
-    document.getElementById('profile-menu').classList.remove('active');
+    modal.style.display = 'flex';
+    if (document.getElementById('profile-menu')) document.getElementById('profile-menu').classList.remove('active');
 
-    // Initialize Referrals
+    // Init Referrals
     if (typeof initReferral === 'function') initReferral();
 
+    // Fill Data
     if (userProfile) {
-        // Fill Basic Fields
-        document.getElementById('edit-name').value = userProfile.name || '';
+        document.getElementById('edit-name').value = userProfile.name || (currentUser.displayName || '');
         document.getElementById('edit-phone').value = userProfile.phone || '';
-        document.getElementById('edit-email').value = userProfile.email || '';
+        document.getElementById('edit-email').value = userProfile.email || (currentUser.email || '');
 
-        // --- NEW: Fill Address Fields ---
+        // Address Logic
         if (userProfile.addressDetails) {
-            // If we have structured data, use it
             document.getElementById('edit-addr-street').value = userProfile.addressDetails.street || '';
             document.getElementById('edit-addr-city').value = userProfile.addressDetails.city || 'Indore';
             document.getElementById('edit-addr-pin').value = userProfile.addressDetails.pin || '';
         } else {
-            // Fallback for old data: put entire string in street
             document.getElementById('edit-addr-street').value = userProfile.address || '';
             document.getElementById('edit-addr-city').value = 'Indore';
             document.getElementById('edit-addr-pin').value = '';
         }
 
-        // Fill Photo
+        // Photo Logic
         const imgEl = document.getElementById('edit-profile-pic');
         const hiddenInput = document.getElementById('profile-pic-base64');
         if (userProfile.photoURL) {
@@ -1789,7 +1781,6 @@ function closeProfileModal() { document.getElementById('profile-modal').style.di
 function toggleReferralSection() {
     const sec = document.getElementById('referral-section');
     const chev = document.getElementById('ref-chevron');
-
     if (sec.style.display === 'none') {
         sec.style.display = 'block';
         chev.classList.replace('fa-chevron-down', 'fa-chevron-up');
@@ -1801,90 +1792,60 @@ function toggleReferralSection() {
 
 // Updated saveProfile to include Name
 function saveProfile() {
-    const nameInput = document.getElementById('edit-name');
-    const phoneInput = document.getElementById('edit-phone');
-    const emailInput = document.getElementById('edit-email');
+    const name = document.getElementById('edit-name').value.trim();
+    const phone = document.getElementById('edit-phone').value.trim();
+    const email = document.getElementById('edit-email').value.trim();
 
-    // 1. Get Basic Data
-    const name = nameInput ? nameInput.value.trim() : '';
-    const phone = phoneInput ? phoneInput.value.trim() : '';
-    const email = emailInput ? emailInput.value.trim() : '';
-
-    // 2. Get Address Data (Using the helper we added earlier)
+    // Address
     const addrObj = getAddressFromInputs('edit');
-
-    // 3. Get Profile Picture Data
-    const picInput = document.getElementById('profile-pic-base64');
-    const picBase64 = picInput ? picInput.value : null;
-
-    // --- Validation ---
     if (!name) return showToast("Name is required", "error");
-    if (!addrObj) return showToast("Complete address required", "error");
+    if (!addrObj || !addrObj.street) return showToast("Address is incomplete", "error");
 
-    // --- Prepare Update Object ---
+    // Photo
+    const picBase64 = document.getElementById('profile-pic-base64').value;
+
     const updateData = {
         name: name,
         phone: phone,
         email: email,
-        address: addrObj.full,        // Save String
-        addressDetails: addrObj,      // Save Object
+        address: addrObj.full,
+        addressDetails: addrObj,
         lastUpdated: new Date()
     };
 
-    // Only add photo if user uploaded a new one
-    if (picBase64) {
-        updateData.photoURL = picBase64;
-    }
+    if (picBase64) updateData.photoURL = picBase64;
 
-    toggleBtnLoading('btn-save-profile', true); // Optional visual feedback
+    toggleBtnLoading('btn-save-profile', true);
 
-    // --- Save to Firestore ---
     db.collection("users").doc(currentUser.uid).set(updateData, { merge: true })
         .then(() => {
-            // --- Update Local State ---
             if (!userProfile) userProfile = {};
             Object.assign(userProfile, updateData);
 
-            // 1. Update Header Name
-            if (currentUser.displayName !== name) {
-                currentUser.updateProfile({ displayName: name });
-                const userNameEl = document.getElementById('user-name');
-                if (userNameEl) userNameEl.innerText = name;
-            }
+            // Update UI Elements
+            document.getElementById('user-name').innerText = name;
+            if (picBase64) document.getElementById('user-pic').src = picBase64;
 
-            // 2. Update Header Image (Immediate Refresh)
-            if (picBase64) {
-                const userPicEl = document.getElementById('user-pic');
-                if (userPicEl) userPicEl.src = picBase64;
-
-                // Also update Auth profile photo if possible (optional)
-                currentUser.updateProfile({ photoURL: picBase64 });
-            }
-
-            // 3. Auto-fill Checkout Fields (If visible)
-            const custName = document.getElementById('cust-name');
-            const custEmail = document.getElementById('cust-email');
+            // Auto-fill Checkout if open
             const custPhone = document.getElementById('cust-phone');
+            if (custPhone) custPhone.value = phone.replace('+91', '');
 
+            // Auto-fill Checkout Address inputs if they exist
             const custStreet = document.getElementById('cust-addr-street');
-            const custCity = document.getElementById('cust-addr-city');
-            const custPin = document.getElementById('cust-addr-pin');
-
-            if (custName) custName.value = name;
-            if (custEmail) custEmail.value = email;
-            if (custPhone && !custPhone.value) custPhone.value = phone.replace('+91', '');
-
-            if (custStreet) custStreet.value = addrObj.street;
-            if (custCity) custCity.value = addrObj.city;
-            if (custPin) custPin.value = addrObj.pin;
+            if (custStreet) {
+                custStreet.value = addrObj.street;
+                document.getElementById('cust-addr-city').value = addrObj.city;
+                document.getElementById('cust-addr-pin').value = addrObj.pin;
+            }
 
             closeProfileModal();
-            showToast("Profile Updated Successfully", "success");
+            showToast("Profile Saved!", "success");
         })
         .catch(err => {
-            console.error("Profile Save Error:", err);
-            showToast("Error updating profile", "error");
-        });
+            console.error(err);
+            showToast("Error saving profile", "error");
+        })
+        .finally(() => toggleBtnLoading('btn-save-profile', false));
 }
 
 function playVideo(w) { const v = w.querySelector('video'); document.querySelectorAll('.video-wrapper.playing video').forEach(o => { if (o !== v) { o.pause(); o.closest('.video-wrapper').classList.remove('playing'); } }); if (v.paused) { w.classList.add('playing'); v.play(); } else { w.classList.remove('playing'); v.pause(); } }
@@ -1995,14 +1956,19 @@ async function initiateRazorpayPayment() {
     if (cart.length === 0) return showToast("Your cart is empty!", "error");
 
     const phone = document.getElementById('cust-phone').value.trim();
-    const address = document.getElementById('cust-address').value.trim();
+
+    // --- FIX: Get Address from New Inputs ---
+    const addrObj = getAddressFromInputs('cust');
+    if (!addrObj) return showToast("Enter complete address", "error");
+    const address = addrObj.full; // Use formatted string for display
+    // ----------------------------------------
 
     if (!/^[0-9]{10}$/.test(phone)) return showToast("Enter valid 10-digit phone", "error");
-    if (address.length < 5) return showToast("Enter complete address", "error");
 
     // Check Payment Method
     const methodElem = document.querySelector('input[name="paymentMethod"]:checked');
     const paymentMethod = methodElem ? methodElem.value : 'Online';
+
     const { finalTotal } = getCartTotals();
 
     if (paymentMethod === 'COD') {
@@ -3080,6 +3046,8 @@ function confirmOtp() {
 
         showToast("Login Successful!", "success");
 
+        requestUserNotifications();
+
         // --- NEW: Prompt for Name if missing ---
         if (isNewUserOrIncomplete) {
             setTimeout(() => {
@@ -3166,28 +3134,18 @@ window.addEventListener('beforeinstallprompt', (e) => {
 });
 
 // Helper to construct address object
-// Helper to construct address object from inputs
 function getAddressFromInputs(prefix) {
-    // prefix is either 'edit' (Profile Modal) or 'cust' (Checkout)
-    const streetInput = document.getElementById(`${prefix}-addr-street`);
-    const cityInput = document.getElementById(`${prefix}-addr-city`);
-    const pinInput = document.getElementById(`${prefix}-addr-pin`);
+    const street = document.getElementById(`${prefix}-addr-street`);
+    const city = document.getElementById(`${prefix}-addr-city`);
+    const pin = document.getElementById(`${prefix}-addr-pin`);
 
-    // Safety check in case elements are missing
-    if (!streetInput || !cityInput || !pinInput) return null;
-
-    const street = streetInput.value.trim();
-    const city = cityInput.value.trim();
-    const pin = pinInput.value.trim();
-
-    // Basic Validation
-    if (!street || !city || !pin) return null;
+    if (!street || !city || !pin) return null; // Safety check
 
     return {
-        street: street,
-        city: city,
-        pin: pin,
-        full: `${street}, ${city} - ${pin}` // Combined string for easy display
+        street: street.value.trim(),
+        city: city.value.trim(),
+        pin: pin.value.trim(),
+        full: `${street.value.trim()}, ${city.value.trim()} - ${pin.value.trim()}`
     };
 }
 
@@ -3196,4 +3154,22 @@ function toggleGlobalLoading(show) {
     if (loader) {
         loader.style.display = show ? 'flex' : 'none';
     }
+}
+
+// Add this function
+function requestUserNotifications() {
+    const vapidKey = "YOUR_VAPID_KEY_HERE"; // Same key as admin
+
+    Notification.requestPermission().then(permission => {
+        if (permission === 'granted') {
+            messaging.getToken({ vapidKey: vapidKey }).then((currentToken) => {
+                if (currentToken && currentUser) {
+                    // Save Token to User Profile
+                    db.collection("users").doc(currentUser.uid).update({
+                        fcmToken: currentToken
+                    });
+                }
+            });
+        }
+    });
 }

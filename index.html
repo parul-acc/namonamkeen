@@ -29,6 +29,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-functions-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging-compat.js"></script>
 </head>
 
 <body>
@@ -377,7 +378,6 @@
 
     <div id="product-modal" class="modal-overlay">
         <div class="modal-content p-detail-content">
-            <button class="close-modal" onclick="closeProductModal()">&times;</button>
             <div id="p-modal-body"></div>
         </div>
     </div>
@@ -390,14 +390,27 @@
                 <button class="close-modal" onclick="closeProfileModal()" style="position:static;">&times;</button>
             </div>
 
+            <div style="text-align:center; margin-bottom:15px;">
+                <img id="edit-profile-pic" src="logo.jpg"
+                    style="width:80px; height:80px; border-radius:50%; object-fit:cover; border:2px solid var(--primary);">
+                <br>
+                <label for="profile-pic-upload"
+                    style="color:var(--primary); font-size:0.8rem; cursor:pointer; text-decoration:underline; font-weight:600;">
+                    Change Photo
+                </label>
+                <input type="file" id="profile-pic-upload" accept="image/*" style="display:none;"
+                    onchange="previewProfilePic(this)">
+                <input type="hidden" id="profile-pic-base64">
+            </div>
+
             <label class="input-label">Your Name</label>
             <input type="text" id="edit-name" class="form-control" placeholder="Enter your name">
 
-            <label class="input-label">Mobile Number</label>
-            <input type="tel" id="edit-phone" class="form-control" placeholder="10-digit number">
-
             <label class="input-label">Email Address</label>
             <input type="email" id="edit-email" class="form-control" placeholder="name@example.com">
+
+            <label class="input-label">Mobile Number</label>
+            <input type="tel" id="edit-phone" class="form-control" placeholder="10-digit number">
 
             <label class="input-label">Address Details</label>
             <input type="text" id="edit-addr-street" class="form-control" placeholder="House No, Street, Area"
@@ -407,23 +420,8 @@
                 <input type="number" id="edit-addr-pin" class="form-control" placeholder="Pincode">
             </div>
 
-            <div style="text-align:center; margin-bottom:15px;">
-                <img id="edit-profile-pic" src="logo.jpg"
-                    style="width:80px; height:80px; border-radius:50%; object-fit:cover; border:2px solid var(--primary);">
-                <br>
-
-                <label for="profile-pic-upload"
-                    style="color:var(--primary); font-size:0.8rem; cursor:pointer; text-decoration:underline; font-weight:600;">
-                    Change Photo
-                </label>
-                <input type="file" id="profile-pic-upload" accept="image/*" style="display:none;"
-                    onchange="previewProfilePic(this)">
-
-                <input type="hidden" id="profile-pic-base64">
-            </div>
-
-            <button onclick="saveProfile()" class="btn-primary full-width" style="margin-top:20px; padding:12px;">Save
-                Changes</button>
+            <button onclick="saveProfile()" id="btn-save-profile" class="btn-primary full-width"
+                style="margin-top:20px; padding:12px;">Save Changes</button>
 
             <hr style="margin: 20px 0; border: 0; border-top: 1px dashed #ddd;">
 
@@ -435,15 +433,12 @@
 
             <div id="referral-section"
                 style="display:none; margin-top:15px; background:#f0f9ff; padding:15px; border-radius:8px; border:1px solid #bae6fd;">
-                <p style="font-size:0.9rem; color:#555; margin-bottom:5px;">Your Referral Code:</p>
                 <div style="display:flex; gap:10px; margin-bottom:15px;">
                     <input type="text" id="my-ref-code" readonly value="..."
                         style="flex:1; background:white; border:1px dashed #0288d1; padding:10px; text-align:center; font-weight:bold; letter-spacing:1px; color:#0288d1;">
                     <button class="btn-primary" onclick="copyRefCode()" style="padding:0 15px;"><i
                             class="far fa-copy"></i></button>
                 </div>
-
-                <p style="font-size:0.9rem; color:#555; margin-bottom:5px;">Have a code? Redeem now:</p>
                 <div style="display:flex; gap:10px;">
                     <input type="text" id="enter-ref-code" placeholder="Enter Code" class="form-control"
                         style="text-transform:uppercase;">

@@ -283,3 +283,66 @@ exports.logSalesData = functions.firestore
 
         return batch.commit();
     });
+
+    // --- NOTIFICATION TRIGGERS ---
+
+// 1. Notify Admin on New Order
+exports.notifyAdminNewOrder = functions.firestore
+    .document("orders/{orderId}")
+    .onCreate(async (snap, context) => {
+        const order = snap.data();
+        const db = admin.firestore();
+
+        // Fetch all Admin Tokens
+        const tokensSnap = await db.collection("admin_tokens").get();
+        const tokens = tokensSnap.docs.map(doc => doc.data().token);
+
+        if (tokens.length === 0) return;
+
+        const payload = {
+            notification: {
+                title: "🎉 New Order Received!",
+                body: `Order #${order.id} for ₹${order.total} from ${order.userName}`,
+                click_action: "https://namonamkeen.shop/admin.html" // Opens Admin Panel
+            }
+        };
+
+        return admin.messaging().sendToDevice(tokens, payload);
+    });
+
+// 2. Notify User on Status Update
+exports.notifyUserStatusUpdate = functions.firestore
+    .document("orders/{orderId}")
+    .onUpdate(async (change, context) => {
+        const newData = change.after.data();
+        const oldData = change.before.data();
+
+        // Only send if status changed
+        if (newData.status === oldData.status) return null;
+
+        const userId = newData.userId;
+        if (!userId) return null;
+
+        // Get User's Token
+        const db = admin.firestore();
+        const userDoc = await db.collection("users").doc(userId).get();
+        
+        if (!userDoc.exists || !userDoc.data().fcmToken) return null;
+
+        const token = userDoc.data().fcmToken;
+        let bodyText = `Your order is now ${newData.status}.`;
+        
+        if (newData.status === "Packed") bodyText = "📦 Your order has been packed and is ready for dispatch!";
+        if (newData.status === "Delivered") bodyText = "✅ Order Delivered. Enjoy your snacks!";
+        if (newData.status === "Cancelled") bodyText = "❌ Your order has been cancelled.";
+
+        const payload = {
+            notification: {
+                title: `Order Update: #${newData.id}`,
+                body: bodyText,
+                click_action: "https://namonamkeen.shop"
+            }
+        };
+
+        return admin.messaging().sendToDevice(token, payload);
+    });

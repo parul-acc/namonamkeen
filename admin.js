@@ -35,6 +35,8 @@ let couponsUnsubscribe = null;
 let blogsUnsubscribe = null;
 let expensesUnsubscribe = null;
 
+const messaging = firebase.messaging();
+
 let salesChartInstance, productChartInstance, paymentChartInstance;
 const ITEMS_PER_PAGE = 10;
 let state = {
@@ -42,6 +44,29 @@ let state = {
     orders: { data: [], filteredData: null, page: 1 },
     customers: { data: [], filteredData: null, page: 1 }
 };
+
+// Add Button to Header on Load
+document.addEventListener('DOMContentLoaded', () => {
+    // Add a Bell icon to the header
+    const header = document.querySelector('.top-bar-left');
+    if (header) {
+        const btn = document.createElement('button');
+        btn.id = "notif-btn";
+        btn.className = "icon-btn btn-outline";
+        btn.style.marginLeft = "10px";
+        btn.innerHTML = '<i class="fas fa-bell"></i> Enable Alerts';
+        btn.onclick = enableAdminNotifications;
+        header.appendChild(btn);
+    }
+});
+
+// Listener for foreground messages (while you are on the page)
+messaging.onMessage((payload) => {
+    const { title, body } = payload.notification;
+    showToast(`${title}: ${body}`, "success");
+    const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+    audio.play();
+});
 
 // --- AUTHENTICATION ---
 if (window.location.pathname.endsWith('admin-local.html')) {
@@ -2229,5 +2254,31 @@ window.addEventListener('beforeinstallprompt', (e) => {
         };
     }
 });
+
+function enableAdminNotifications() {
+    // Replace with your generated VAPID Key
+    const vapidKey = "YOUR_VAPID_KEY_HERE";
+
+    Notification.requestPermission().then(permission => {
+        if (permission === 'granted') {
+            messaging.getToken({ vapidKey: vapidKey }).then((currentToken) => {
+                if (currentToken) {
+                    // Save Admin Token
+                    // We use a specific ID 'admin_device' or append to a collection
+                    db.collection("admin_tokens").doc(currentToken).set({
+                        token: currentToken,
+                        email: auth.currentUser.email,
+                        updatedAt: new Date()
+                    }).then(() => {
+                        showToast("Notifications Enabled! 🔔", "success");
+                        document.getElementById('notif-btn').style.display = 'none';
+                    });
+                }
+            }).catch((err) => showToast("Error: " + err, "error"));
+        } else {
+            showToast("Permission Denied", "error");
+        }
+    });
+}
 
 registerAdminServiceWorker();
