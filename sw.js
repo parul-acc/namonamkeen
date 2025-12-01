@@ -1,4 +1,4 @@
-const CACHE_NAME = 'namo-v4'; // Changed to v3 to invalidate old cache
+const CACHE_NAME = 'namo-v5';
 const urlsToCache = [
   '/',
   '/index.html',
