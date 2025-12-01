@@ -265,8 +265,12 @@
                     </div>
 
                     <div class="filter-group">
-                        <input type="text" id="order-search" class="search-input"
-                            placeholder="Search ID, Name, Phone..." onkeyup="filterOrders()">
+                        <div class="search-wrapper" style="position:relative; display:inline-block;">
+                            <input type="text" id="order-search" class="search-input" placeholder="Search ID, Name..."
+                                onkeyup="filterOrders()">
+                            <span onclick="document.getElementById('order-search').value=''; filterOrders();"
+                                style="position:absolute; right:10px; top:50%; transform:translateY(-50%); cursor:pointer; color:#999;">&times;</span>
+                        </div>
                         <input type="date" id="date-start" class="date-input" onchange="filterOrders()">
                         <input type="date" id="date-end" class="date-input" onchange="filterOrders()">
                         <select id="order-filter" class="form-control" onchange="filterOrders()" style="width:auto;">

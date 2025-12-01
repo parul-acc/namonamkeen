@@ -168,9 +168,9 @@ body {
 
 .sidebar-footer {
     padding: 20px;
-    position: absolute;
-    bottom: 0;
     width: 100%;
+    /* Place footer at the end of the sidebar using flexbox */
+    margin-top: auto;
 }
 
 .logout-btn {
@@ -316,6 +316,77 @@ body {
     overflow: hidden;
     margin-bottom: 30px;
 }
+
+/* --- POS: Desktop Layout (default) --- */
+/* Ensures POS shows products and cart side-by-side on larger screens */
+.pos-layout {
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+    /* allow the layout to naturally grow and scroll */
+    width: 100%;
+}
+
+.pos-left {
+    flex: 7;
+    display: flex;
+    flex-direction: column;
+    background: transparent;
+    overflow: hidden;
+}
+
+.pos-product-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 18px;
+    padding: 12px;
+    overflow-y: auto;
+}
+
+.pos-card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.06);
+    overflow: hidden;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+}
+
+.pos-card-img-wrap {
+    width: 100%;
+    height: 140px;
+    background: #f4f4f4;
+}
+
+.pos-card-img-wrap img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.pos-card h4 {
+    font-size: 1rem;
+    margin: 0 0 6px 0;
+}
+
+.pos-right {
+    flex: 3;
+    display: flex;
+    flex-direction: column;
+    background: white;
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+    border: 1px solid #eee;
+    max-height: calc(100vh - 160px);
+    overflow: hidden;
+}
+
+.pos-cart-list {
+    overflow-y: auto;
+    padding: 10px;
+}
+
 
 .card-header {
     padding: 20px 25px;
@@ -956,6 +1027,11 @@ tr.high-value-row td {
     .pos-right {
         margin-bottom: 20px;
         border-bottom: 2px dashed #eee;
+    }
+
+    /* Ensure POS view has bottom padding so fixed bottom bar doesn't hide content */
+    #view-pos .pos-layout {
+        padding-bottom: 180px;
     }
 }
 

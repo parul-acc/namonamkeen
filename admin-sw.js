@@ -1,4 +1,4 @@
-const CACHE_NAME = 'namo-admin-v2'; // Incremented version to force update
+const CACHE_NAME = 'namo-admin-v4'; // Incremented version to force update
 const urlsToCache = [
   '/admin.html',
   '/admin.css', // Important: Cache the new styles

@@ -357,7 +357,7 @@ h4 {
     width: 30px;
     height: 25px;
     position: relative;
-    z-index: 6000;
+    z-index: 2000;
     /* Super high to sit on top of sidebar */
     transition: 0.3s;
 }
@@ -905,7 +905,7 @@ h4 {
     width: 100%;
     height: 100%;
     background: rgba(0, 0, 0, 0.6);
-    z-index: 5000;
+    z-index: 7000 !important;
     opacity: 0;
     visibility: hidden;
     transition: 0.3s;
@@ -2580,7 +2580,7 @@ textarea:focus,
     bottom: 30px;
     left: 50%;
     transform: translateX(-50%);
-    z-index: 7000;
+    z-index: 8000;
     display: flex;
     flex-direction: column-reverse;
     /* Stacks new ones on top */

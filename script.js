@@ -1576,15 +1576,21 @@ function closeAnnouncement() { document.getElementById('announcement-bar').style
 function filterMenu(c) {
     currentCategory = c;
     document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-    event.target.classList.add('active');
+    // Safely add 'active' to clicked element (avoid using global 'event')
+    const activeTarget = document.activeElement;
+    if (activeTarget && activeTarget.classList && activeTarget.classList.contains('filter-btn')) {
+        activeTarget.classList.add('active');
+    }
 
     renderMenu();
     vibrate(30); // Haptic feedback on filter click
 
-    // Scroll to top of grid
+    // Scroll to top of grid (guard in case element missing)
     const grid = document.getElementById('menu-grid');
+    if (!grid) return;
     const yOffset = -130; // Offset for Sticky Header + Sticky Filter
-    const y = grid.getBoundingClientRect().top + window.pageYOffset + yOffset;
+    const rect = grid.getBoundingClientRect();
+    const y = rect.top + window.pageYOffset + yOffset;
     window.scrollTo({ top: y, behavior: 'smooth' });
 }
 function searchMenu() {
@@ -1605,6 +1611,9 @@ function toggleMobileMenu() {
 document.addEventListener('click', (e) => {
     const nav = document.getElementById('mobile-nav');
     const hamburger = document.querySelector('.hamburger');
+
+    // Guard: ensure elements exist before accessing classList / contains
+    if (!nav || !hamburger) return;
 
     // If menu is open AND click is NOT on menu AND NOT on hamburger
     if (nav.classList.contains('active') && !nav.contains(e.target) && !hamburger.contains(e.target)) {
