@@ -184,6 +184,23 @@ function sanitizeHTML(str) {
     return div.innerHTML;
 }
 
+// Alias for consistency with admin.js
+function escapeHtml(text) {
+    return sanitizeHTML(text);
+}
+
+// Sanitize/normalize image or user-provided URLs to allow only safe schemes
+function sanitizeUrl(url) {
+    if (!url) return '';
+    try {
+        const u = String(url).trim();
+        if (u.startsWith('data:image/') || u.startsWith('http://') || u.startsWith('https://')) return u;
+        return 'logo.jpg';
+    } catch (e) {
+        return 'logo.jpg';
+    }
+}
+
 // --- HELPER: Safely set element text content ---
 function safeSetText(element, text) {
     if (element) element.textContent = text;
@@ -198,6 +215,7 @@ function safeSetHTML(element, html) {
 function fetchData() {
     // 1. Show Skeletons
     const grid = document.getElementById('menu-grid');
+    if (data.minOrderValue !== undefined) shopConfig.minOrderValue = parseFloat(data.minOrderValue);
     if (grid) {
         let skeletonHtml = ''; // Build string first
         for (let i = 0; i < 6; i++) {
@@ -254,23 +272,23 @@ function fetchData() {
 
     // NEW: Fetch Shop Configuration from Firestore
     unsubscribeListeners.config = // NEW: Fetch Shop Configuration from Firestore
-    db.collection("settings").doc("config").onSnapshot(doc => {
-        if (doc.exists) {
-            const data = doc.data();
-            
-            // 1. Basic Info
-            if (data.upiId) shopConfig.upiId = data.upiId;
-            if (data.adminPhone) shopConfig.adminPhone = data.adminPhone.replace(/\D/g, '');
-            
-            // 2. Delivery Settings (CRITICAL FIX)
-            // Parse as float to ensure math works correctly
-            if (data.deliveryCharge !== undefined) shopConfig.deliveryCharge = parseFloat(data.deliveryCharge);
-            if (data.freeShippingThreshold !== undefined) shopConfig.freeShippingThreshold = parseFloat(data.freeShippingThreshold);
-            
-            // 3. Refresh Cart UI immediately to apply new fees
-            updateCartUI();
-        }
-    });
+        db.collection("settings").doc("config").onSnapshot(doc => {
+            if (doc.exists) {
+                const data = doc.data();
+
+                // 1. Basic Info
+                if (data.upiId) shopConfig.upiId = data.upiId;
+                if (data.adminPhone) shopConfig.adminPhone = data.adminPhone.replace(/\D/g, '');
+
+                // 2. Delivery Settings (CRITICAL FIX)
+                // Parse as float to ensure math works correctly
+                if (data.deliveryCharge !== undefined) shopConfig.deliveryCharge = parseFloat(data.deliveryCharge);
+                if (data.freeShippingThreshold !== undefined) shopConfig.freeShippingThreshold = parseFloat(data.freeShippingThreshold);
+
+                // 3. Refresh Cart UI immediately to apply new fees
+                updateCartUI();
+            }
+        });
 
     // Announcement
     db.collection("settings").doc("announcement").get().then(doc => {
@@ -713,19 +731,78 @@ function shareNative(title, url) {
 // 1. Add this function to script.js
 async function cancelOrder(docId) {
     if (!docId) return showToast("Error: Invalid Order ID", "error");
-
-    // FIX: Wait for confirmation
     if (!await showConfirm("Are you sure you want to cancel this order?")) return;
 
     try {
-        await db.collection("orders").doc(docId).update({
+        const orderRef = db.collection("orders").doc(docId);
+        const orderDoc = await orderRef.get();
+        const orderData = orderDoc.data();
+
+        // --- TIME CHECK ---
+        const orderTime = orderData.timestamp.toDate();
+        const now = new Date();
+        const diffMins = Math.round((now - orderTime) / 60000);
+
+        if (diffMins > 30) {
+            return showToast("Cannot cancel after 30 mins. Please call us.", "error");
+        }
+        if (!await showConfirm("Are you sure you want to cancel this order?")) return;
+
+        const batch = db.batch();
+
+        // 1. Update Order Status
+        batch.update(orderRef, {
             status: "Cancelled",
             cancelledBy: "User",
             cancelledAt: new Date()
         });
 
-        showToast("Order Cancelled Successfully.", "success");
-        showOrderHistory(); // Refresh UI
+        // 2. REVERSE LOYALTY POINTS
+        // Only if the user is still the same and points were involved
+        if (orderData.userId && orderData.userId !== 'guest') {
+            const userRef = db.collection("users").doc(orderData.userId);
+            let netChange = 0;
+
+            // A. Deduct the points they EARNED from this order
+            // (We assume standard 1% rate or calculate based on total)
+            const earned = Math.floor(orderData.total / 100);
+            if (earned > 0) {
+                netChange -= earned; // Remove them
+                // Log deduction
+                const histRef = userRef.collection("wallet_history").doc();
+                batch.set(histRef, {
+                    amount: earned,
+                    type: 'debit',
+                    description: `Reversal: Order #${orderData.id} Cancelled`,
+                    timestamp: new Date()
+                });
+            }
+
+            // B. Refund the points they SPENT on this order
+            if (orderData.discount && orderData.discount.type === 'loyalty') {
+                netChange += orderData.discount.value; // Give them back
+                // Log Refund
+                const histRef = userRef.collection("wallet_history").doc();
+                batch.set(histRef, {
+                    amount: orderData.discount.value,
+                    type: 'credit',
+                    description: `Refund: Order #${orderData.id} Cancelled`,
+                    timestamp: new Date()
+                });
+            }
+
+            // Apply to Wallet
+            if (netChange !== 0) {
+                batch.update(userRef, {
+                    walletBalance: firebase.firestore.FieldValue.increment(netChange)
+                });
+            }
+        }
+
+        await batch.commit();
+        showToast("Order Cancelled. Points Reversed.", "success");
+        showOrderHistory();
+
     } catch (e) {
         console.error("Cancel Error:", e);
         showToast("Could not cancel order.", "error");
@@ -844,7 +921,20 @@ function updateCartUI() {
             }
         }
 
+        // Inside updateCartUI, right before updating totals
+        const minOrder = shopConfig.minOrderValue || 0;
+        const checkoutBtn = document.getElementById('btn-main-checkout');
+        const warningMsg = document.getElementById('cart-warning-msg') || createWarningMsgElement(); // Helper to create div if missing
 
+        if (subtotal < minOrder) {
+            checkoutBtn.disabled = true;
+            checkoutBtn.style.background = '#ccc';
+            checkoutBtn.innerHTML = `Add ₹${minOrder - subtotal} more to order`;
+        } else {
+            checkoutBtn.disabled = false;
+            checkoutBtn.style.background = ''; // Reset
+            togglePaymentUI(); // Restore correct text
+        }
 
         // Calculate total strictly for shipping logic
         let currentTotal = cart.reduce((sum, i) => sum + (i.price * i.qty), 0);
@@ -881,10 +971,10 @@ function updateCartUI() {
 
             con.innerHTML += `
             <div class="cart-item">
-                <img src="${i.image}" onerror="this.onerror=null; this.src='logo.jpg';">
+                <img src="${sanitizeUrl(i.image)}" onerror="this.onerror=null; this.src='logo.jpg';">
                 <div class="item-details" style="flex-grow:1;">
-                    <h4>${i.name}</h4>
-                    <div style="font-size:0.85rem; color:#666;">${i.weight}</div>
+                    <h4>${escapeHtml(String(i.name))}</h4>
+                    <div style="font-size:0.85rem; color:#666;">${escapeHtml(String(i.weight))}</div>
                     <div style="font-weight:bold; color:var(--primary);">₹${i.price}</div>
                     <div class="item-controls">
                         <button class="qty-btn" onclick="changeQty('${i.cartId}', -1)">-</button>
@@ -971,6 +1061,17 @@ function updateCartUI() {
     }
 }
 
+function previewProfilePic(input) {
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function (e) {
+            document.getElementById('edit-profile-pic').src = e.target.result;
+            document.getElementById('profile-pic-base64').value = e.target.result;
+        }
+        reader.readAsDataURL(input.files[0]);
+    }
+}
+
 function toggleLoyalty(amount) {
     const chk = document.getElementById('use-coins');
     if (chk.checked) {
@@ -1042,7 +1143,7 @@ function toggleCart() {
 
 // --- UNIFIED CHECKOUT HANDLER ---
 // --- UNIFIED CHECKOUT HANDLER ---
-function handleCheckout() {
+async function handleCheckout() {
     // 1. Check Connectivity
     if (!navigator.onLine) {
         showToast("No Internet Connection", "error");
@@ -1075,6 +1176,12 @@ function handleCheckout() {
     if (cart.length === 0) return showToast("Your cart is empty!", "error");
     if (!/^[0-9]{10}$/.test(phone)) return showToast("Please enter a valid 10-digit mobile number.", "error");
     if (address.length < 5) return showToast("Please enter a complete delivery address.", "error");
+
+    try {
+        await validateCartIntegrity(); // <--- ADD THIS
+    } catch (e) {
+        return showToast(e.message, "error");
+    }
 
     // 4. PROCEED 
     vibrate(50);
@@ -1150,11 +1257,11 @@ function togglePaymentUI() {
     if (!methodElem) return;
 
     const method = methodElem.value;
-    const btn = document.getElementById('btn-main-checkout'); // Updated ID
+    const btn = document.getElementById('btn-main-checkout');
 
     if (btn) {
-        if (method === 'UPI') {
-            btn.innerHTML = 'Proceed to Pay <i class="fas fa-arrow-right"></i>';
+        if (method === 'UPI') { // Matches the value="UPI" in HTML
+            btn.innerHTML = 'Pay Securely <i class="fas fa-lock"></i>'; // Changed text
         } else {
             btn.innerHTML = 'Place Order <i class="fas fa-check"></i>';
         }
@@ -1365,7 +1472,7 @@ function openInvoice(orderId) {
     const tbody = document.getElementById('inv-items-body');
     tbody.innerHTML = '';
     order.items.forEach(i => {
-        tbody.innerHTML += `<tr><td>${i.name} <br><small>${i.weight}</small></td><td class="text-center">${i.qty}</td><td class="text-right">₹${i.price}</td><td class="text-right">₹${i.price * i.qty}</td></tr>`;
+        tbody.innerHTML += `<tr><td>${escapeHtml(String(i.name))} <br><small>${escapeHtml(String(i.weight))}</small></td><td class="text-center">${i.qty}</td><td class="text-right">₹${i.price}</td><td class="text-right">₹${i.price * i.qty}</td></tr>`;
     });
 
     document.getElementById('inv-grand-total').innerText = `₹${order.total}`;
@@ -1595,8 +1702,39 @@ function openProfileModal() {
         if (userProfile) {
             document.getElementById('edit-phone').value = userProfile.phone || '';
             document.getElementById('edit-address').value = userProfile.address || '';
+            document.getElementById('edit-email').value = userProfile.email || '';
         }
     }
+}
+
+async function validateCartIntegrity() {
+    const productIds = cart.map(i => i.productId);
+    // Fetch all products in cart
+    // Note: Firestore 'in' query limit is 10. For simplicity, we loop gets or assume cart is small.
+    // Better approach:
+    const promises = cart.map(i => db.collection('products').doc(String(i.productId)).get());
+    const docs = await Promise.all(promises);
+
+    for (let doc of docs) {
+        if (!doc.exists) throw new Error("Some items in cart are no longer available.");
+        const p = doc.data();
+        const cartItem = cart.find(i => i.productId === p.id);
+
+        // Stock Check
+        if (!p.in_stock) throw new Error(`${p.name} is out of stock.`);
+
+        // Price Check
+        let realPrice = p.price;
+        if (p.variants) {
+            const v = p.variants.find(va => va.weight === cartItem.weight);
+            if (v) realPrice = v.price;
+        }
+
+        if (realPrice !== cartItem.price) {
+            throw new Error(`Price changed for ${p.name}. Please refresh cart.`);
+        }
+    }
+    return true;
 }
 
 
@@ -1619,24 +1757,32 @@ function toggleReferralSection() {
 
 // Updated saveProfile to include Name
 function saveProfile() {
-    const name = document.getElementById('edit-name').value.trim(); // NEW
+    const name = document.getElementById('edit-name').value.trim();
+    const email = document.getElementById('edit-email').value.trim(); // NEW
     const phone = document.getElementById('edit-phone').value.trim();
     const address = document.getElementById('edit-address').value.trim();
+    const picBase64 = document.getElementById('profile-pic-base64').value;
 
     if (!name) return showToast("Name cannot be empty", "error");
 
     const updateData = {
-        name: name, // Save the name
+        name: name,
+        email: email, // SAVE EMAIL
         phone: phone,
         address: address
     };
+    if (picBase64) {
+        updateData.photoURL = picBase64;
+    }
 
     db.collection("users").doc(currentUser.uid).set(updateData, { merge: true }).then(() => {
         // Update local variable
         if (!userProfile) userProfile = {};
+        userProfile.email = email; // Update local state
         userProfile.name = name;
         userProfile.phone = phone;
         userProfile.address = address;
+        if (picBase64) document.getElementById('user-pic').src = picBase64;
 
         // Update Auth Profile (so 'Guest' changes to real name in UI)
         currentUser.updateProfile({ displayName: name });
@@ -1651,7 +1797,7 @@ function saveProfile() {
         if (addrInput) addrInput.value = address;
 
         closeProfileModal();
-        showToast("Profile Updated Successfully", "success");
+        showToast("Profile Updated", "success");
     });
 }
 
@@ -1720,9 +1866,10 @@ function renderCouponList() {
 
     activeCoupons.forEach(c => {
         const desc = c.type === 'percent' ? `${c.value}% OFF` : `₹${c.value} OFF`;
+        const safeCouponCode = escapeHtml(String(c.code));
         listContainer.innerHTML += `
-            <div class="coupon-item" onclick="useCoupon('${c.code}')" style="padding:10px; border-bottom:1px solid #eee; cursor:pointer;">
-                <strong style="color:var(--primary)">${c.code}</strong> - ${desc}
+            <div class="coupon-item" onclick="useCoupon('${safeCouponCode}')" style="padding:10px; border-bottom:1px solid #eee; cursor:pointer;">
+                <strong style="color:var(--primary)">${safeCouponCode}</strong> - ${desc}
             </div>`;
     });
 }
@@ -1770,7 +1917,6 @@ async function initiateRazorpayPayment() {
     // Check Payment Method
     const methodElem = document.querySelector('input[name="paymentMethod"]:checked');
     const paymentMethod = methodElem ? methodElem.value : 'Online';
-
     const { finalTotal } = getCartTotals();
 
     if (paymentMethod === 'COD') {
@@ -1785,11 +1931,11 @@ async function initiateRazorpayPayment() {
         try {
             // 1. Call Cloud Function
             const createPaymentOrder = firebase.functions().httpsCallable('createPaymentOrder');
-            const result = await createPaymentOrder({ 
-                cart: cart, 
-                discount: appliedDiscount 
+            const result = await createPaymentOrder({
+                cart: cart,
+                discount: appliedDiscount
             });
-            
+
             const { id: order_id, key: key_id, amount } = result.data;
 
             // 2. Open Razorpay with Server Order ID
@@ -1827,8 +1973,8 @@ function openSecureRazorpay(orderId, keyId, amount, userPhone) {
         },
         "theme": { "color": "#e85d04" },
         "modal": {
-            "ondismiss": function () { 
-                showToast("Payment cancelled.", "error"); 
+            "ondismiss": function () {
+                showToast("Payment cancelled.", "error");
                 toggleBtnLoading('btn-main-checkout', false);
             }
         }
@@ -1913,15 +2059,15 @@ async function saveOrderToFirebase(method, paymentStatus, txnId) {
         };
         if (email) userUpdateData.email = email;
 
-        // --- LOYALTY LOGIC: Calculate Net Change ---
+        // --- LOYALTY LOGIC (FIXED) ---
         if (currentUser) {
             let netWalletChange = 0;
-
-            // 1. Earn Points
             const coinsEarned = Math.floor(finalTotal / 100);
+
+            // 1. Calculate Earnings
             if (coinsEarned > 0) {
                 netWalletChange += coinsEarned;
-                // Log History (New Doc - Safe in Batch)
+                // Log Credit History
                 const histRef = userRef.collection("wallet_history").doc();
                 batch.set(histRef, {
                     amount: coinsEarned,
@@ -1931,10 +2077,10 @@ async function saveOrderToFirebase(method, paymentStatus, txnId) {
                 });
             }
 
-            // 2. Deduct Points
+            // 2. Calculate Usage
             if (appliedDiscount.type === 'loyalty') {
                 netWalletChange -= appliedDiscount.value;
-                // Log History (New Doc - Safe in Batch)
+                // Log Debit History
                 const debitRef = userRef.collection("wallet_history").doc();
                 batch.set(debitRef, {
                     amount: appliedDiscount.value,
@@ -1944,9 +2090,11 @@ async function saveOrderToFirebase(method, paymentStatus, txnId) {
                 });
             }
 
-            // 3. Add to User Update Data
+            // 3. SINGLE UPDATE to User Profile
             if (netWalletChange !== 0) {
-                userUpdateData.walletBalance = firebase.firestore.FieldValue.increment(netWalletChange);
+                batch.update(userRef, {
+                    walletBalance: firebase.firestore.FieldValue.increment(netWalletChange)
+                });
             }
         }
 

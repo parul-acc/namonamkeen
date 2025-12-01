@@ -1391,3 +1391,17 @@ body.loading .main-content {
         margin-top: 10px;
     }
 }
+
+/* --- Warning Button (For Featured Toggle) --- */
+.btn-warning {
+    background: #f59e0b; /* Amber/Orange */
+    color: white;
+    border: 1px solid #f59e0b;
+}
+
+.btn-warning:hover {
+    background: #d97706; /* Darker Amber */
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px rgba(245, 158, 11, 0.3);
+}

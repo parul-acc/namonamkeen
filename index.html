@@ -24,6 +24,11 @@
     <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/fuse.js@6.6.2"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-functions-compat.js"></script>
 </head>
 
 <body>
@@ -274,9 +279,9 @@
                     </div>
                 </div>
 
-
                 <div id="customer-details-inputs">
-                    <label class="input-label">Email Address (For Invoice)</label>
+                    <label class="input-label">Email Address <span
+                            style="color:#999; font-weight:normal;">(Optional)</span></label>
                     <input type="email" id="cust-email" class="form-control" placeholder="name@example.com"
                         style="margin-bottom:15px;">
 
@@ -308,13 +313,28 @@
                 <div class="payment-section" style="margin-top: 20px;">
                     <label class="input-label">Select Payment Method</label>
                     <div class="payment-options">
-                        <label class="payment-card">
+                        <label class="payment-card" style="height: auto; padding: 10px;">
                             <input type="radio" name="paymentMethod" value="UPI" checked onchange="togglePaymentUI()">
-                            <div class="pay-content">
-                                <i class="fas fa-qrcode" style="color: var(--primary); font-size: 1.2rem;"></i>
-                                <span>Pay via UPI</span>
+                            <div class="pay-content" style="border: 2px solid #eee; padding: 15px 10px;">
+                                <div
+                                    style="font-weight: 700; font-size: 1rem; color: var(--text-dark); margin-bottom: 5px;">
+                                    <i class="fas fa-credit-card" style="color: var(--primary); margin-right: 5px;"></i>
+                                    Pay Online
+                                </div>
+                                <div style="font-size: 0.75rem; color: #666; margin-bottom: 8px;">Cards, UPI, NetBanking
+                                </div>
+                                <div
+                                    style="display: flex; gap: 8px; justify-content: center; align-items: center; opacity: 0.8;">
+                                    <img src="https://cdn.razorpay.com/static/assets/logo/payment.svg" alt="Razorpay"
+                                        style="height: 18px;">
+                                    <i class="fas fa-lock" style="color: #27ae60; font-size: 0.8rem;"
+                                        title="SSL Secured"></i>
+                                    <span style="font-size: 0.65rem; color: #27ae60; font-weight: 600;">100%
+                                        Secure</span>
+                                </div>
                             </div>
                         </label>
+
                         <label class="payment-card">
                             <input type="radio" name="paymentMethod" value="COD" onchange="togglePaymentUI()">
                             <div class="pay-content">
@@ -326,8 +346,8 @@
                 </div>
 
                 <label class="input-label" style="margin-top:15px;">Delivery Note (Optional)</label>
-                <textarea id="delivery-note" placeholder="e.g. Leave at security..." rows="1" class="form-control"
-                    style="font-size:0.9rem;"></textarea>
+                <textarea id="delivery-note" placeholder="e.g. Leave at security, Don't ring bell..." rows="1"
+                    class="form-control" style="font-size:0.9rem;"></textarea>
 
                 <div class="total-row" style="margin-top: 20px; border-top: 1px dashed #ddd; padding-top: 15px;">
                     <span>Total Amount:</span>
@@ -367,8 +387,23 @@
             <label class="input-label">Mobile Number</label>
             <input type="tel" id="edit-phone" class="form-control" placeholder="10-digit number">
 
+            <label class="input-label">Email Address</label>
+            <input type="email" id="edit-email" class="form-control" placeholder="name@example.com">
+
             <label class="input-label">Default Address</label>
             <textarea id="edit-address" rows="3" class="form-control" placeholder="Your full address..."></textarea>
+
+            <div style="text-align:center; margin-bottom:15px;">
+                <img id="edit-profile-pic" src="logo.jpg"
+                    style="width:80px; height:80px; border-radius:50%; object-fit:cover; border:2px solid var(--primary);">
+                <br>
+                <label for="profile-pic-upload"
+                    style="color:var(--primary); font-size:0.8rem; cursor:pointer; text-decoration:underline;">Change
+                    Photo</label>
+                <input type="file" id="profile-pic-upload" accept="image/*" style="display:none;"
+                    onchange="previewProfilePic(this)">
+                <input type="hidden" id="profile-pic-base64">
+            </div>
 
             <button onclick="saveProfile()" class="btn-primary full-width" style="margin-top:20px; padding:12px;">Save
                 Changes</button>

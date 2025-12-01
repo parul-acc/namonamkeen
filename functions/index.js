@@ -7,8 +7,8 @@ admin.initializeApp();
 
 // --- CONFIGURATION ---
 // 1. Email Credentials (Hardcoded for now as per previous setup)
-const SENDER_EMAIL = "namonamkeens@gmail.com"; 
-const SENDER_PASS = "mqkr qkbi ribx dgvr"; 
+const SENDER_EMAIL = "namonamkeens@gmail.com";
+const SENDER_PASS = "mqkr qkbi ribx dgvr";
 const ADMIN_EMAIL = "parul19.accenture@gmail.com, namonamkeens@gmail.com"; // Copy to owner
 
 
@@ -104,17 +104,17 @@ exports.sendOrderConfirmation = functions.firestore
         // 3. Email Options
         const mailOptions = {
             from: `"Namo Namkeen" <${SENDER_EMAIL}>`,
-            to: (order.userEmail && order.userEmail.includes('@')) ? order.userEmail : ADMIN_EMAIL, 
-            bcc: ADMIN_EMAIL, 
+            to: (order.userEmail && order.userEmail.includes('@')) ? order.userEmail : ADMIN_EMAIL,
+            bcc: ADMIN_EMAIL,
             subject: `Order Confirmed: #${orderId}`,
             html: emailHtml,
         };
 
         // 4. Send
         try {
-            if (!order.userEmail && !order.userId.includes("@")) { 
-                 mailOptions.to = ADMIN_EMAIL; 
-                 mailOptions.subject = `[New Order] #${orderId} (No Customer Email)`;
+            if (!order.userEmail && !order.userId.includes("@")) {
+                mailOptions.to = ADMIN_EMAIL;
+                mailOptions.subject = `[New Order] #${orderId} (No Customer Email)`;
             }
             await transporter.sendMail(mailOptions);
             return { success: true };
@@ -125,48 +125,65 @@ exports.sendOrderConfirmation = functions.firestore
     });
 
 // --- FUNCTION 2: Create Secure Payment Order ---
-exports.createPaymentOrder = functions.https.onCall(async (data, context) => {
-    // 1. Security Check
-    if (!context.auth) {
-        throw new functions.https.HttpsError("unauthenticated", "User must be logged in.");
-    }
+// --- FUNCTION 2: Create Secure Payment Order (Server-Side Price Check) ---
+exports.createPaymentOrder = functions.region("ap-south1").https.onCall(async (data, context) => {
+    if (!context.auth) throw new functions.https.HttpsError("unauthenticated", "User must be logged in.");
 
-    // 2. Initialize Razorpay (Using Env Vars)
+    const clientCart = data.cart;
+    const discountInfo = data.discount;
+    const db = admin.firestore();
+
+    // 1. Fetch Real Prices from Firestore
+    let serverSubtotal = 0;
+
+    // We use Promise.all to fetch all products in parallel
+    const productPromises = clientCart.map(item => db.collection("products").doc(String(item.productId)).get());
+    const snapshots = await Promise.all(productPromises);
+
+    snapshots.forEach((doc, index) => {
+        if (!doc.exists) throw new functions.https.HttpsError("invalid-argument", `Product not found: ${clientCart[index].name}`);
+
+        const product = doc.data();
+        const item = clientCart[index];
+
+        // Find the correct variant price
+        let realPrice = product.price; // Default
+        if (product.variants) {
+            const variant = product.variants.find(v => v.weight === item.weight);
+            if (variant) realPrice = variant.price;
+        }
+
+        // Calculate using REAL price
+        serverSubtotal += realPrice * item.qty;
+    });
+
+    // 2. Calculate Discount & Delivery (Server Side)
+    let discountAmount = 0;
+    if (discountInfo && discountInfo.value > 0) {
+        if (discountInfo.type === 'percent') {
+            discountAmount = Math.round(serverSubtotal * (discountInfo.value / 100));
+        } else if (discountInfo.type === 'flat') {
+            discountAmount = discountInfo.value;
+        }
+    }
+    const freeShipLimit = 250;
+    const deliveryFee = 0; // Or fetch from 'settings/config' if you want dynamic
+    const shipping = (serverSubtotal >= freeShipLimit) ? 0 : deliveryFee;
+
+    const finalTotal = Math.max(0, serverSubtotal - discountAmount + shipping);
+    const amountPaise = Math.round(finalTotal * 100);
+
+    // 3. Create Order
     const razorpay = new Razorpay({
         key_id: process.env.RAZORPAY_KEY_ID,
         key_secret: process.env.RAZORPAY_KEY_SECRET,
     });
 
-    const cart = data.cart;
-    const discountInfo = data.discount;
-    
-    // 3. Recalculate Total
-    const subtotal = cart.reduce((sum, i) => sum + (i.price * i.qty), 0);
-    
-    let discountAmount = 0;
-    if (discountInfo && discountInfo.value > 0) {
-        if (discountInfo.type === 'percent') {
-            discountAmount = Math.round(subtotal * (discountInfo.value / 100));
-        } else if (discountInfo.type === 'flat') {
-            discountAmount = discountInfo.value;
-        }
-    }
-    if (discountAmount > subtotal) discountAmount = subtotal;
-
-    // Delivery Logic (Match your client-side config)
-    const freeShipLimit = 250; 
-    const deliveryFee = 0; 
-    const shipping = (subtotal >= freeShipLimit) ? 0 : deliveryFee;
-
-    const finalTotal = subtotal - discountAmount + shipping;
-    const amountPaise = Math.round(finalTotal * 100);
-
-    // 4. Create Order
     try {
         const order = await razorpay.orders.create({
             amount: amountPaise,
             currency: "INR",
-            receipt: "order_rcptid_" + Date.now(),
+            receipt: "order_" + Date.now(),
             payment_capture: 1
         });
 
@@ -180,3 +197,89 @@ exports.createPaymentOrder = functions.https.onCall(async (data, context) => {
         throw new functions.https.HttpsError("internal", "Payment creation failed.");
     }
 });
+
+// --- FUNCTION 3: Auto-Update Loyalty Wallet ---
+exports.updateLoyaltyWallet = functions.region("ap-south1").firestore
+    .document("orders/{orderId}")
+    .onCreate(async (snap, context) => {
+        const order = snap.data();
+        const userId = order.userId;
+        const db = admin.firestore();
+
+        // Skip Guest Orders or if no User ID
+        if (!userId || userId.startsWith('guest')) return null;
+
+        const userRef = db.collection("users").doc(userId);
+        const batch = db.batch();
+        let netChange = 0;
+
+        // 1. Credit Points (Earned)
+        // Logic: 1 Coin per ₹100 spent
+        const earned = Math.floor(order.total / 100);
+        if (earned > 0) {
+            netChange += earned;
+            const credRef = userRef.collection("wallet_history").doc();
+            batch.set(credRef, {
+                amount: earned,
+                type: 'credit',
+                description: `Earned from Order #${order.id}`,
+                timestamp: admin.firestore.FieldValue.serverTimestamp()
+            });
+        }
+
+        // 2. Debit Points (Used)
+        if (order.discount && order.discount.type === 'loyalty') {
+            netChange -= order.discount.value;
+            const debRef = userRef.collection("wallet_history").doc();
+            batch.set(debRef, {
+                amount: order.discount.value,
+                type: 'debit',
+                description: `Used on Order #${order.id}`,
+                timestamp: admin.firestore.FieldValue.serverTimestamp()
+            });
+        }
+
+        // 3. Update Wallet Balance
+        if (netChange !== 0) {
+            batch.update(userRef, {
+                walletBalance: admin.firestore.FieldValue.increment(netChange)
+            });
+            await batch.commit();
+            console.log(`Wallet updated for ${userId}: ${netChange}`);
+        }
+
+        return null;
+    });
+
+// --- FUNCTION 3: Log Sales for Inventory Tracking ---
+exports.logSalesData = functions.region("ap-south1").firestore
+    .document("orders/{orderId}")
+    .onCreate(async (snap, context) => {
+        const order = snap.data();
+        const db = admin.firestore();
+        const batch = db.batch();
+
+        // Create a daily sales report document
+        const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+        const reportRef = db.collection("daily_sales").doc(today);
+
+        // We use 'set' with merge to ensure the doc exists
+        batch.set(reportRef, {
+            date: today,
+            updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        }, { merge: true });
+
+        // Increment counts for each product sold
+        order.items.forEach(item => {
+            // Field key: "ProductId_VariantName" -> replace spaces with underscores
+            const key = `${item.productId}_${item.weight.replace(/\s+/g, '_')}`;
+
+            // Increment the count for this specific item in today's report
+            batch.update(reportRef, {
+                [key]: admin.firestore.FieldValue.increment(item.qty),
+                totalRevenue: admin.firestore.FieldValue.increment(item.price * item.qty)
+            });
+        });
+
+        return batch.commit();
+    });

@@ -29,6 +29,11 @@ const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-p
 let adminCart = [];
 let ordersUnsubscribe = null;
 let dashboardUnsubscribe = null;
+let reviewsUnsubscribe = null;
+let inventoryUnsubscribe = null;
+let couponsUnsubscribe = null;
+let blogsUnsubscribe = null;
+let expensesUnsubscribe = null;
 
 let salesChartInstance, productChartInstance, paymentChartInstance;
 const ITEMS_PER_PAGE = 10;
@@ -60,7 +65,17 @@ if (window.location.pathname.endsWith('admin-local.html')) {
 }
 
 function adminLogin() { auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()); }
-function logout() { auth.signOut().then(() => location.reload()); }
+function logout() { 
+    // Cleanup all listeners before logging out
+    if (reviewsUnsubscribe) reviewsUnsubscribe();
+    if (inventoryUnsubscribe) inventoryUnsubscribe();
+    if (couponsUnsubscribe) couponsUnsubscribe();
+    if (blogsUnsubscribe) blogsUnsubscribe();
+    if (expensesUnsubscribe) expensesUnsubscribe();
+    if (ordersUnsubscribe) ordersUnsubscribe();
+    if (dashboardUnsubscribe) dashboardUnsubscribe();
+    auth.signOut().then(() => location.reload()); 
+}
 
 function initDashboard() {
     console.log("Initializing Dashboard...");
@@ -133,7 +148,8 @@ function changePage(type, diff) {
 
 // --- REVIEW MANAGEMENT (FIXED: Added missing function) ---
 function loadReviews() {
-    db.collection("reviews").orderBy("timestamp", "desc").limit(50).onSnapshot(snap => {
+    if (reviewsUnsubscribe) reviewsUnsubscribe();
+    reviewsUnsubscribe = db.collection("reviews").orderBy("timestamp", "desc").limit(50).onSnapshot(snap => {
         const tbody = document.getElementById('reviews-body');
         if (!tbody) return;
         tbody.innerHTML = '';
@@ -161,7 +177,8 @@ function loadReviews() {
             // Check for image
             let reviewImageHtml = '';
             if (r.imageUrl) {
-                reviewImageHtml = `<br><img src="${r.imageUrl}" style="width:50px; height:50px; object-fit:cover; border-radius:4px; margin-top:5px; cursor:pointer;" onclick="window.open(this.src)">`;
+                const safeReviewImg = sanitizeUrl(r.imageUrl);
+                reviewImageHtml = `<br><img src="${safeReviewImg}" style="width:50px; height:50px; object-fit:cover; border-radius:4px; margin-top:5px; cursor:pointer;" onclick="window.open(this.src)">`;
             }
 
             // In loadReviews loop:
@@ -175,8 +192,8 @@ function loadReviews() {
                 <td><small>${date}</small></td>
                 <td>
                     <div style="display:flex; align-items:center; gap:10px;">
-                        <img src="${pImg}" style="width:30px; height:30px; border-radius:4px; object-fit:cover;" onerror="this.onerror=null; this.src='logo.jpg';">
-                        <span>${pName}</span>
+                        <img src="${sanitizeUrl(pImg)}" style="width:30px; height:30px; border-radius:4px; object-fit:cover;" onerror="this.onerror=null; this.src='logo.jpg';">
+                        <span>${escapeHtml(String(pName))}</span>
                     </div>
                 </td>
                 <td>${escapeHtml(r.userName)}</td>
@@ -287,15 +304,15 @@ function renderCustomerRows(tbody, items) {
 
         tbody.innerHTML += `
             <tr>
+               <td>
+    <strong>${escapeHtml(String(name))}</strong>
+    ${email ? `<br><small>${escapeHtml(String(email))}</small>` : ''} 
+</td>
+                <td>${escapeHtml(String(phone))}</td>
+                <td>${escapeHtml(String(address))}</td>
+                <td>${escapeHtml(String(date))}</td>
                 <td>
-                    <strong>${name}</strong>
-                    ${safeEmail}
-                </td>
-                <td>${phone}</td>
-                <td>${address}</td>
-                <td>${date}</td>
-                <td>
-                    <button class="icon-btn btn-blue" onclick="viewCustomer('${u.uid}')" title="View History"><i class="fas fa-history"></i></button>
+                    <button class="icon-btn btn-blue" onclick="viewCustomer('${escapeHtml(String(u.uid))}')" title="View History"><i class="fas fa-history"></i></button>
                     ${waBtn}
                 </td>
             </tr>`;
@@ -477,7 +494,8 @@ function updateCharts(salesMap, prodMap, timeframe, paymentStats) {
 
 // --- INVENTORY ---
 function loadInventory() {
-    db.collection("products").orderBy("id").onSnapshot(snap => {
+    if (inventoryUnsubscribe) inventoryUnsubscribe();
+    inventoryUnsubscribe = db.collection("products").orderBy("id").onSnapshot(snap => {
         let total = 0, inStock = 0, outStock = 0;
         state.inventory.data = [];
         const lowStockItems = [];
@@ -510,7 +528,7 @@ function updateLowStockUI(items) {
 
     if (items.length > 0) {
         alertBox.style.display = 'flex';
-        list.innerHTML = items.map(name => `<span style="background:white; padding:4px 10px; border-radius:15px; font-weight:600; border:1px solid #ddd; font-size:0.8rem;">${name}</span>`).join('');
+        list.innerHTML = items.map(name => `<span style="background:white; padding:4px 10px; border-radius:15px; font-weight:600; border:1px solid #ddd; font-size:0.8rem;">${escapeHtml(String(name))}</span>`).join('');
     } else {
         alertBox.style.display = 'none';
     }
@@ -534,11 +552,11 @@ function renderInventoryRows(tbody, items) {
         tbody.innerHTML += `
             <tr class="${rowClass}">
                 <td>
-                    <img src="${p.image}" width="40" height="40" style="border-radius:5px; object-fit:cover;" onerror="this.onerror=null; this.src='logo.jpg';">
+                    <img src="${sanitizeUrl(p.image)}" width="40" height="40" style="border-radius:5px; object-fit:cover;" onerror="this.onerror=null; this.src='logo.jpg';">
                 </td>
                 <td>
-                    <strong>${p.name}</strong><br>
-                    <small>${p.category}</small>
+                    <strong>${escapeHtml(String(p.name))}</strong><br>
+                    <small>${escapeHtml(String(p.category))}</small>
                 </td>
                 <td><small>${vs}</small></td>
                 <td>
@@ -738,7 +756,8 @@ function exportOrdersToCSV() {
 
 // --- COUPONS ---
 function loadCoupons() {
-    db.collection("coupons").orderBy("expiryDate", "desc").onSnapshot(snap => {
+    if (couponsUnsubscribe) couponsUnsubscribe();
+    couponsUnsubscribe = db.collection("coupons").orderBy("expiryDate", "desc").onSnapshot(snap => {
         const tbody = document.getElementById('coupons-body');
         if (!tbody) return;
         tbody.innerHTML = '';
@@ -848,7 +867,8 @@ function viewOrder(id) {
                 <span style="font-weight:600; width:20px; text-align:center;">${item.qty}</span>
                 <button class="btn btn-outline btn-sm" onclick="adminUpdateQty('${id}', ${idx}, 1)" style="padding:2px 8px;">+</button>
                 <button class="icon-btn btn-danger" onclick="adminRemoveItem('${id}', ${idx})" style="width:28px; height:28px; margin-left:5px;"><i class="fas fa-trash"></i></button>
-            </div>
+                <button class="btn btn-blue" onclick="copyOrderText('${o.docId}')"><i class="far fa-copy"></i> Copy for Staff</button>
+                </div>
         </div>`;
     });
 
@@ -896,6 +916,23 @@ function viewOrder(id) {
     `;
     document.getElementById('order-detail-content').innerHTML = html;
     document.getElementById('order-modal').style.display = 'flex';
+}
+
+function copyOrderText(orderId) {
+    const o = state.orders.data.find(x => x.docId === orderId);
+    if (!o) return;
+
+    let text = `📦 *New Order #${o.id}*\n\n`;
+    text += `👤 ${o.userName}\n📞 ${o.userPhone}\n📍 ${o.userAddress}\n\n`;
+    text += `*Items:*\n`;
+    o.items.forEach(i => {
+        text += `▫️ ${i.name} (${i.weight}) x ${i.qty}\n`;
+    });
+    text += `\n💰 *Total to Collect:* ₹${o.total}\nPayment: ${o.paymentMethod}`;
+
+    navigator.clipboard.writeText(text).then(() => {
+        showToast("Order details copied!", "success");
+    });
 }
 
 function adminUpdateQty(orderId, itemIdx, change) {
@@ -1220,6 +1257,18 @@ function escapeHtml(text) {
     return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
 }
 
+// Sanitize/normalize image or user-provided URLs to allow only safe schemes
+function sanitizeUrl(url) {
+    if (!url) return '';
+    try {
+        const u = String(url).trim();
+        if (u.startsWith('data:image/') || u.startsWith('http://') || u.startsWith('https://')) return u;
+        return 'logo.jpg';
+    } catch (e) {
+        return 'logo.jpg';
+    }
+}
+
 function registerAdminServiceWorker() {
     if ('serviceWorker' in navigator && (window.location.protocol === 'http:' || window.location.protocol === 'https:')) {
         navigator.serviceWorker.register('/admin-sw.js').then(reg => {
@@ -1301,16 +1350,20 @@ function showToast(message, type = 'neutral') {
 
 // --- POS LOGIC ---
 function addToAdminCart(id, name, price, weight, image) {
+    // decode name passed from encoded attribute
+    name = decodeURIComponent(name || '');
+    const displayName = escapeHtml(String(name));
+
     vibrate(50);
 
     // FIX: Generate a unique ID based on Product ID AND Weight
     const uniqueKey = `${id}-${weight}`;
 
-    const existing = adminCart.find(i => i.uniqueKey === uniqueKey);
+    const existing = adminCart.find(i => i.productId == id);
 
     if (existing) {
         existing.qty++;
-        showToast(`Updated: ${name} (+1)`, "success");
+        showToast(`Updated: ${displayName} (+1)`, "success");
     } else {
         adminCart.push({
             uniqueKey: uniqueKey, // Store the key
@@ -1321,19 +1374,23 @@ function addToAdminCart(id, name, price, weight, image) {
             image: image,
             qty: 1
         });
-        showToast(`Added: ${name}`, "success");
+        showToast(`Added: ${displayName}`, "success");
     }
 
     renderAdminCart();
 }
 
 function addToAdminCart(id, name, price, weight, image) {
+    // decode name passed from encoded attribute
+    name = decodeURIComponent(name || '');
+    const displayName = escapeHtml(String(name));
+
     vibrate(50); // <--- TACTILE FEEDBACK
 
     const existing = adminCart.find(i => i.productId == id);
     if (existing) {
         existing.qty++;
-        showToast(`Updated: ${name} (+1)`, "success"); // Optional: Small toast
+        showToast(`Updated: ${displayName} (+1)`, "success"); // Optional: Small toast
     } else {
         adminCart.push({
             productId: id,
@@ -1343,10 +1400,54 @@ function addToAdminCart(id, name, price, weight, image) {
             image: image,
             qty: 1
         });
-        showToast(`Added: ${name}`, "success");
+        showToast(`Added: ${displayName}`, "success");
     }
 
     renderAdminCart();
+}
+
+function loadStockAlerts() {
+    const container = document.getElementById('stock-alerts-list');
+    container.innerHTML = 'Loading...';
+
+    db.collection("stock_alerts").orderBy("requestedAt", "desc").get().then(snap => {
+        if (snap.empty) {
+            container.innerHTML = '<p style="color:#666;">No pending requests.</p>';
+            return;
+        }
+
+        let html = '<table style="width:100%;"><tr><th>Product</th><th>Customer</th><th>Action</th></tr>';
+
+        snap.forEach(doc => {
+            const d = doc.data();
+            const date = d.requestedAt ? d.requestedAt.toDate().toLocaleDateString() : '-';
+
+            // WhatsApp Link to notify customer
+            const msg = `Hi! Great news. ${d.productName} is back in stock at Namo Namkeen! Order now: https://namonamkeen.shop`;
+            const waLink = `https://wa.me/${d.contact}?text=${encodeURIComponent(msg)}`;
+
+            html += `
+            <tr style="border-bottom:1px solid #eee;">
+                <td style="padding:8px;">
+                    <strong>${d.productName}</strong><br>
+                    <small style="color:#888">${date}</small>
+                </td>
+                <td style="padding:8px;">${d.contact}</td>
+                <td style="padding:8px;">
+                    <a href="${waLink}" target="_blank" class="btn btn-green btn-sm" onclick="resolveAlert('${doc.id}')">
+                        <i class="fab fa-whatsapp"></i> Notify
+                    </a>
+                </td>
+            </tr>`;
+        });
+        html += '</table>';
+        container.innerHTML = html;
+    });
+}
+
+function resolveAlert(id) {
+    // Optionally delete the request after notifying
+    db.collection("stock_alerts").doc(id).delete();
 }
 
 function renderAdminCart() {
@@ -1359,7 +1460,7 @@ function renderAdminCart() {
         list.innerHTML += `
         <div class="pos-cart-item">
             <div style="flex:1">
-                <div style="font-weight:600; font-size:0.9rem;">${item.name}</div>
+                <div style="font-weight:600; font-size:0.9rem;">${escapeHtml(String(item.name))}</div>
                 <div style="font-size:0.8rem; color:#666;">₹${item.price} x ${item.qty}</div>
             </div>
             
@@ -1395,7 +1496,8 @@ function updatePosQty(idx, change) {
 
 async function submitPosOrder() {
     const name = document.getElementById('pos-name').value.trim();
-    const phone = document.getElementById('pos-phone').value.trim();
+    let phone = document.getElementById('pos-phone').value.trim(); // Changed const to let
+    phone = phone.replace('+91', '').replace(/[^0-9]/g, '');
     const address = document.getElementById('pos-address').value.trim() || "Walk-in Customer";
     const status = document.getElementById('pos-status').value;
     const uid = `guest_${phone}`;
@@ -1540,6 +1642,7 @@ function loadStoreConfig() {
             if (document.getElementById('conf-upi')) document.getElementById('conf-upi').value = data.upiId || '';
             if (document.getElementById('conf-del-charge')) document.getElementById('conf-del-charge').value = data.deliveryCharge || '';
             if (document.getElementById('conf-free-ship')) document.getElementById('conf-free-ship').value = data.freeShippingThreshold || '';
+            if (data.minOrderValue) document.getElementById('conf-min-order').value = data.minOrderValue;
         }
     }).catch(err => console.log("Config load error (first run?):", err));
 
@@ -1578,12 +1681,13 @@ function saveStoreConfig() {
     const upiId = document.getElementById('conf-upi').value.trim();
     const deliveryCharge = parseFloat(document.getElementById('conf-del-charge').value) || 0;
     const freeShippingThreshold = parseFloat(document.getElementById('conf-free-ship').value) || 0;
-
+    const minOrderValue = parseFloat(document.getElementById('conf-min-order').value) || 0;
     db.collection("settings").doc("config").set({
         adminPhone,
         upiId,
         deliveryCharge,
-        freeShippingThreshold
+        freeShippingThreshold,
+        minOrderValue
     }, { merge: true })
         .then(() => showToast("Store Config Saved", "success"))
         .catch(err => showToast("Error: " + err.message, "error"));
@@ -1751,18 +1855,18 @@ function renderPosProducts() {
         }
 
         const img = p.image || 'logo.jpg';
-        // Sanitize name for the onclick handler to prevent syntax errors
-        const safeName = p.name.replace(/'/g, "\\'");
+        // Use an encoded name for the onclick and escape display values
+       const safeNameForClick = encodeURIComponent(p.name || '');
 
         grid.innerHTML += `
-            <div class="pos-card" onclick="addToAdminCart('${p.id}', '${safeName}', ${price}, '${weight}', '${img}')">
+            <div class="pos-card" onclick="addToAdminCart('${p.id}', '${safeNameForClick}', ${price}, '${weight}', '${sanitizeUrl(img)}')">
                 <div class="pos-card-img-wrap">
-                    <img src="${img}" onerror="this.src='logo.jpg'" loading="lazy">
+                    <img src="${sanitizeUrl(img)}" onerror="this.src='logo.jpg'" loading="lazy">
                 </div>
                 <div class="pos-card-info">
-                    <h4>${p.name}</h4>
+                    <h4>${escapeHtml(String(p.name))}</h4>
                     <div class="pos-meta">
-                        <span class="pos-weight">${weight}</span>
+                        <span class="pos-weight">${escapeHtml(String(weight))}</span>
                         <span class="pos-price">₹${price}</span>
                     </div>
                 </div>
@@ -1783,8 +1887,8 @@ function viewLogs() {
             const l = doc.data();
             const time = l.timestamp.toDate().toLocaleString();
             con.innerHTML += `<div style="border-bottom:1px solid #eee; padding:10px;">
-                <strong>${l.productName}</strong> <span style="font-size:0.8rem; color:#888;">${time}</span><br>
-                ${l.action}
+                <strong>${escapeHtml(String(l.productName))}</strong> <span style="font-size:0.8rem; color:#888;">${time}</span><br>
+                ${escapeHtml(String(l.action))}
             </div>`;
         });
     });
@@ -1852,7 +1956,8 @@ function loadBlogCMS() {
 
     container.innerHTML = '<p style="text-align:center; color:#666;">Loading posts...</p>';
 
-    db.collection("blogs").orderBy("date", "desc").onSnapshot(snap => {
+    if (blogsUnsubscribe) blogsUnsubscribe();
+    blogsUnsubscribe = db.collection("blogs").orderBy("date", "desc").onSnapshot(snap => {
         if (snap.empty) {
             container.innerHTML = '<p style="text-align:center; padding:20px; color:#999;">No blog posts found. Create one!</p>';
             return;
@@ -2010,7 +2115,8 @@ function loadFinance() {
     });
 
     // 2. Load Expenses
-    db.collection("expenses").orderBy("date", "desc").onSnapshot(snap => {
+    if (expensesUnsubscribe) expensesUnsubscribe();
+    expensesUnsubscribe = db.collection("expenses").orderBy("date", "desc").onSnapshot(snap => {
         let expense = 0;
         const tbody = document.getElementById('expense-body');
         tbody.innerHTML = '';
@@ -2018,7 +2124,7 @@ function loadFinance() {
         snap.forEach(doc => {
             const e = doc.data();
             expense += parseFloat(e.amount);
-            tbody.innerHTML += `<tr><td>${e.date.toDate().toLocaleDateString()}</td><td>${e.desc}</td><td>${e.category}</td><td style="color:red">-₹${e.amount}</td></tr>`;
+            tbody.innerHTML += `<tr><td>${e.date.toDate().toLocaleDateString()}</td><td>${escapeHtml(String(e.desc))}</td><td>${escapeHtml(String(e.category))}</td><td style="color:red">-₹${e.amount}</td></tr>`;
         });
 
         document.getElementById('fin-expense').innerText = '₹' + expense.toLocaleString();

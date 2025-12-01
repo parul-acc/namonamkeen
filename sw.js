@@ -1,4 +1,4 @@
-const CACHE_NAME = 'namo-v7';
+const CACHE_NAME = 'namo-v8';
 const urlsToCache = [
   '/',
   '/index.html',
@@ -8,6 +8,9 @@ const urlsToCache = [
   'privacy.html',
   'terms.html',
   'pricelist.html',
+  'blog.html', // <--- Added this
+  'story.html',
+  'faq.html'
 ];
 
 // 1. Install: Force new SW to activate immediately

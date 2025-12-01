@@ -213,6 +213,13 @@
                         <button class="btn btn-primary" onclick="openProductModal()">+ Add</button>
                     </div>
                 </div>
+                <div class="card-header">
+                    <h3>🔔 Stock Requests</h3>
+                    <button class="btn btn-outline btn-sm" onclick="loadStockAlerts()">Refresh</button>
+                </div>
+                <div id="stock-alerts-list" style="padding: 15px; max-height: 200px; overflow-y: auto;">
+                    <p style="color:#666;">No pending requests.</p>
+                </div>
                 <div class="table-responsive">
                     <table>
                         <thead>
@@ -457,6 +464,10 @@
                             <div style="flex:1">
                                 <label class="form-label">Delivery Charge (₹)</label>
                                 <input type="number" id="conf-del-charge" class="form-control" placeholder="0">
+                            </div>
+                            <div style="flex:1">
+                                <label class="form-label">Min Order Value (₹)</label>
+                                <input type="number" id="conf-min-order" class="form-control" placeholder="0">
                             </div>
                             <div style="flex:1">
                                 <label class="form-label">Free Ship Above (₹)</label>
