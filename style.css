@@ -3614,3 +3614,24 @@ textarea:focus,
         padding-left: 15px;
     }
 }
+
+/* --- FIX: Mobile Keyboard Modal Behavior --- */
+@media (max-height: 600px) {
+
+    /* Triggers when phone is landscape OR keyboard is open */
+    .modal-overlay {
+        align-items: flex-start !important;
+        /* Align to top instead of center */
+        padding-top: 20px;
+        overflow-y: auto;
+        /* Allow scrolling the overlay itself */
+    }
+
+    .modal-content {
+        margin-bottom: 20px;
+        /* Space at bottom for scrolling */
+        max-height: none !important;
+        /* Let content grow */
+        height: auto !important;
+    }
+}

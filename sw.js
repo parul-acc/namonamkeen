@@ -18,6 +18,7 @@ self.addEventListener('install', event => {
   );
 });
 
+
 // 2. Activate: Clean up old caches
 self.addEventListener('activate', event => {
   event.waitUntil(
@@ -47,5 +48,19 @@ self.addEventListener('fetch', event => {
         // If network fails (offline), try cache
         return caches.match(event.request);
       })
+  );
+});
+
+self.addEventListener('push', function (event) {
+  const data = event.data.json();
+  const options = {
+    body: data.body,
+    icon: '/logo.jpg',
+    badge: '/logo.jpg',
+    data: { url: data.url || '/' }
+  };
+
+  event.waitUntil(
+    self.registration.showNotification(data.title, options)
   );
 });

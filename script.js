@@ -35,16 +35,26 @@ let selectedHamperItems = [];
 let historyOrders = [];
 
 // NEW: Add this Shop Config
-const razorpayKeyId = "YOUR_RAZORPAY_KEY_ID_HERE"; // <--- PASTE YOUR KEY ID HERE
+// ⚠️ CRITICAL: razorpayKeyId must be configured before deployment
+// Get from: https://dashboard.razorpay.com/app/keys
+const razorpayKeyId = ""; // ⚠️ REQUIRED: Add your Razorpay Key ID
 let shopConfig = {
     upiId: "8103276050@ybl", // Default fallback if DB fails
     adminPhone: "919826698822",
     deliveryCharge: 0
 };
 
-// Coupon State
-let activeCoupons = [];
-let appliedDiscount = { type: 'none', value: 0, code: null };
+// --- STATE: Store unsubscribe functions to prevent memory leaks ---
+let unsubscribeListeners = {
+    coupons: null,
+    config: null
+};
+
+// --- NEW HELPER: Clean up all Firestore listeners ---
+function cleanupListeners() {
+    if (unsubscribeListeners.coupons) unsubscribeListeners.coupons();
+    if (unsubscribeListeners.config) unsubscribeListeners.config();
+}
 
 // --- 3. INITIALIZATION ---
 document.addEventListener('DOMContentLoaded', () => {
@@ -74,32 +84,78 @@ document.addEventListener('DOMContentLoaded', () => {
         document.body.style.filter = "none";
         fetchData(); // Refresh data to ensure it's current
     });
+
+    // --- AUTO-FORMAT PHONE INPUT ---
+    // Automatically removes spaces, dashes, and +91 when user types/pastes
+    const phoneField = document.getElementById('cust-phone');
+    if (phoneField) {
+        phoneField.addEventListener('input', function (e) {
+            // Remove everything that is NOT a number
+            let clean = this.value.replace(/[^0-9]/g, '');
+
+            // If they pasted a number starting with 91 (12 digits), strip the 91
+            if (clean.length > 10 && clean.startsWith('91')) {
+                clean = clean.substring(2);
+            }
+
+            // Limit to 10 digits
+            if (clean.length > 10) clean = clean.slice(0, 10);
+
+            this.value = clean;
+        });
+
+        // SECURITY: Add blur validation
+        phoneField.addEventListener('blur', function () {
+            const phone = this.value.trim();
+            if (phone.length !== 0 && phone.length !== 10) {
+                showToast("Phone must be exactly 10 digits", "error");
+                this.focus();
+            }
+        });
+    }
 });
 
 // --- NEW HELPER: Fetch User Profile from Firestore ---
 function fetchUserProfile(uid) {
     db.collection("users").doc(uid).get().then(doc => {
         if (doc.exists) {
-            userProfile = doc.data();
-
-            // Auto-fill Checkout Fields if they are empty
-            const phoneInput = document.getElementById('cust-phone');
-            const addrInput = document.getElementById('cust-address');
-
-            if (phoneInput && !phoneInput.value && userProfile.phone) {
-                phoneInput.value = userProfile.phone;
-            }
-            if (addrInput && !addrInput.value && userProfile.address) {
-                addrInput.value = userProfile.address;
+            const data = doc.data();
+            // Merge Logic: Cloud cart takes precedence or merge? 
+            // Simple approach: If local is empty, pull cloud. If both exist, merge.
+            if (data.cart && data.cart.length > 0) {
+                if (cart.length === 0) {
+                    cart = data.cart;
+                } else {
+                    // Merge logic (avoid duplicates)
+                    data.cart.forEach(cloudItem => {
+                        const localItem = cart.find(c => c.cartId === cloudItem.cartId);
+                        if (!localItem) cart.push(cloudItem);
+                    });
+                }
+                updateCartUI();
+                saveCartLocal(); // Sync merged back to cloud
             }
         }
-    }).catch(err => console.error("Error fetching profile:", err));
+    });
 }
 
-window.onscroll = function () {
-    const btn = document.getElementById("scrollTopBtn");
-    if (btn) btn.style.display = (document.body.scrollTop > 300 || document.documentElement.scrollTop > 300) ? "flex" : "none";
-};
+// --- HELPER: Sanitize user/product data to prevent XSS ---
+function sanitizeHTML(str) {
+    if (!str) return '';
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+}
+
+// --- HELPER: Safely set element text content ---
+function safeSetText(element, text) {
+    if (element) element.textContent = text;
+}
+
+// --- HELPER: Safely set element HTML (only trusted sources) ---
+function safeSetHTML(element, html) {
+    if (element) element.innerHTML = html;
+}
 
 // --- 4. DATA FETCHING ---
 function fetchData() {
@@ -159,7 +215,7 @@ function fetchData() {
     }).catch(err => console.error("Products Error:", err));
 
     // NEW: Fetch Shop Configuration from Firestore
-    db.collection("settings").doc("config").onSnapshot(doc => {
+    unsubscribeListeners.config = db.collection("settings").doc("config").onSnapshot(doc => {
         if (doc.exists) {
             const data = doc.data();
             if (data.upiId) shopConfig.upiId = data.upiId;
@@ -188,7 +244,7 @@ function fetchData() {
 
     // Coupons
     const now = new Date();
-    db.collection("coupons").where("isActive", "==", true).onSnapshot(snap => {
+    unsubscribeListeners.coupons = db.collection("coupons").where("isActive", "==", true).onSnapshot(snap => {
         activeCoupons = [];
         snap.forEach(doc => {
             const c = doc.data();
@@ -295,8 +351,8 @@ function renderMenu() {
             ${ribbonHTML}
            <img src="${p.image}" class="product-img" loading="lazy" onload="this.classList.add('loaded')" onerror="this.onerror=null; this.src='logo.jpg';">
             <div class="product-info">
-                <h3>${name}</h3>
-                ${starHTML} <p class="product-desc">${desc}</p>
+                <h3>${sanitizeHTML(name)}</h3>
+                ${starHTML} <p class="product-desc">${sanitizeHTML(desc)}</p>
                 <div style="margin-bottom:10px; min-height:30px;">${variantHtml}</div>
                 <div class="price-row">
                     <span class="price" id="price-${p.id}">₹${displayPrice}</span>
@@ -341,7 +397,15 @@ function renderHamperOptions() {
         const div = document.createElement('div');
         div.className = 'hamper-option';
         div.onclick = () => toggleHamperItem(p, div);
-        div.innerHTML = `<img src="${p.image}" onerror="this.onerror=null; this.src='logo.jpg';"><h4>${p.name}</h4>`;
+        const img = document.createElement('img');
+        img.src = p.image;
+        img.onerror = () => { img.src = 'logo.jpg'; };
+
+        const h4 = document.createElement('h4');
+        h4.textContent = p.name; // Use textContent to prevent XSS
+
+        div.appendChild(img);
+        div.appendChild(h4);
         container.appendChild(div);
     });
 }
@@ -615,12 +679,16 @@ function addToCart(p, v) {
 }
 
 function updateCartUI() {
+    // --- FEATURE: Professional Shipping Meter ---
+    const freeShipLimit = shopConfig.freeShippingThreshold || 250;
+    const deliveryFee = shopConfig.deliveryCharge || 0;
     const con = document.getElementById('cart-items');
     if (!con) return;
     con.innerHTML = '';
-    // FIX 1: Initialize variables at the top
+
+    // 1. Initialize variables safely
     let subtotal = 0, count = 0;
-    let finalDeliveryCost = 50;
+    let finalDeliveryCost = 0;
 
     // Elements
     const clearBtn = document.getElementById('clear-cart-btn');
@@ -638,40 +706,72 @@ function updateCartUI() {
             </div>`;
 
         if (clearBtn) clearBtn.style.display = 'none';
-        if (detailsBlock) detailsBlock.style.display = 'none'; // Hide form if empty
-        if (checkoutBtn) checkoutBtn.style.display = 'none';   // Hide pay button
+        if (detailsBlock) detailsBlock.style.display = 'none';
+        if (checkoutBtn) checkoutBtn.style.display = 'none';
 
         appliedDiscount = { type: 'none', value: 0, code: null };
         if (promoCodeInput) promoCodeInput.value = '';
+
+        finalDeliveryCost = 0;
+
     } else {
         if (clearBtn) clearBtn.style.display = 'flex';
         if (detailsBlock) detailsBlock.style.display = 'block';
         if (checkoutBtn) checkoutBtn.style.display = 'flex';
 
-        // --- FEATURE 2: Free Shipping Meter ---
-        const freeShipLimit = shopConfig.freeShippingThreshold || 250;
-        const deliveryFee = shopConfig.deliveryCharge || 0;
-        let currentTotal = cart.reduce((sum, i) => sum + (i.price * i.qty), 0);
-        let percent = Math.min(100, (currentTotal / freeShipLimit) * 100);
-        let shipMsg = '';
+        let loyaltyHtml = '';
+        if (currentUser && userProfile && userProfile.walletBalance > 0) {
+            const maxRedeemable = Math.min(userProfile.walletBalance, subtotal); // Can't redeem more than order value
 
-        if (cart.length > 0) {
-            if (subtotal >= freeShipLimit) {
-                shipMsg = `🎉 You've unlocked <strong>FREE Delivery!</strong>`;
-                finalDeliveryCost = 0;
-            } else {
-                shipMsg = `Add <strong>₹${freeShipLimit - subtotal}</strong> for Free Delivery`;
-                finalDeliveryCost = deliveryFee;
+            // Check if already applied
+            const isChecked = (appliedDiscount.type === 'loyalty') ? 'checked' : '';
+
+            loyaltyHtml = `
+    <div style="background:#fff8e1; padding:10px; border-radius:8px; margin-bottom:15px; border:1px dashed #e85d04; display:flex; align-items:center; gap:10px;">
+        <i class="fas fa-coins" style="color:#f1c40f;"></i>
+        <div style="flex:1;">
+            <div style="font-weight:600; font-size:0.9rem;">Use Namo Coins</div>
+            <div style="font-size:0.8rem; color:#666;">Balance: ${userProfile.walletBalance} (Save ₹${maxRedeemable})</div>
+        </div>
+        <input type="checkbox" id="use-coins" ${isChecked} onchange="toggleLoyalty(${maxRedeemable})">
+    </div>`;
+
+            // Inject the loyalty HTML into the container we just created
+            const loyaltyContainer = document.getElementById('loyalty-section');
+            if (loyaltyContainer) {
+                loyaltyContainer.innerHTML = loyaltyHtml;
             }
         }
 
-        con.innerHTML += `
-            <div class="shipping-bar-container">
-                <div class="shipping-text">${shipMsg}</div>
-                <div class="progress-track">
-                    <div class="progress-fill" style="width: ${percent}%"></div>
-                </div>
-            </div>`;
+
+
+        // Calculate total strictly for shipping logic
+        let currentTotal = cart.reduce((sum, i) => sum + (i.price * i.qty), 0);
+
+        if (currentTotal >= freeShipLimit) {
+            // CASE A: Free Delivery Unlocked (Show Badge)
+            finalDeliveryCost = 0;
+            con.innerHTML += `
+                <div class="shipping-bar-container" style="background: #ecfdf5; border: 1px solid #a7f3d0; padding: 12px;">
+                    <div style="color: #059669; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 0.95rem;">
+                        <i class="fas fa-check-circle"></i>
+                        <span>Free Delivery Applied</span>
+                        <i class="fas fa-shipping-fast"></i>
+                    </div>
+                </div>`;
+        } else {
+            // CASE B: Goal Not Met (Show Progress Bar)
+            finalDeliveryCost = deliveryFee;
+            let percent = Math.min(100, (currentTotal / freeShipLimit) * 100);
+
+            con.innerHTML += `
+                <div class="shipping-bar-container">
+                    <div class="shipping-text">Add <strong>₹${freeShipLimit - currentTotal}</strong> for Free Delivery</div>
+                    <div class="progress-track">
+                        <div class="progress-fill" style="width: ${percent}%"></div>
+                    </div>
+                </div>`;
+        }
 
         // Render Items
         cart.forEach(i => {
@@ -696,7 +796,7 @@ function updateCartUI() {
         });
     }
 
-    // Validation Logic (Same as before)
+    // Coupon Validation Logic
     if (appliedDiscount && appliedDiscount.code) {
         const couponRule = activeCoupons.find(c => c.code === appliedDiscount.code);
         if (couponRule && couponRule.minOrder && subtotal < couponRule.minOrder) {
@@ -710,7 +810,7 @@ function updateCartUI() {
         }
     }
 
-    // Calc Discount
+    // Calculate Final Totals
     let discountAmount = 0;
     if (appliedDiscount.type === 'percent') {
         discountAmount = Math.round(subtotal * (appliedDiscount.value / 100));
@@ -718,22 +818,16 @@ function updateCartUI() {
         discountAmount = appliedDiscount.value;
     }
     if (discountAmount > subtotal) discountAmount = subtotal;
+
+    // Safe final calculation
     const final = (subtotal - discountAmount) + finalDeliveryCost;
-    const freeShipLimit = shopConfig.freeShippingThreshold || 250;
 
-    // Suggest an item if they are < ₹150 away from free shipping
+    // Up-sell Logic (Only if not free shipping yet)
     const gap = freeShipLimit - final;
-
-    // Only show if: Gap is small (>0 and <150) AND Cart isn't empty
-    if (gap > 0 && gap < 150) {
-        // Find a product cheaper than or approx equal to the gap
-        // (Or just a popular cheap item like 'Peanuts' or 'Sev')
+    if (gap > 0 && gap < 150 && cart.length > 0) {
         const upsellItem = products.find(p => p.price <= 60 && p.in_stock);
-
         if (upsellItem) {
-            // Check if already in cart to avoid spamming
             const alreadyInCart = cart.find(i => i.productId === upsellItem.id);
-
             if (!alreadyInCart) {
                 con.innerHTML += `
                     <div style="background:#f0f9ff; border:1px dashed #0288d1; padding:10px; margin-bottom:15px; border-radius:8px; display:flex; align-items:center; justify-content:space-between;">
@@ -752,16 +846,15 @@ function updateCartUI() {
         }
     }
 
-    // Update Totals
+    // Update Footer Totals
     const totalEl = document.getElementById('cart-total');
     if (totalEl) totalEl.innerText = '₹' + final.toLocaleString('en-IN');
 
     const countEl = document.getElementById('cart-count');
     if (countEl) countEl.innerText = count;
 
-    // --- FEATURE 3: Share Cart Button (Inject into Footer) ---
+    // Share Cart Button Logic
     const footer = document.querySelector('.cart-footer');
-    // Remove old share button if exists to prevent duplicates
     const oldShare = document.getElementById('share-cart-btn');
     if (oldShare) oldShare.remove();
 
@@ -772,10 +865,22 @@ function updateCartUI() {
         shareBtn.innerHTML = '<i class="fas fa-share-alt"></i> Share Order with Family';
         shareBtn.onclick = shareCartOnWhatsApp;
 
-        // Insert before the main checkout button
         const mainBtn = document.getElementById('btn-main-checkout');
         if (mainBtn) footer.insertBefore(shareBtn, mainBtn);
     }
+}
+
+function toggleLoyalty(amount) {
+    const chk = document.getElementById('use-coins');
+    if (chk.checked) {
+        // Cannot mix coupons and loyalty points? (Optional policy)
+        document.getElementById('promo-code').value = '';
+        appliedDiscount = { type: 'loyalty', value: amount, code: 'COINS' };
+        showToast(`Redeemed ${amount} Coins!`, "success");
+    } else {
+        appliedDiscount = { type: 'none', value: 0, code: null };
+    }
+    updateCartUI();
 }
 
 // --- SHARE CART FEATURE ---
@@ -995,7 +1100,6 @@ function googleLogin(isCheckoutFlow = false) {
 function updateUserUI(loggedIn) {
     // 1. Declare it here (Top Level of Function)
     const guestLink = document.getElementById('guest-login-option');
-
     if (loggedIn) {
         document.getElementById('login-btn').style.display = 'none';
         document.getElementById('user-profile').style.display = 'block';
@@ -1005,6 +1109,8 @@ function updateUserUI(loggedIn) {
             document.getElementById('user-pic').src = currentUser.photoURL || 'logo.jpg'; // Fallback image
             document.getElementById('user-name').innerText = currentUser.displayName || 'User';
         }
+
+        loadUserAddresses();
 
         // Hide the guest login link if it exists
         if (guestLink) guestLink.style.display = 'none';
@@ -1239,7 +1345,10 @@ async function repeatOrder(orderId) {
 }
 
 // --- HELPER ---
-function logout() { auth.signOut().then(() => location.reload()); }
+function logout() {
+    cleanupListeners(); // FIX: Unsubscribe from listeners to prevent memory leak
+    auth.signOut().then(() => location.reload());
+}
 function toggleProfileMenu() { document.getElementById('profile-menu').classList.toggle('active'); }
 function closeSuccessModal() { document.getElementById('success-modal').style.display = 'none'; }
 function toggleCouponList() { const l = document.getElementById('coupon-list'); l.style.display = l.style.display === 'none' ? 'block' : 'none'; }
@@ -1510,6 +1619,13 @@ async function initiateRazorpayPayment() {
 }
 
 function openRazorpayModal(amountPaise, amountINR, userPhone) {
+    // SECURITY: Check if Razorpay library is loaded
+    if (typeof Razorpay === 'undefined') {
+        showToast("Payment system not loaded. Please refresh and try again.", "error");
+        toggleBtnLoading('btn-main-checkout', false);
+        return;
+    }
+
     // Determine User Details (Guest or Logged In)
     const userName = currentUser ? currentUser.displayName : "Guest User";
     const userEmail = currentUser ? currentUser.email : "guest@namonamkeen.com";
@@ -1554,19 +1670,10 @@ async function saveOrderToFirebase(method, paymentStatus, txnId) {
     let uid = currentUser ? currentUser.uid : `guest_${phone}`;
     let uName = currentUser ? currentUser.displayName : "Guest";
 
-    // 2. Calculate Totals (Missing part fixed here)
-    let total = cart.reduce((sum, i) => sum + (i.price * i.qty), 0);
+    // 2. Capture Delivery Note (FIX: Declare before use)
+    const deliveryNote = document.getElementById('delivery-note') ? document.getElementById('delivery-note').value.trim() : '';
 
-    let discount = 0; // <--- Defined here
-    if (appliedDiscount.type === 'percent') {
-        discount = Math.round(total * (appliedDiscount.value / 100));
-    } else if (appliedDiscount.type === 'flat') {
-        discount = appliedDiscount.value;
-    }
-
-    const finalAmount = Math.max(0, total - discount);
-
-    // 3. Optional: Capture Delivery Note
+    // 3. Calculate Totals (FIX: Use centralized function)
     const { subtotal, discountAmount, shipping, finalTotal } = getCartTotals();
 
     try {
@@ -1602,6 +1709,26 @@ async function saveOrderToFirebase(method, paymentStatus, txnId) {
             lastOrder: new Date(),
             type: currentUser ? 'Registered' : 'Guest'
         }, { merge: true });
+
+        // --- LOYALTY LOGIC: Earn Points ---
+        if (currentUser) {
+            // Earn 1 Coin for every ₹100 spent
+            const coinsEarned = Math.floor(finalTotal / 100);
+
+            if (coinsEarned > 0) {
+                // Increment user's wallet balance
+                batch.update(userRef, {
+                    walletBalance: firebase.firestore.FieldValue.increment(coinsEarned)
+                });
+            }
+
+            // If they USED points in this order, deduct them
+            if (appliedDiscount.type === 'loyalty') {
+                batch.update(userRef, {
+                    walletBalance: firebase.firestore.FieldValue.increment(-appliedDiscount.value)
+                });
+            }
+        }
 
         await batch.commit();
         showSuccessModal(orderId, finalTotal, method);
@@ -1832,8 +1959,15 @@ window.addEventListener('appinstalled', () => {
 
 function saveCartLocal() {
     localStorage.setItem('namoCart', JSON.stringify(cart));
-    // NEW: Save the discount object
     localStorage.setItem('namoDiscount', JSON.stringify(appliedDiscount));
+
+    // --- NEW: SYNC TO CLOUD ---
+    if (currentUser) {
+        db.collection("users").doc(currentUser.uid).update({
+            cart: cart,
+            lastCartUpdate: new Date() // Useful for Abandoned Cart feature
+        }).catch(err => console.log("Cart Sync Error", err));
+    }
 }
 
 function loadCartLocal() {
@@ -1946,9 +2080,12 @@ function initFuzzySearch() {
     fuse = new Fuse(products, options);
 }
 
-if (searchInput) {
+if (searchInput && suggestionsBox) {
     searchInput.addEventListener('input', function () {
-        if (!fuse) return;
+        if (!fuse) {
+            searchMenu();
+            return;
+        }
         const query = this.value.toLowerCase().trim();
 
         // 1. Hide if empty
@@ -1985,7 +2122,7 @@ if (searchInput) {
 
     // Hide when clicking outside
     document.addEventListener('click', (e) => {
-        if (!searchInput.contains(e.target) && !suggestionsBox.contains(e.target)) {
+        if (suggestionsBox && !searchInput.contains(e.target) && !suggestionsBox.contains(e.target)) {
             suggestionsBox.classList.remove('active');
         }
     });
@@ -2084,3 +2221,79 @@ function getCartTotals() {
 
     return { subtotal, discountAmount, shipping, finalTotal };
 }
+
+// --- ADDRESS MANAGEMENT ---
+function loadUserAddresses() {
+    if (!currentUser || !userProfile || !userProfile.savedAddresses) return;
+
+    const selector = document.getElementById('addr-selector');
+    const container = document.getElementById('saved-addresses');
+
+    // Reset Selector
+    selector.innerHTML = '<option value="new">+ Add New Address</option>';
+
+    userProfile.savedAddresses.forEach((addr, idx) => {
+        const opt = document.createElement('option');
+        opt.value = idx;
+        opt.text = addr.label || addr.text.substring(0, 30) + '...';
+        selector.insertBefore(opt, selector.lastChild); // Insert before "Add New"
+    });
+
+    container.style.display = 'block';
+
+    // Auto-select first address
+    if (userProfile.savedAddresses.length > 0) {
+        selector.value = 0;
+        selectAddress(0);
+    }
+}
+
+function selectAddress(idx) {
+    const textarea = document.getElementById('cust-address');
+    const saveBtn = document.getElementById('btn-save-addr');
+
+    if (idx === 'new') {
+        textarea.value = '';
+        textarea.disabled = false;
+        textarea.focus();
+        saveBtn.style.display = 'inline-block';
+    } else {
+        const addr = userProfile.savedAddresses[idx];
+        textarea.value = addr.text;
+        // Optional: Disable editing of saved address to prevent accidental changes
+        // textarea.disabled = true; 
+        saveBtn.style.display = 'none';
+    }
+}
+
+async function saveNewAddress() {
+    const text = document.getElementById('cust-address').value.trim();
+    if (text.length < 5) return showToast("Address too short", "error");
+
+    const label = prompt("Give this address a name (e.g., Home, Office):", "Home");
+    if (!label) return;
+
+    const newAddr = { label, text };
+
+    try {
+        await db.collection("users").doc(currentUser.uid).update({
+            savedAddresses: firebase.firestore.FieldValue.arrayUnion(newAddr)
+        });
+
+        // Update local profile
+        if (!userProfile.savedAddresses) userProfile.savedAddresses = [];
+        userProfile.savedAddresses.push(newAddr);
+
+        showToast("Address Saved!", "success");
+        loadUserAddresses(); // Refresh UI
+
+        // Select the newly added address (second to last option)
+        const selector = document.getElementById('addr-selector');
+        selector.value = userProfile.savedAddresses.length - 1;
+
+    } catch (e) {
+        console.error(e);
+        showToast("Error saving address", "error");
+    }
+}
+

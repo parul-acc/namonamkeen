@@ -51,6 +51,8 @@
             <li><a onclick="switchView('customers')" id="nav-customers"><i class="fas fa-users"></i> Customers</a></li>
             <li><a onclick="switchView('coupons')" id="nav-coupons"><i class="fas fa-ticket-alt"></i> Coupons</a></li>
             <li><a onclick="switchView('reviews')" id="nav-reviews"><i class="fas fa-star"></i> Reviews</a></li>
+            <li><a onclick="switchView('abandoned')" id="nav-abandoned"><i class="fas fa-shopping-cart"></i>
+                    Abandoned</a></li>
             <li><a onclick="switchView('settings')" id="nav-settings"><i class="fas fa-cog"></i> Settings</a></li>
         </ul>
         <div class="sidebar-footer">
@@ -381,6 +383,30 @@
             </div>
         </div>
 
+        <div id="view-abandoned" class="view-section">
+            <div class="card">
+                <div class="card-header">
+                    <h3>Abandoned Carts (> 1 Hour)</h3>
+                    <button class="btn btn-primary" onclick="loadAbandonedCarts()"><i class="fas fa-sync"></i>
+                        Refresh</button>
+                </div>
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Customer</th>
+                                <th>Phone</th>
+                                <th>Items</th>
+                                <th>Value</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="abandoned-body"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
         <div id="view-reviews" class="view-section">
             <div class="card">
                 <div class="card-header">
@@ -478,6 +504,7 @@
 
             </div>
         </div>
+        
 
         <footer class="admin-footer">
             © 2025 Namo Namkeen Admin Panel. Designed by Parul Gangwal.
@@ -512,6 +539,15 @@
                 <label><input type="checkbox" id="p-bestseller"> Bestseller</label>
             </div>
             <button class="btn btn-primary full-width" onclick="saveProduct()">Save Product</button>
+        </div>
+    </div>
+
+    <div id="logs-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Inventory Logs</h3><button class="close-btn" onclick="closeModal('logs-modal')">&times;</button>
+            </div>
+            <div id="logs-body" style="max-height:400px; overflow-y:auto;"></div>
         </div>
     </div>
 

@@ -271,18 +271,21 @@ function filterCustomers() {
 // In admin.js inside exportCustomersToCSV()
 
 function exportCustomersToCSV() {
-    // FIX: Use filteredData if available, otherwise use all data
     const dataToExport = state.customers.filteredData || state.customers.data;
-
     if (!dataToExport || dataToExport.length === 0) return showToast("No data to export", "error");
 
-    let csv = "Name,Email,Phone,Address,Last Login\n";
-    dataToExport.forEach(u => {
-        const addr = u.address ? u.address.replace(/"/g, '""') : "";
-        const name = u.name ? u.name.replace(/"/g, '""') : "Guest";
+    // Helper to safely escape CSV fields (wraps in quotes, handles inner quotes)
+    const safeCSV = (str) => {
+        if (!str) return '""';
+        return '"' + String(str).replace(/"/g, '""').replace(/\n/g, ' ') + '"';
+    };
 
-        csv += `"${name}","${u.email || ''}","${u.phone || ''}","${addr}","${u.displayDate}"\n`;
+    let csv = "Name,Email,Phone,Address,Last Login\n";
+
+    dataToExport.forEach(u => {
+        csv += `${safeCSV(u.name)},${safeCSV(u.email)},${safeCSV(u.phone)},${safeCSV(u.address)},"${u.displayDate}"\n`;
     });
+
     downloadCSV(csv, "namo_customers.csv");
 }
 
@@ -317,9 +320,20 @@ function loadDashboardData(timeframe = 'All') {
     if (dashboardUnsubscribe) dashboardUnsubscribe();
 
     dashboardUnsubscribe = query.onSnapshot(snap => {
+        let salesTrend = {};
         let rev = 0, count = 0, pending = 0;
         let salesMap = {}, prodMap = {};
         let paymentStats = { 'Online': 0, 'COD': 0 };
+
+
+
+        // Init last 30 days with 0
+        for (let i = 29; i >= 0; i--) {
+            const d = new Date();
+            d.setDate(d.getDate() - i);
+            const key = d.toLocaleDateString('en-US', { day: 'numeric', month: 'short' });
+            salesTrend[key] = 0;
+        }
 
         snap.forEach(doc => {
             const o = doc.data();
@@ -342,6 +356,12 @@ function loadDashboardData(timeframe = 'All') {
             salesMap[label] = (salesMap[label] || 0) + o.total;
             if (o.items) {
                 o.items.forEach(i => prodMap[i.name] = (prodMap[i.name] || 0) + i.qty);
+            }
+
+            // Fill Trend Data
+            const key = d.toLocaleDateString('en-US', { day: 'numeric', month: 'short' });
+            if (salesTrend[key] !== undefined) {
+                salesTrend[key] += o.total;
             }
 
             const method = (o.paymentMethod === 'COD') ? 'COD' : 'Online';
@@ -984,6 +1004,15 @@ function saveProduct() {
     const activeVariants = vs.filter(v => v.inStock);
     const basePrice = activeVariants.length > 0 ? Math.min(...activeVariants.map(v => v.price)) : (vs[0].price || 0);
 
+    const logEntry = {
+        productId: id,
+        productName: document.getElementById('p-name').value,
+        action: 'Update/Edit',
+        updatedBy: 'Admin', // Or currentUser.email
+        timestamp: new Date()
+    };
+    db.collection("inventory_logs").add(logEntry);
+
     db.collection("products").doc(id).set({
         id: parseInt(id) || id,
         name: document.getElementById('p-name').value,
@@ -1616,5 +1645,25 @@ function renderPosProducts() {
         `;
     });
 }
+
+
+function viewLogs() {
+    const con = document.getElementById('logs-body');
+    con.innerHTML = 'Loading...';
+    document.getElementById('logs-modal').style.display = 'flex';
+
+    db.collection("inventory_logs").orderBy("timestamp", "desc").limit(20).get().then(snap => {
+        con.innerHTML = '';
+        snap.forEach(doc => {
+            const l = doc.data();
+            const time = l.timestamp.toDate().toLocaleString();
+            con.innerHTML += `<div style="border-bottom:1px solid #eee; padding:10px;">
+                <strong>${l.productName}</strong> <span style="font-size:0.8rem; color:#888;">${time}</span><br>
+                ${l.action}
+            </div>`;
+        });
+    });
+}
+// Add a button <button onclick="viewLogs()">History</button> in the Inventory header in admin.html
 
 registerAdminServiceWorker();
