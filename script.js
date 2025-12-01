@@ -1592,28 +1592,59 @@ function openProfileModal() {
     }
 }
 
-function closeProfileModal() { document.getElementById('profile-modal').style.display = 'none'; }
-function saveProfile() {
-    const phone = document.getElementById('edit-phone').value;
-    const address = document.getElementById('edit-address').value;
 
-    db.collection("users").doc(currentUser.uid).set({
+
+function closeProfileModal() { document.getElementById('profile-modal').style.display = 'none'; }
+
+// Toggle Function for the Referral Section
+function toggleReferralSection() {
+    const sec = document.getElementById('referral-section');
+    const chev = document.getElementById('ref-chevron');
+
+    if (sec.style.display === 'none') {
+        sec.style.display = 'block';
+        chev.classList.replace('fa-chevron-down', 'fa-chevron-up');
+    } else {
+        sec.style.display = 'none';
+        chev.classList.replace('fa-chevron-up', 'fa-chevron-down');
+    }
+}
+
+// Updated saveProfile to include Name
+function saveProfile() {
+    const name = document.getElementById('edit-name').value.trim(); // NEW
+    const phone = document.getElementById('edit-phone').value.trim();
+    const address = document.getElementById('edit-address').value.trim();
+
+    if (!name) return showToast("Name cannot be empty", "error");
+
+    const updateData = {
+        name: name, // Save the name
         phone: phone,
         address: address
-    }, { merge: true }).then(() => {
+    };
+
+    db.collection("users").doc(currentUser.uid).set(updateData, { merge: true }).then(() => {
         // Update local variable
         if (!userProfile) userProfile = {};
+        userProfile.name = name;
         userProfile.phone = phone;
         userProfile.address = address;
 
-        // Also update checkout fields to reflect changes immediately
+        // Update Auth Profile (so 'Guest' changes to real name in UI)
+        currentUser.updateProfile({ displayName: name });
+        document.getElementById('user-name').innerText = name;
+
+        // Also update checkout fields immediately
+        const nameInput = document.getElementById('cust-name'); // If you have one
         const phoneInput = document.getElementById('cust-phone');
         const addrInput = document.getElementById('cust-address');
-        if (phoneInput) phoneInput.value = phone;
+
+        if (phoneInput) phoneInput.value = phone.replace('+91', '');
         if (addrInput) addrInput.value = address;
 
         closeProfileModal();
-        showToast("Profile Updated", "success");
+        showToast("Profile Updated Successfully", "success");
     });
 }
 
@@ -2112,38 +2143,6 @@ function updateSchema(p) {
     script.text = JSON.stringify(schemaData);
     document.head.appendChild(script);
 }
-
-// --- SEO HELPER ---
-// --- PWA INSTALLATION LOGIC ---
-let deferredPrompt;
-
-window.addEventListener('beforeinstallprompt', (e) => {
-    // 1. Prevent Chrome 67 and earlier from automatically showing the prompt
-    e.preventDefault();
-    // 2. Stash the event so it can be triggered later.
-    deferredPrompt = e;
-    // 3. Update UI notify the user they can add to home screen
-    const installBtn = document.getElementById('pwa-install-btn');
-    if (installBtn) {
-        installBtn.style.display = 'block'; // Show the button
-
-        installBtn.addEventListener('click', () => {
-            // Hide our user interface that shows our A2HS button
-            installBtn.style.display = 'none';
-            // Show the prompt
-            deferredPrompt.prompt();
-            // Wait for the user to respond to the prompt
-            deferredPrompt.userChoice.then((choiceResult) => {
-                if (choiceResult.outcome === 'accepted') {
-                    console.log('User accepted the A2HS prompt');
-                } else {
-                    console.log('User dismissed the A2HS prompt');
-                }
-                deferredPrompt = null;
-            });
-        });
-    }
-});
 
 // Optional: Analytics to track if app was installed successfully
 window.addEventListener('appinstalled', () => {
@@ -2872,3 +2871,36 @@ function shareApp() {
         window.open(waUrl, '_blank');
     }
 }
+
+// --- PWA INSTALLATION LOGIC (User Side) ---
+let deferredPrompt;
+
+window.addEventListener('beforeinstallprompt', (e) => {
+    // 1. Prevent Chrome 67 and earlier from automatically showing the prompt
+    e.preventDefault();
+    // 2. Stash the event so it can be triggered later.
+    deferredPrompt = e;
+    
+    // 3. Update UI: Show the hidden install button
+    const installBtn = document.getElementById('pwa-install-btn');
+    if (installBtn) {
+        installBtn.style.display = 'block'; // Make it visible
+        console.log("PWA Ready to Install (User)");
+
+        installBtn.addEventListener('click', () => {
+            // Hide the button
+            installBtn.style.display = 'none';
+            // Show the install prompt
+            deferredPrompt.prompt();
+            // Wait for the user to respond to the prompt
+            deferredPrompt.userChoice.then((choiceResult) => {
+                if (choiceResult.outcome === 'accepted') {
+                    console.log('User accepted the A2HS prompt');
+                } else {
+                    console.log('User dismissed the A2HS prompt');
+                }
+                deferredPrompt = null;
+            });
+        });
+    }
+});

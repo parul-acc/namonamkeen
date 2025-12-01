@@ -1458,20 +1458,6 @@ function showConfirm(message) {
     });
 }
 
-// --- PWA INSTALL ---
-let adminPrompt;
-window.addEventListener('beforeinstallprompt', (e) => {
-    e.preventDefault(); adminPrompt = e;
-    const btn = document.getElementById('admin-install-btn');
-    if (btn) {
-        btn.style.display = 'flex';
-        btn.onclick = () => {
-            btn.style.display = 'none'; adminPrompt.prompt();
-            adminPrompt.userChoice.then((r) => { if (r.outcome === 'accepted') console.log('Installed'); adminPrompt = null; });
-        };
-    }
-});
-
 let searchTimeout;
 function debouncedPosSearch() {
     clearTimeout(searchTimeout);
@@ -2096,5 +2082,28 @@ async function calculateSegments() {
     showToast(`Updated ${count} customer segments!`, "success");
     loadCustomers(); // Refresh table
 }
+
+// --- PWA INSTALLATION LOGIC (Admin Side) ---
+let adminPrompt;
+
+window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    adminPrompt = e;
+
+    const btn = document.getElementById('admin-install-btn');
+    if (btn) {
+        btn.style.display = 'flex'; // Make it visible
+        console.log("PWA Ready to Install (Admin)");
+
+        btn.onclick = () => {
+            btn.style.display = 'none';
+            adminPrompt.prompt();
+            adminPrompt.userChoice.then((r) => {
+                if (r.outcome === 'accepted') console.log('Admin App Installed');
+                adminPrompt = null;
+            });
+        };
+    }
+});
 
 registerAdminServiceWorker();

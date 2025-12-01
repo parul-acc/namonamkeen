@@ -91,9 +91,9 @@
         <a href="story.html"><i class="fas fa-book-open"></i> Our Story</a>
         <a href="blog.html"><i class="fas fa-newspaper"></i> Blog</a>
         <a href="faq.html"><i class="fas fa-question-circle"></i> FAQs</a>
-<a href="javascript:void(0)" onclick="shareApp()">
-    <i class="fas fa-share-nodes"></i> Share App with Friends
-</a>
+        <a href="javascript:void(0)" onclick="shareApp()">
+            <i class="fas fa-share-nodes"></i> Share App with Friends
+        </a>
         <div class="mobile-install-box">
             <button id="pwa-install-btn"
                 style="display: none; width: 100%; background: var(--primary); color: white; border: none; padding: 12px; border-radius: 8px; font-weight: 600; cursor: pointer;">
@@ -359,40 +359,51 @@
     </div>
 
     <div id="profile-modal" class="modal-overlay">
-        <div class="modal-content">
-            <button class="close-modal" onclick="closeProfileModal()">&times;</button>
-            <h2 style="color:var(--primary); margin-top:0;">Edit Profile</h2>
-            <label style="font-weight:bold; display:block; margin-top:15px;">Your Name</label>
-            <input type="text" id="edit-name" disabled
-                style="width:100%; padding:10px; border:1px solid #eee; background:#f9f9f9; border-radius:5px; color:#777;">
-            <label style="font-weight:bold; display:block; margin-top:15px;">Mobile Number</label>
-            <input type="tel" id="edit-phone" placeholder="10-digit number"
-                style="width:100%; padding:10px; border:1px solid #ccc; border-radius:5px;">
-            <label style="font-weight:bold; display:block; margin-top:15px;">Default Address</label>
-            <textarea id="edit-address" rows="3" placeholder="Your full address..."
-                style="width:100%; padding:10px; border:1px solid #ccc; border-radius:5px; resize:none;"></textarea>
-            <button onclick="saveProfile()" class="btn-primary" style="width:100%; margin-top:20px; padding:12px;">Save
+        <div class="modal-content mobile-modal" style="max-height: 85vh; overflow-y: auto;">
+
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                <h2 style="color:var(--primary); margin:0;">Edit Profile</h2>
+                <button class="close-modal" onclick="closeProfileModal()" style="position:static;">&times;</button>
+            </div>
+
+            <label class="input-label">Your Name</label>
+            <input type="text" id="edit-name" class="form-control" placeholder="Enter your name">
+
+            <label class="input-label">Mobile Number</label>
+            <input type="tel" id="edit-phone" class="form-control" placeholder="10-digit number">
+
+            <label class="input-label">Default Address</label>
+            <textarea id="edit-address" rows="3" class="form-control" placeholder="Your full address..."></textarea>
+
+            <button onclick="saveProfile()" class="btn-primary full-width" style="margin-top:20px; padding:12px;">Save
                 Changes</button>
-        </div>
-        <hr style="margin: 20px 0; border: 0; border-top: 1px dashed #ddd;">
 
-        <div style="background:#f0f9ff; padding:15px; border-radius:8px; border:1px solid #bae6fd;">
-            <h3 style="margin:0 0 10px 0; color:#0288d1;">Refer & Earn ₹50</h3>
+            <hr style="margin: 20px 0; border: 0; border-top: 1px dashed #ddd;">
 
-            <p style="font-size:0.9rem; color:#555; margin-bottom:5px;">Your Referral Code:</p>
-            <div style="display:flex; gap:10px; margin-bottom:15px;">
-                <input type="text" id="my-ref-code" readonly value="LOADING..."
-                    style="flex:1; background:white; border:1px dashed #0288d1; padding:10px; text-align:center; font-weight:bold; letter-spacing:1px; color:#0288d1;">
-                <button class="btn-primary" onclick="copyRefCode()" style="padding:0 15px;"><i
-                        class="far fa-copy"></i></button>
+            <button onclick="toggleReferralSection()"
+                style="background:none; border:none; color:#0288d1; font-weight:600; cursor:pointer; width:100%; text-align:left; display:flex; justify-content:space-between; align-items:center;">
+                <span><i class="fas fa-gift"></i> Refer & Earn ₹50</span>
+                <i class="fas fa-chevron-down" id="ref-chevron"></i>
+            </button>
+
+            <div id="referral-section"
+                style="display:none; margin-top:15px; background:#f0f9ff; padding:15px; border-radius:8px; border:1px solid #bae6fd;">
+                <p style="font-size:0.9rem; color:#555; margin-bottom:5px;">Your Referral Code:</p>
+                <div style="display:flex; gap:10px; margin-bottom:15px;">
+                    <input type="text" id="my-ref-code" readonly value="..."
+                        style="flex:1; background:white; border:1px dashed #0288d1; padding:10px; text-align:center; font-weight:bold; letter-spacing:1px; color:#0288d1;">
+                    <button class="btn-primary" onclick="copyRefCode()" style="padding:0 15px;"><i
+                            class="far fa-copy"></i></button>
+                </div>
+
+                <p style="font-size:0.9rem; color:#555; margin-bottom:5px;">Have a code? Redeem now:</p>
+                <div style="display:flex; gap:10px;">
+                    <input type="text" id="enter-ref-code" placeholder="Enter Code" class="form-control"
+                        style="text-transform:uppercase;">
+                    <button class="btn-primary" onclick="redeemReferral()" style="background:#27ae60;">Redeem</button>
+                </div>
             </div>
 
-            <p style="font-size:0.9rem; color:#555; margin-bottom:5px;">Have a code? Redeem now:</p>
-            <div style="display:flex; gap:10px;">
-                <input type="text" id="enter-ref-code" placeholder="Enter Code" class="form-control"
-                    style="text-transform:uppercase;">
-                <button class="btn-primary" onclick="redeemReferral()" style="background:#27ae60;">Redeem</button>
-            </div>
         </div>
     </div>
 

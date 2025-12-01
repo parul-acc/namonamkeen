@@ -1,4 +1,4 @@
-const CACHE_NAME = 'namo-v5';
+const CACHE_NAME = 'namo-v6';
 const urlsToCache = [
   '/',
   '/index.html',
