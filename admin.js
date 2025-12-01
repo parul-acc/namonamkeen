@@ -2236,16 +2236,17 @@ async function calculateSegments() {
 }
 
 // --- PWA INSTALLATION LOGIC (Admin Side) ---
+// --- PWA INSTALLATION LOGIC (Admin Side) ---
 let adminPrompt;
 
 window.addEventListener('beforeinstallprompt', (e) => {
+    console.log("✅ PWA Event Fired! App is installable."); // Debug Log
     e.preventDefault();
     adminPrompt = e;
 
     const btn = document.getElementById('admin-install-btn');
     if (btn) {
         btn.style.display = 'flex'; // Make it visible
-        console.log("PWA Ready to Install (Admin)");
 
         btn.onclick = () => {
             btn.style.display = 'none';
@@ -2255,7 +2256,13 @@ window.addEventListener('beforeinstallprompt', (e) => {
                 adminPrompt = null;
             });
         };
+    } else {
+        console.error("❌ Install Button ID 'admin-install-btn' not found in HTML.");
     }
+});
+
+window.addEventListener('appinstalled', () => {
+    console.log("🎉 App was successfully installed.");
 });
 
 function enableAdminNotifications() {

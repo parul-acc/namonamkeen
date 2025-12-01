@@ -3759,3 +3759,116 @@ textarea:focus,
         transform: rotate(360deg);
     }
 }
+
+/* --- COMPACT CHECKOUT (Fix Scrolling) --- */
+
+/* 1. Limit Product List Height */
+/* This keeps the list small (approx 3 items visible) so the form is always visible */
+.cart-items-list {
+    max-height: 25vh;
+    /* Takes up max 25% of screen height */
+    overflow-y: auto;
+    /* Internal scroll for items */
+    border: 1px solid #eee;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    background: #fff;
+    padding: 5px;
+    /* Custom Scrollbar for neatness */
+    scrollbar-width: thin;
+    scrollbar-color: #ddd transparent;
+}
+
+/* Webkit Scrollbar styling */
+.cart-items-list::-webkit-scrollbar {
+    width: 4px;
+}
+
+.cart-items-list::-webkit-scrollbar-thumb {
+    background-color: #ddd;
+    border-radius: 4px;
+}
+
+/* 2. Compact Cart Items */
+.cart-item {
+    margin-bottom: 8px;
+    padding: 10px;
+    border: none;
+    /* Remove heavy borders */
+    border-bottom: 1px dashed #eee;
+    /* Light separator */
+}
+
+.cart-item:last-child {
+    border-bottom: none;
+}
+
+.cart-item img {
+    width: 50px;
+    /* Smaller images */
+    height: 50px;
+}
+
+/* 3. Compact Form Fields (Mobile) */
+.cart-details-block {
+    padding: 15px;
+    /* Reduce padding */
+}
+
+/* Reduce gaps between inputs */
+#customer-details-inputs .input-label {
+    margin-top: 10px;
+    /* Less gap above labels */
+    font-size: 0.8rem;
+}
+
+#customer-details-inputs input,
+#customer-details-inputs textarea,
+#customer-details-inputs .phone-input-group {
+    padding: 8px 12px;
+    /* Compact padding */
+    font-size: 0.9rem;
+    height: auto;
+}
+
+#customer-details-inputs textarea {
+    min-height: 60px;
+    /* Smaller textarea */
+}
+
+/* 4. Optimize Payment Options */
+.payment-options {
+    gap: 8px;
+    /* Tighter grid */
+}
+
+.payment-card .pay-content {
+    padding: 10px 5px !important;
+    min-height: 60px;
+    /* Compact cards */
+}
+
+.pay-content i {
+    font-size: 1.2rem;
+    /* Smaller icons */
+    margin-bottom: 4px;
+}
+
+/* 5. Mobile Specific Tweaks */
+@media (max-width: 600px) {
+    .cart-sidebar {
+        width: 100%;
+        /* Full width on mobile */
+    }
+
+    /* Ensure Footer is always visible */
+    .cart-footer {
+        padding: 15px;
+        box-shadow: 0 -4px 10px rgba(0, 0, 0, 0.05);
+    }
+
+    /* Make the items list even smaller on mobile to show form */
+    .cart-items-list {
+        max-height: 20vh;
+    }
+}
