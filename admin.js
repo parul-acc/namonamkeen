@@ -518,20 +518,53 @@ function updateLowStockUI(items) {
 
 function renderInventoryRows(tbody, items) {
     items.forEach(p => {
+        // Existing Logic for Variants & Stock Class
         const vs = p.variants ? p.variants.map(v => `${v.weight}: ₹${v.price}`).join(' ') : '₹' + p.price;
         const rowClass = !p.in_stock ? 'row-out-stock' : '';
+
+        // --- NEW: Featured Button Logic ---
+        // If featured: Solid Star (fas), Yellow Background
+        // If not: Empty Star (far), Yellow Border
+        const isFeat = p.isFeatured === true;
+        const featuredIcon = isFeat ? 'fas' : 'far';
+        const featuredStyle = isFeat
+            ? 'background: #f1c40f; color: white;'
+            : 'background: white; color: #f1c40f; border: 1px solid #f1c40f;';
+
         tbody.innerHTML += `
             <tr class="${rowClass}">
-                <td><img src="${p.image}" width="40" height="40" style="border-radius:5px; object-fit:cover;" onerror="this.onerror=null; this.src='logo.jpg';"></td>
-                <td><strong>${p.name}</strong><br><small>${p.category}</small></td>
-                <td><small>${vs}</small></td>
-                <td><span class="stock-tag ${p.in_stock ? 'stock-in' : 'stock-out'}" onclick="toggleStock('${p.docId}',${!p.in_stock})">${p.in_stock ? 'In Stock' : 'Out'}</span></td>
                 <td>
+                    <img src="${p.image}" width="40" height="40" style="border-radius:5px; object-fit:cover;" onerror="this.onerror=null; this.src='logo.jpg';">
+                </td>
+                <td>
+                    <strong>${p.name}</strong><br>
+                    <small>${p.category}</small>
+                </td>
+                <td><small>${vs}</small></td>
+                <td>
+                    <span class="stock-tag ${p.in_stock ? 'stock-in' : 'stock-out'}" onclick="toggleStock('${p.docId}',${!p.in_stock})">
+                        ${p.in_stock ? 'In Stock' : 'Out'}
+                    </span>
+                </td>
+                <td>
+                    <button class="icon-btn" onclick="toggleFeatured('${p.docId}', ${!isFeat})" title="Toggle Featured" style="${featuredStyle}">
+                        <i class="${featuredIcon} fa-star"></i>
+                    </button>
+                    
                     <button class="icon-btn btn-blue" onclick="editProduct('${p.docId}')"><i class="fas fa-edit"></i></button>
                     <button class="icon-btn btn-danger" onclick="delProduct('${p.docId}')"><i class="fas fa-trash"></i></button>
                 </td>
             </tr>`;
     });
+}
+
+function toggleFeatured(id, status) {
+    db.collection("products").doc(id).update({ isFeatured: status })
+        .then(() => {
+            showToast(status ? "Marked as Featured ⭐" : "Removed from Featured", "success");
+            // No need to reload manually; the snapshot listener will auto-refresh the table
+        })
+        .catch(err => showToast("Error: " + err.message, "error"));
 }
 
 // 1. Add this variable at the top of admin.js with other state variables

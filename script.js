@@ -36,6 +36,19 @@ let historyOrders = [];
 let currentModalQty = 1;
 let confirmationResult = null; // Stores the OTP result object
 
+// Add this mapping object at the top of script.js
+const synonymMap = {
+    "kaju": "cashew",
+    "badam": "almond",
+    "tikha": "spicy",
+    "meetha": "sweet",
+    "shakkar": "sugar",
+    "namak": "salt",
+    "falahari": "farali",
+    "chivda": "chiwda",
+    "murukku": "chakli"
+};
+
 // NEW: Add this Shop Config
 // ⚠️ CRITICAL: razorpayKeyId must be configured before deployment
 // Get from: https://dashboard.razorpay.com/app/keys
@@ -122,6 +135,29 @@ document.addEventListener('DOMContentLoaded', () => {
 function fetchUserProfile(uid) {
     db.collection("users").doc(uid).get().then(doc => {
         if (doc.exists) {
+            userProfile = doc.data();
+
+            // --- NEW: Ensure Referral Code Exists ---
+            if (!userProfile.referralCode) {
+                initReferral(); // Call the generator function immediately
+            }
+
+            // Auto-fill Checkout Fields
+            const phoneInput = document.getElementById('cust-phone');
+            const addrInput = document.getElementById('cust-address');
+            const emailInput = document.getElementById('cust-email'); // <--- NEW
+
+            if (phoneInput && !phoneInput.value && userProfile.phone) {
+                phoneInput.value = userProfile.phone.replace('+91', '');
+            }
+            if (addrInput && !addrInput.value && userProfile.address) {
+                addrInput.value = userProfile.address;
+            }
+            // Auto-fill Email (Priority: Profile Data > Auth Data)
+            if (emailInput && !emailInput.value) {
+                emailInput.value = userProfile.email || (currentUser.email || "");
+            }
+
             const data = doc.data();
             // Merge Logic: Cloud cart takes precedence or merge? 
             // Simple approach: If local is empty, pull cloud. If both exist, merge.
@@ -1753,11 +1789,15 @@ function openRazorpayModal(amountPaise, amountINR, userPhone) {
 async function saveOrderToFirebase(method, paymentStatus, txnId) {
     toggleBtnLoading('btn-main-checkout', true);
 
-    // 1. Get Email safely
-    const userEmail = currentUser ? currentUser.email : "";
-
     const phone = document.getElementById('cust-phone').value.trim();
     const address = document.getElementById('cust-address').value.trim();
+
+    // --- NEW: Capture Email from Input ---
+    // Use input value first, fallback to Auth email, fallback to empty string
+    let emailInput = document.getElementById('cust-email').value.trim();
+    if (!emailInput && currentUser && currentUser.email) {
+        emailInput = currentUser.email;
+    }
 
     // Generate a robust short ID
     const generateShortId = () => {
@@ -1800,7 +1840,7 @@ async function saveOrderToFirebase(method, paymentStatus, txnId) {
             discountAmt: discountAmount,
             total: finalTotal,
             paymentMethod: method,
-            userEmail: userEmail,
+            userEmail: emailInput,
             status: 'Pending',
             paymentStatus: paymentStatus,
             transactionId: txnId || '',
@@ -1809,24 +1849,28 @@ async function saveOrderToFirebase(method, paymentStatus, txnId) {
 
         // B. Update/Create User Profile
         const userRef = db.collection("users").doc(String(uid));
-        batch.set(userRef, {
+        const userUpdateData = {
             name: uName,
             phone: phone,
             address: address,
             lastOrder: new Date(),
             type: currentUser ? 'Registered' : 'Guest'
-        }, { merge: true });
+        };
+        // Only update email if provided
+        if (emailInput) userUpdateData.email = emailInput;
+
+        batch.set(userRef, userUpdateData, { merge: true });
 
         // --- LOYALTY & WALLET LOGIC ---
+        // --- LOYALTY & WALLET LOGIC (FIXED) ---
         if (currentUser) {
-            // 1. Earn Points (1 Coin per ₹100)
+            // 1. Calculate Points Earned (1 Coin per ₹100)
             const coinsEarned = Math.floor(finalTotal / 100);
+            let netWalletChange = 0;
 
+            // 2. Add Earned Points
             if (coinsEarned > 0) {
-                // Update Balance
-                batch.update(userRef, {
-                    walletBalance: firebase.firestore.FieldValue.increment(coinsEarned)
-                });
+                netWalletChange += coinsEarned;
 
                 // Log History (Credit)
                 const historyRef = db.collection("users").doc(uid).collection("wallet_history").doc();
@@ -1838,12 +1882,9 @@ async function saveOrderToFirebase(method, paymentStatus, txnId) {
                 });
             }
 
-            // 2. Deduct Points (If used)
+            // 3. Subtract Used Points
             if (appliedDiscount.type === 'loyalty') {
-                // Update Balance
-                batch.update(userRef, {
-                    walletBalance: firebase.firestore.FieldValue.increment(-appliedDiscount.value)
-                });
+                netWalletChange -= appliedDiscount.value;
 
                 // Log History (Debit)
                 const debitRef = db.collection("users").doc(uid).collection("wallet_history").doc();
@@ -1852,6 +1893,13 @@ async function saveOrderToFirebase(method, paymentStatus, txnId) {
                     type: 'debit',
                     description: `Redeemed on Order #${orderId}`,
                     timestamp: new Date()
+                });
+            }
+
+            // 4. PERFORM SINGLE BATCH UPDATE (Prevents Crash)
+            if (netWalletChange !== 0) {
+                batch.update(userRef, {
+                    walletBalance: firebase.firestore.FieldValue.increment(netWalletChange)
                 });
             }
         }
@@ -2244,11 +2292,18 @@ function initFuzzySearch() {
 
 if (searchInput && suggestionsBox) {
     searchInput.addEventListener('input', function () {
+
+        let query = this.value.toLowerCase().trim();
+
+        // --- NEW: Check for Synonyms ---
+        if (synonymMap[query]) {
+            query = synonymMap[query]; // Swap "kaju" for "cashew" automatically
+        }
+
         if (!fuse) {
             searchMenu();
             return;
         }
-        const query = this.value.toLowerCase().trim();
 
         // 1. Hide if empty
         if (query.length === 0) {
@@ -2737,37 +2792,83 @@ function confirmOtp() {
     toggleBtnLoading('btn-verify-otp', true);
 
     confirmationResult.confirm(code).then((result) => {
-        // User signed in successfully!
         const user = result.user;
+        let isNewUserOrIncomplete = false;
 
-        // Save/Update User Profile
+        // Check if Name is default/missing
+        if (!user.displayName) {
+            isNewUserOrIncomplete = true;
+        }
+
+        // 1. Prepare Data to Save
         const updateData = {
             phone: user.phoneNumber,
             lastLogin: new Date()
         };
-        // If Name is missing (Phone Auth doesn't provide name), ask later or set default
+        // Set default name if missing
         if (!user.displayName) updateData.name = "User " + user.phoneNumber.slice(-4);
 
+        // 2. Update Firestore
         db.collection("users").doc(user.uid).set(updateData, { merge: true });
 
-        // UI Cleanup
+        // 3. UI Cleanup
         closeModal('otp-modal');
         toggleBtnLoading('btn-verify-otp', false);
         showToast("Login Successful!", "success");
 
-        // If checking out, proceed to payment
+        // --- NEW: Prompt for Name if missing ---
+        if (isNewUserOrIncomplete) {
+            setTimeout(() => {
+                alert("Welcome! Please tell us your Name for the invoice.");
+                openProfileModal(); // Opens the existing modal so they can fill Name/Email
+            }, 500);
+        }
+
+        // --- FIX: Auto-fill Phone Field for Checkout ---
+        const phoneInput = document.getElementById('cust-phone');
+        if (phoneInput) {
+            // Remove '+91' so it passes the 10-digit validation check
+            // Example: '+919876543210' -> '9876543210'
+            let cleanPhone = user.phoneNumber.replace('+91', '').replace(/[^0-9]/g, '');
+            phoneInput.value = cleanPhone;
+        }
+        // -----------------------------------------------
+
+        // 4. Proceed to Payment immediately
         if (cart.length > 0) {
             initiateRazorpayPayment();
         }
 
     }).catch((error) => {
         toggleBtnLoading('btn-verify-otp', false);
-        showToast("Invalid OTP", "error");
         console.error(error);
+
+        // Show specific error messages for common issues
+        if (error.code === 'auth/invalid-verification-code') {
+            showToast("Invalid OTP. Please check code.", "error");
+        } else {
+            showToast("Login Failed: " + error.message, "error");
+        }
     });
 }
 
 function resendOtp() {
     closeModal('otp-modal');
     handleLoginChoice('mobile'); // Retry flow
+}
+
+function shareApp() {
+    const shareData = {
+        title: 'Namo Namkeen',
+        text: 'Order authentic Indori Namkeen & Sweets online! Best taste guaranteed. 😋',
+        url: window.location.origin
+    };
+
+    if (navigator.share) {
+        navigator.share(shareData).then(() => showToast("Thanks for sharing! 🧡", "success"));
+    } else {
+        // Fallback
+        const waUrl = `https://wa.me/?text=${encodeURIComponent(shareData.text + ' ' + shareData.url)}`;
+        window.open(waUrl, '_blank');
+    }
 }

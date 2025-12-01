@@ -3655,7 +3655,24 @@ textarea:focus,
 }
 
 #product-modal .close-modal {
-    position: static !important; /* Forces it to respect the Flexbox layout */
+    position: static !important;
+    /* Forces it to respect the Flexbox layout */
     padding: 0;
     margin: 0;
+}
+
+/* --- FIX: Ensure Cart/Checkout is above the Overlay --- */
+.cart-sidebar {
+    z-index: 7001 !important;
+    /* Higher than .cart-overlay (7000) */
+}
+
+/* Ensure Payment/Success Modals appear above the Cart Sidebar */
+.modal-overlay {
+    z-index: 7002 !important;
+}
+
+/* Ensure Toasts are the highest */
+#toast-container {
+    z-index: 8000 !important;
 }
