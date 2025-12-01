@@ -1823,14 +1823,16 @@ async function saveOrderToFirebase(method, paymentStatus, txnId) {
     const phone = document.getElementById('cust-phone').value.trim();
     const address = document.getElementById('cust-address').value.trim();
 
-    // --- NEW: Capture Email from Input ---
-    // Use input value first, fallback to Auth email, fallback to empty string
-    let emailInput = document.getElementById('cust-email').value.trim();
-    if (!emailInput && currentUser && currentUser.email) {
-        emailInput = currentUser.email;
+    // 1. Capture Email (Input > Auth > Empty)
+    let email = "";
+    const emailInput = document.getElementById('cust-email');
+    if (emailInput && emailInput.value.trim()) {
+        email = emailInput.value.trim();
+    } else if (currentUser && currentUser.email) {
+        email = currentUser.email;
     }
 
-    // Generate a robust short ID
+    // 2. Generate Order ID
     const generateShortId = () => {
         const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
         let result = '';
@@ -1841,27 +1843,23 @@ async function saveOrderToFirebase(method, paymentStatus, txnId) {
     };
     const orderId = 'ORD-' + generateShortId();
 
-    // 1. Determine User ID (Guest or Registered)
     let uid = currentUser ? currentUser.uid : `guest_${phone}`;
     let uName = currentUser ? currentUser.displayName : "Guest";
-
-    // 2. Capture Delivery Note
     const deliveryNote = document.getElementById('delivery-note') ? document.getElementById('delivery-note').value.trim() : '';
 
-    // 3. Calculate Totals
     const { subtotal, discountAmount, shipping, finalTotal } = getCartTotals();
 
     try {
-        // --- FIX: DECLARE BATCH HERE ---
         const batch = db.batch();
 
-        // A. Create Order Document
+        // --- A. PREPARE ORDER DATA ---
         const orderRef = db.collection("orders").doc(String(orderId));
         batch.set(orderRef, {
             id: orderId,
             userId: uid,
             userName: uName,
             userPhone: phone,
+            userEmail: email, // Save email for Cloud Function
             userAddress: address,
             deliveryNote: deliveryNote,
             items: cart,
@@ -1871,41 +1869,36 @@ async function saveOrderToFirebase(method, paymentStatus, txnId) {
             discountAmt: discountAmount,
             total: finalTotal,
             paymentMethod: method,
-            userEmail: emailInput,
             status: 'Pending',
             paymentStatus: paymentStatus,
             transactionId: txnId || '',
             timestamp: new Date()
         });
 
-        // B. Update/Create User Profile
+        // --- B. PREPARE USER DATA (Consolidated) ---
         const userRef = db.collection("users").doc(String(uid));
-        const userUpdateData = {
+
+        // Base profile update
+        let userUpdateData = {
             name: uName,
             phone: phone,
             address: address,
             lastOrder: new Date(),
             type: currentUser ? 'Registered' : 'Guest'
         };
-        // Only update email if provided
-        if (emailInput) userUpdateData.email = emailInput;
+        if (email) userUpdateData.email = email;
 
-        batch.set(userRef, userUpdateData, { merge: true });
-
-        // --- LOYALTY & WALLET LOGIC ---
-        // --- LOYALTY & WALLET LOGIC (FIXED) ---
+        // --- LOYALTY LOGIC: Calculate Net Change ---
         if (currentUser) {
-            // 1. Calculate Points Earned (1 Coin per ₹100)
-            const coinsEarned = Math.floor(finalTotal / 100);
             let netWalletChange = 0;
 
-            // 2. Add Earned Points
+            // 1. Earn Points
+            const coinsEarned = Math.floor(finalTotal / 100);
             if (coinsEarned > 0) {
                 netWalletChange += coinsEarned;
-
-                // Log History (Credit)
-                const historyRef = db.collection("users").doc(uid).collection("wallet_history").doc();
-                batch.set(historyRef, {
+                // Log History (New Doc - Safe in Batch)
+                const histRef = userRef.collection("wallet_history").doc();
+                batch.set(histRef, {
                     amount: coinsEarned,
                     type: 'credit',
                     description: `Earned from Order #${orderId}`,
@@ -1913,12 +1906,11 @@ async function saveOrderToFirebase(method, paymentStatus, txnId) {
                 });
             }
 
-            // 3. Subtract Used Points
+            // 2. Deduct Points
             if (appliedDiscount.type === 'loyalty') {
                 netWalletChange -= appliedDiscount.value;
-
-                // Log History (Debit)
-                const debitRef = db.collection("users").doc(uid).collection("wallet_history").doc();
+                // Log History (New Doc - Safe in Batch)
+                const debitRef = userRef.collection("wallet_history").doc();
                 batch.set(debitRef, {
                     amount: appliedDiscount.value,
                     type: 'debit',
@@ -1927,21 +1919,20 @@ async function saveOrderToFirebase(method, paymentStatus, txnId) {
                 });
             }
 
-            // 4. PERFORM SINGLE BATCH UPDATE (Prevents Crash)
+            // 3. Add to User Update Data
             if (netWalletChange !== 0) {
-                batch.update(userRef, {
-                    walletBalance: firebase.firestore.FieldValue.increment(netWalletChange)
-                });
+                userUpdateData.walletBalance = firebase.firestore.FieldValue.increment(netWalletChange);
             }
         }
 
-        // C. Commit Changes
+        // --- PERFORM SINGLE USER WRITE ---
+        batch.set(userRef, userUpdateData, { merge: true });
+
+        // --- C. COMMIT ---
         await batch.commit();
 
-        // D. Success UI
         showSuccessModal(orderId, finalTotal, method);
 
-        // Cleanup
         cart = [];
         appliedDiscount = { type: 'none', value: 0, code: null };
         saveCartLocal();
@@ -2880,7 +2871,7 @@ window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
     // 2. Stash the event so it can be triggered later.
     deferredPrompt = e;
-    
+
     // 3. Update UI: Show the hidden install button
     const installBtn = document.getElementById('pwa-install-btn');
     if (installBtn) {

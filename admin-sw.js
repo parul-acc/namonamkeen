@@ -1,4 +1,4 @@
-const CACHE_NAME = 'namo-admin-v6';
+const CACHE_NAME = 'namo-admin-v7';
 const urlsToCache = [
   '/admin.html',
   '/admin.css', // Important: Cache the new styles
