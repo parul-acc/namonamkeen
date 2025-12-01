@@ -258,21 +258,39 @@ function renderCustomerRows(tbody, items) {
     }
 
     items.forEach(u => {
+        // Safe access with fallbacks
         const name = u.name || 'Guest';
         const email = u.email || '';
         const phone = u.phone || '-';
-        let address = u.address ? String(u.address).substring(0, 20) + (String(u.address).length > 20 ? '...' : '') : '-';
+
+        // Fix Address truncation safely
+        let address = '-';
+        if (u.address) {
+            address = String(u.address);
+            if (address.length > 20) address = address.substring(0, 20) + '...';
+        }
+
         const date = u.displayDate || '-';
 
-        let waBtn = '-';
-        if (u.phone) {
+        // WhatsApp Button Logic
+        let waBtn = '';
+        if (u.phone && u.phone.length >= 10) {
             const cleanPhone = String(u.phone).replace(/\D/g, '');
             waBtn = `<button class="icon-btn btn-green" onclick="window.open('https://wa.me/91${cleanPhone}', '_blank')"><i class="fab fa-whatsapp"></i></button>`;
+        } else {
+            waBtn = `<button class="icon-btn" style="background:#ccc; cursor:not-allowed;"><i class="fab fa-whatsapp"></i></button>`;
         }
+
+        // --- THE FIX IS HERE ---
+        // Ensure we don't accidentally print 'undefined'
+        const safeEmail = email ? `<br><small>${email}</small>` : '';
 
         tbody.innerHTML += `
             <tr>
-                <td>${u.segment}<strong>${name}</strong><br><small>${email}</small></td>
+                <td>
+                    <strong>${name}</strong>
+                    ${safeEmail}
+                </td>
                 <td>${phone}</td>
                 <td>${address}</td>
                 <td>${date}</td>
@@ -765,7 +783,15 @@ function setStatus(id, status) {
     db.collection("orders").doc(id).update({ status: status }).then(async () => {
         const order = state.orders.data.find(o => o.docId === id);
         if (order && await showConfirm(`Updated to ${status}. Notify customer?`)) {
-            let msg = `Hello ${escapeHtml(order.userName)}, your Namo Namkeen order #${order.id} is now *${status}*.`;
+
+            // Enhanced Status Message
+            let emoji = '';
+            if (status === 'Packed') emoji = '📦';
+            else if (status === 'Delivered') emoji = '🎉';
+            else if (status === 'Shipped') emoji = '🚚';
+
+            let msg = `Hello ${escapeHtml(order.userName)}! 👋\n\nGreat news! Your Namo Namkeen order *#${order.id}* is now *${status}* ${emoji}.\n\nThank you for choosing us! 🧡`;
+
             window.open(`https://wa.me/91${escapeHtml(order.userPhone.replace(/\D/g, ''))}?text=${encodeURIComponent(msg)}`, '_blank');
         }
     });
@@ -898,9 +924,12 @@ function recalculateAndSave(orderId, newItems, orderDoc) {
 function sendUpdateNotification(orderId) {
     const o = state.orders.data.find(x => x.docId === orderId);
     if (!o) return;
+
     let itemsList = "";
-    o.items.forEach(i => { itemsList += `- ${i.name} (${i.weight}) x ${i.qty}\n`; });
-    let msg = `*Order Update #${o.id}*\n\nHello ${escapeHtml(o.userName)}, we have updated your order.\n\n*New Summary:*\n${itemsList}\n*New Total: ₹${o.total}*`;
+    o.items.forEach(i => { itemsList += `🔸 ${i.name} (${i.weight}) x ${i.qty}\n`; });
+
+    let msg = `📝 *Order Update: #${o.id}*\n\nHi ${escapeHtml(o.userName)}, we have updated your order details as requested. ✅\n\n🛒 *New Summary:*\n${itemsList}\n💰 *New Total: ₹${o.total}*\n\nLet us know if this looks correct!`;
+
     window.open(`https://wa.me/91${o.userPhone.replace(/\D/g, '')}?text=${encodeURIComponent(msg)}`, '_blank');
 }
 
@@ -974,9 +1003,11 @@ function switchView(v) {
     }
 
     // Load data
+    // Load data based on view
     if (v === 'orders') loadOrders();
     if (v === 'pos' && typeof renderPosProducts === 'function') renderPosProducts();
     if (v === 'reviews' && typeof loadReviews === 'function') loadReviews();
+    if (v === 'blogs') loadBlogCMS();
 }
 
 function openProductModal() {
@@ -1795,59 +1826,145 @@ async function exportAllOrders() {
 }
 
 // --- BLOG CMS LOGIC ---
+
 function loadBlogCMS() {
     const container = document.getElementById('blog-list');
-    db.collection("blogs").orderBy("date", "desc").get().then(snap => {
-        container.innerHTML = '';
+    if (!container) return;
+
+    container.innerHTML = '<p style="text-align:center; color:#666;">Loading posts...</p>';
+
+    db.collection("blogs").orderBy("date", "desc").onSnapshot(snap => {
+        if (snap.empty) {
+            container.innerHTML = '<p style="text-align:center; padding:20px; color:#999;">No blog posts found. Create one!</p>';
+            return;
+        }
+
+        let html = '';
         snap.forEach(doc => {
             const b = doc.data();
-            container.innerHTML += `
-            <div style="display:flex; justify-content:space-between; border-bottom:1px solid #eee; padding:10px;">
-                <div><strong>${b.title}</strong><br><small>${b.date.toDate().toLocaleDateString()}</small></div>
-                <div>
-                    <button class="btn btn-blue btn-sm" onclick="editBlog('${doc.id}')">Edit</button>
-                    <button class="btn btn-danger btn-sm" onclick="deleteBlog('${doc.id}')">Del</button>
+            const dateStr = b.date ? b.date.toDate().toLocaleDateString('en-IN') : '-';
+            const imgHtml = b.image ? `<img src="${b.image}" style="width:50px; height:50px; object-fit:cover; border-radius:4px; margin-right:10px;">` : '';
+
+            html += `
+            <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #eee; padding:15px 0;">
+                <div style="display:flex; align-items:center;">
+                    ${imgHtml}
+                    <div>
+                        <strong style="font-size:1.1rem; color:#333;">${escapeHtml(b.title)}</strong>
+                        <br><small style="color:#888;">${dateStr}</small>
+                    </div>
+                </div>
+                <div style="display:flex; gap:10px;">
+                    <button class="btn btn-blue btn-sm" onclick="editBlog('${doc.id}')"><i class="fas fa-edit"></i> Edit</button>
+                    <button class="btn btn-danger btn-sm" onclick="deleteBlog('${doc.id}')"><i class="fas fa-trash"></i></button>
                 </div>
             </div>`;
         });
+        container.innerHTML = html;
     });
 }
 
 function openBlogEditor() {
+    // Clear fields for new post
     document.getElementById('blog-id').value = '';
     document.getElementById('blog-title').value = '';
-    document.getElementById('blog-image-file').value = ''; // Clear file input
-    document.getElementById('blog-image-base64').value = ''; // Clear hidden data
     document.getElementById('blog-content').value = '';
+
+    // Clear image fields
+    if (document.getElementById('blog-image-file')) document.getElementById('blog-image-file').value = '';
+    if (document.getElementById('blog-image-base64')) document.getElementById('blog-image-base64').value = '';
+
     document.getElementById('blog-editor-modal').style.display = 'flex';
 }
 
 function editBlog(id) {
     db.collection("blogs").doc(id).get().then(doc => {
+        if (!doc.exists) return showToast("Post not found", "error");
+
         const b = doc.data();
         document.getElementById('blog-id').value = id;
         document.getElementById('blog-title').value = b.title;
-        // Load existing image into hidden field so we don't lose it if we don't upload a new one
-        document.getElementById('blog-image-base64').value = b.image || ''; 
         document.getElementById('blog-content').value = b.content;
+
+        // Handle Image
+        if (document.getElementById('blog-image-base64')) {
+            document.getElementById('blog-image-base64').value = b.image || '';
+        }
+
         document.getElementById('blog-editor-modal').style.display = 'flex';
-        
-        // Reset file input
-        document.getElementById('blog-image-file').value = ''; 
-    });
+    }).catch(e => showToast("Error: " + e.message, "error"));
 }
 
 function saveBlogPost() {
     const id = document.getElementById('blog-id').value;
-    
+    const title = document.getElementById('blog-title').value.trim();
+    const content = document.getElementById('blog-content').value.trim();
+
+    // Get image from hidden base64 field (populated by the file input listener)
+    const image = document.getElementById('blog-image-base64') ? document.getElementById('blog-image-base64').value : '';
+
+    if (!title || !content) return showToast("Title and Content are required", "error");
+
+    const data = {
+        title: title,
+        content: content,
+        image: image,
+        date: new Date() // Updates timestamp to now on edit (optional)
+    };
+
+    // Create new or Update existing
+    const ref = id ? db.collection("blogs").doc(id) : db.collection("blogs").doc();
+
+    ref.set(data, { merge: true }).then(() => {
+        closeModal('blog-editor-modal');
+        showToast(id ? "Blog Updated!" : "Blog Published!", "success");
+        loadBlogCMS(); // Refresh list
+    }).catch(e => showToast("Error saving: " + e.message, "error"));
+}
+
+async function deleteBlog(id) {
+    if (await showConfirm("Delete this post permanently?")) {
+        db.collection("blogs").doc(id).delete()
+            .then(() => showToast("Post deleted", "success"))
+            .catch(e => showToast("Error: " + e.message));
+    }
+}
+
+// --- FILE INPUT LISTENER (For Image Upload) ---
+// This converts the selected file to Base64 automatically
+document.addEventListener('change', function (e) {
+    if (e.target && e.target.id === 'blog-image-file') {
+        const file = e.target.files[0];
+        if (file) {
+            // Constraint check
+            if (file.size > 800 * 1024) { // 800KB limit
+                alert("Image is too large! Please use an image under 800KB.");
+                e.target.value = ''; // Clear input
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function (evt) {
+                // Save the Base64 string to the hidden input
+                const hiddenInput = document.getElementById('blog-image-base64');
+                if (hiddenInput) hiddenInput.value = evt.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+    }
+});
+
+function saveBlogPost() {
+    const id = document.getElementById('blog-id').value;
+
     const data = {
         title: document.getElementById('blog-title').value,
         // Use the hidden Base64 value
-        image: document.getElementById('blog-image-base64').value, 
+        image: document.getElementById('blog-image-base64').value,
         content: document.getElementById('blog-content').value,
         date: new Date()
     };
-    
+
     const ref = id ? db.collection("blogs").doc(id) : db.collection("blogs").doc();
     ref.set(data, { merge: true }).then(() => {
         closeModal('blog-editor-modal');

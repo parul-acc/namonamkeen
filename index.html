@@ -603,6 +603,52 @@
             class="fab fa-whatsapp"></i></a>
     <div id="toast-container"></div>
 
+    <div id="exit-modal" class="modal-overlay">
+        <div class="modal-content mobile-modal text-center"
+            style="background: linear-gradient(135deg, #fff3e0 0%, #ffffff 100%); border: 2px solid #e85d04;">
+            <button class="close-modal" onclick="closeModal('exit-modal')">&times;</button>
+
+            <div style="font-size: 3rem; margin-bottom: 10px;">🎁</div>
+            <h2 style="color: #e85d04; margin-bottom: 5px;">Wait! Don't leave yet!</h2>
+            <p style="color: #555; font-size: 1rem; margin-bottom: 20px;">
+                Complete your order now and get <br><strong>5% OFF</strong> instantly!
+            </p>
+
+            <div
+                style="background: #fff; border: 2px dashed #e85d04; padding: 10px; border-radius: 8px; margin-bottom: 20px; font-weight: bold; font-size: 1.2rem; letter-spacing: 1px; color: #333;">
+                CODE: <span id="exit-coupon-code" style="color: #e85d04;">SAVE5</span>
+            </div>
+
+            <button class="btn-primary full-width" onclick="applyExitCoupon()">
+                Apply Coupon & Checkout <i class="fas fa-arrow-right"></i>
+            </button>
+
+            <button onclick="closeModal('exit-modal')"
+                style="background: none; border: none; color: #999; margin-top: 15px; text-decoration: underline; cursor: pointer;">
+                No thanks, I hate discounts
+            </button>
+        </div>
+    </div>
+
+    <div id="recaptcha-container"></div>
+
+    <div id="otp-modal" class="modal-overlay">
+        <div class="modal-content mobile-modal text-center" style="max-width: 350px;">
+            <button class="close-modal" onclick="closeModal('otp-modal')">&times;</button>
+            <h3>Verify Phone</h3>
+            <p style="color:#666; font-size:0.9rem; margin-bottom:15px;">
+                Enter the 6-digit code sent to <br><b id="otp-phone-display">+91 XXXXX XXXXX</b>
+            </p>
+
+            <input type="number" id="otp-input" class="form-control" placeholder="123456"
+                style="text-align:center; letter-spacing:5px; font-size:1.2rem; margin-bottom:15px;">
+
+            <button id="btn-verify-otp" class="btn-primary full-width" onclick="confirmOtp()">Verify & Login</button>
+
+            <p style="margin-top:15px; font-size:0.8rem; color:#999; cursor:pointer;" onclick="resendOtp()">Resend Code
+            </p>
+        </div>
+    </div>
     <script src="script.js"></script>
 </body>
 

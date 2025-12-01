@@ -34,6 +34,7 @@ let currentLang = 'en';
 let selectedHamperItems = [];
 let historyOrders = [];
 let currentModalQty = 1;
+let confirmationResult = null; // Stores the OTP result object
 
 // NEW: Add this Shop Config
 // ⚠️ CRITICAL: razorpayKeyId must be configured before deployment
@@ -64,6 +65,7 @@ document.addEventListener('DOMContentLoaded', () => {
     loadStorefront();
     // FIX: Call the robust function instead of using inline logic
     registerServiceWorker();
+    setupRecaptcha();
 
     auth.onAuthStateChanged(user => {
         currentUser = user;
@@ -538,9 +540,9 @@ function findResult(keyword) {
 function openProductDetail(id) {
     const p = products.find(x => x.id === id);
     if (!p) return;
-    
+
     // Reset Qty on open
-    currentModalQty = 1; 
+    currentModalQty = 1;
 
     // Update SEO Schema if function exists
     if (typeof updateSchema === 'function') updateSchema(p);
@@ -573,14 +575,21 @@ function openProductDetail(id) {
 
     // --- Share Button Logic ---
     const shareUrl = `${window.location.origin}/?pid=${p.id}`;
-    const shareText = `Check out ${name} on Namo Namkeen! 😋`;
+    const shareText = `👀 *Look at this!* \n\nFound this amazing *${name}* on Namo Namkeen! 🤤🔥\n\nIt looks super crunchy and tasty. Check it out here:`;
+
     let shareBtnHtml = '';
 
     if (navigator.share) {
-        shareBtnHtml = `<button onclick="shareNative('${name.replace(/'/g, "\\'")}', '${shareUrl}')" style="background:none; border:none; color:#2ecc71; font-size:1.5rem; cursor:pointer;"><i class="fas fa-share-alt"></i></button>`;
+        shareBtnHtml = `
+            <button onclick="shareNative('${name.replace(/'/g, "\\'")}', '${shareUrl}')" style="background:none; border:none; color:var(--primary); font-size:1.2rem; cursor:pointer;" title="Share">
+                <i class="fas fa-share-alt"></i>
+            </button>`;
     } else {
         const waUrl = `https://wa.me/?text=${encodeURIComponent(shareText + ' ' + shareUrl)}`;
-        shareBtnHtml = `<a href="${waUrl}" target="_blank" style="color:#25D366; font-size:1.5rem;"><i class="fab fa-whatsapp"></i></a>`;
+        shareBtnHtml = `
+            <a href="${waUrl}" target="_blank" style="color:#25D366; font-size:1.2rem;" title="Share on WhatsApp">
+                <i class="fab fa-whatsapp"></i>
+            </a>`;
     }
 
     // --- NEW MODAL HTML STRUCTURE ---
@@ -625,10 +634,10 @@ function openProductDetail(id) {
     `;
 
     document.getElementById('p-modal-body').innerHTML = html;
-    
+
     // Fix Mobile Styling for Modal Container
     const modalContent = document.querySelector('#product-modal .modal-content');
-    if(modalContent) {
+    if (modalContent) {
         modalContent.style.padding = "20px";
         modalContent.style.maxWidth = "400px"; // Mobile card width
         modalContent.style.borderRadius = "15px";
@@ -687,7 +696,7 @@ function updateModalPrice(sel) {
 function addToCartFromModal(id) {
     const p = products.find(x => x.id === id);
     const sel = document.getElementById('modal-variant-select');
-    
+
     let v = { weight: 'Standard', price: p.price };
     if (sel) {
         v = p.variants[sel.value];
@@ -702,7 +711,7 @@ function addToCartFromModal(id) {
 
 function closeProductModal() { document.getElementById('product-modal').style.display = 'none'; }
 
-function addToCart(p, v, qtyToAdd = 1) { 
+function addToCart(p, v, qtyToAdd = 1) {
     const cartId = `${p.id}-${v.weight.replace(/\s/g, '')}`;
     const ex = cart.find(i => i.cartId === cartId);
 
@@ -936,13 +945,14 @@ function toggleLoyalty(amount) {
 function shareCartOnWhatsApp() {
     if (cart.length === 0) return;
 
-    let msg = "Hey! I'm ordering these snacks from Namo Namkeen:\n\n";
+    let msg = "👋 *Hey everyone!* \n\nI'm placing an order for some delicious snacks from *Namo Namkeen*! 😋🍟\n\nHere is what I've picked so far:\n━━━━━━━━━━━━━━━━\n";
+
     cart.forEach(i => {
-        msg += `• ${i.name} (${i.weight}) x ${i.qty}\n`;
+        msg += `🔸 *${i.name}* (${i.weight}) x ${i.qty}\n`;
     });
 
     let total = cart.reduce((sum, i) => sum + (i.price * i.qty), 0);
-    msg += `\nTotal: ₹${total}\n\nDo you want to add anything?`;
+    msg += `━━━━━━━━━━━━━━━━\n💰 *Total Estimate:* ₹${total}\n\nAnyone want to add anything else? Speak now or miss out! 😜⏳`;
 
     const url = `https://wa.me/?text=${encodeURIComponent(msg)}`;
     window.open(url, '_blank');
@@ -1743,6 +1753,9 @@ function openRazorpayModal(amountPaise, amountINR, userPhone) {
 async function saveOrderToFirebase(method, paymentStatus, txnId) {
     toggleBtnLoading('btn-main-checkout', true);
 
+    // 1. Get Email safely
+    const userEmail = currentUser ? currentUser.email : "";
+
     const phone = document.getElementById('cust-phone').value.trim();
     const address = document.getElementById('cust-address').value.trim();
 
@@ -1787,6 +1800,7 @@ async function saveOrderToFirebase(method, paymentStatus, txnId) {
             discountAmt: discountAmount,
             total: finalTotal,
             paymentMethod: method,
+            userEmail: userEmail,
             status: 'Pending',
             paymentStatus: paymentStatus,
             transactionId: txnId || '',
@@ -1864,15 +1878,13 @@ async function saveOrderToFirebase(method, paymentStatus, txnId) {
 }
 
 function showSuccessModal(orderId, amount, method) {
-    // FIX: Check if currentUser exists, otherwise use Guest
     const custName = currentUser ? currentUser.displayName : "Guest";
     const address = document.getElementById('cust-address').value;
-
-    // Optional Delivery Note
     const noteElem = document.getElementById('delivery-note');
-    const noteText = (noteElem && noteElem.value.trim()) ? `\n*Note:* ${noteElem.value.trim()}` : '';
+    const noteText = (noteElem && noteElem.value.trim()) ? `\n📝 *Note:* ${noteElem.value.trim()}` : '';
 
-    const msg = `*New Order: ${orderId}*\n*Method:* ${method}\n*Amount:* ₹${amount}\n*Customer:* ${custName}\n*Address:* ${address}${noteText}\n\n*Payment:* ${method === 'Online' ? 'PAID ✅' : 'Cash on Delivery 🚚'}`;
+    // Enhanced Message
+    const msg = `🎉 *New Order Received!* 🎉\n\n🆔 *Order ID:* ${orderId}\n👤 *Customer:* ${custName}\n📍 *Address:* ${address}\n${noteText}\n\n💰 *Amount:* ₹${amount}\n💳 *Payment:* ${method === 'Online' ? 'PAID ✅' : 'Cash on Delivery 🚚'}\n\nPlease confirm dispatch! 🚀`;
 
     const orderIdElem = document.getElementById('success-order-id');
     if (orderIdElem) orderIdElem.innerText = orderId;
@@ -1887,18 +1899,12 @@ function showSuccessModal(orderId, amount, method) {
     const modal = document.getElementById('success-modal');
     if (modal) {
         modal.style.display = 'flex';
-
-        // TRIGGER CONFETTI
         if (typeof confetti === 'function') {
-            confetti({
-                particleCount: 150,
-                spread: 70,
-                origin: { y: 0.6 },
-                colors: ['#e85d04', '#faa307', '#ffffff'] // Your brand colors
-            });
+            confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 }, colors: ['#e85d04', '#faa307', '#ffffff'] });
         }
     }
 }
+
 // --- USER REVIEW SYSTEM ---
 
 function openReviewModal(pid, oid, name, img) {
@@ -2193,15 +2199,31 @@ function openLoginChoiceModal() {
 }
 
 function handleLoginChoice(method) {
-    closeModal('login-choice-modal'); // Close the selection modal
+    closeModal('login-choice-modal'); // Close selection modal
 
     if (method === 'google') {
-        // 2. Trigger Google Login as 'Checkout Flow' (true)
-        // This ensures that after login, initiateRazorpayPayment() is called automatically.
         googleLogin(true);
     }
     else if (method === 'mobile') {
-        showToast("Mobile Login coming soon! Please use Google or Guest Checkout.", "neutral");
+        // 1. Get Phone Number
+        let phoneNumber = document.getElementById('cust-phone').value.trim();
+
+        // If empty, ask user
+        if (!phoneNumber || phoneNumber.length < 10) {
+            phoneNumber = prompt("Enter your 10-digit Mobile Number:");
+        }
+
+        if (!phoneNumber || phoneNumber.length < 10) {
+            return showToast("Valid phone number required", "error");
+        }
+
+        // Format to E.164 (e.g., +919876543210)
+        if (!phoneNumber.startsWith('+91')) {
+            phoneNumber = '+91' + phoneNumber;
+        }
+
+        // 2. Send OTP
+        initiatePhoneLogin(phoneNumber);
     }
 }
 
@@ -2605,4 +2627,147 @@ async function redeemReferral() {
         console.error(e);
         showToast("Error processing referral", "error");
     }
+}
+
+// --- EXIT INTENT LOGIC ---
+
+let exitIntentShown = false;
+
+// 1. Initialize Exit Detection
+document.addEventListener('DOMContentLoaded', () => {
+    // Check if already shown in this session
+    if (sessionStorage.getItem('namoExitShown')) return;
+
+    // Desktop: Mouse leaves window (towards top)
+    document.addEventListener('mouseleave', (e) => {
+        if (e.clientY < 0) triggerExitPopup();
+    });
+
+    // Mobile: Trigger after 60 seconds if cart has items but no checkout
+    // (Mobile "exit" is hard to detect, so we use a timer as a proxy)
+    if (window.innerWidth < 768) {
+        setTimeout(() => {
+            triggerExitPopup();
+        }, 60000); // 60 seconds
+    }
+});
+
+function triggerExitPopup() {
+    // Conditions to show:
+    // 1. Popup hasn't been shown yet
+    // 2. Cart has items
+    // 3. User is not currently in the payment process (payment modal hidden)
+    if (exitIntentShown || cart.length === 0 || document.getElementById('payment-modal').style.display === 'flex') {
+        return;
+    }
+
+    const modal = document.getElementById('exit-modal');
+    if (modal) {
+        modal.style.display = 'flex';
+        exitIntentShown = true;
+        sessionStorage.setItem('namoExitShown', 'true'); // Don't show again this session
+    }
+}
+
+function applyExitCoupon() {
+    const code = document.getElementById('exit-coupon-code').innerText;
+    const input = document.getElementById('promo-code');
+
+    // 1. Close Popup
+    closeModal('exit-modal');
+
+    // 2. Open Cart Sidebar
+    if (!document.getElementById('cart-sidebar').classList.contains('active')) {
+        toggleCart();
+    }
+
+    // 3. Fill and Apply Coupon
+    if (input) {
+        input.value = code;
+        // You need to create this coupon in Admin Panel for it to work!
+        // Or we can simulate it client-side if you prefer, but Admin creation is safer.
+        applyPromo();
+    }
+}
+
+function setupRecaptcha() {
+    if (!window.recaptchaVerifier) {
+        window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container', {
+            'size': 'invisible',
+            'callback': (response) => {
+                // reCAPTCHA solved, allow signInWithPhoneNumber.
+                console.log("Recaptcha Verified");
+            }
+        });
+    }
+}
+
+function initiatePhoneLogin(phoneNumber) {
+    toggleBtnLoading('login-btn', true); // Show loading
+    showToast("Sending OTP...", "neutral");
+
+    const appVerifier = window.recaptchaVerifier;
+
+    auth.signInWithPhoneNumber(phoneNumber, appVerifier)
+        .then((result) => {
+            // OTP Sent Successfully
+            confirmationResult = result;
+            toggleBtnLoading('login-btn', false);
+
+            // Show OTP Modal
+            document.getElementById('otp-phone-display').innerText = phoneNumber;
+            document.getElementById('otp-modal').style.display = 'flex';
+            document.getElementById('otp-input').focus();
+            showToast("OTP Sent!", "success");
+        }).catch((error) => {
+            console.error("SMS Error:", error);
+            toggleBtnLoading('login-btn', false);
+            showToast("SMS Failed: " + error.message, "error");
+
+            // Reset Recaptcha on error so user can try again
+            if (window.recaptchaVerifier) window.recaptchaVerifier.clear();
+            setupRecaptcha();
+        });
+}
+
+function confirmOtp() {
+    const code = document.getElementById('otp-input').value.trim();
+    if (code.length !== 6) return showToast("Enter 6-digit code", "error");
+
+    toggleBtnLoading('btn-verify-otp', true);
+
+    confirmationResult.confirm(code).then((result) => {
+        // User signed in successfully!
+        const user = result.user;
+
+        // Save/Update User Profile
+        const updateData = {
+            phone: user.phoneNumber,
+            lastLogin: new Date()
+        };
+        // If Name is missing (Phone Auth doesn't provide name), ask later or set default
+        if (!user.displayName) updateData.name = "User " + user.phoneNumber.slice(-4);
+
+        db.collection("users").doc(user.uid).set(updateData, { merge: true });
+
+        // UI Cleanup
+        closeModal('otp-modal');
+        toggleBtnLoading('btn-verify-otp', false);
+        showToast("Login Successful!", "success");
+
+        // If checking out, proceed to payment
+        if (cart.length > 0) {
+            initiateRazorpayPayment();
+        }
+
+    }).catch((error) => {
+        toggleBtnLoading('btn-verify-otp', false);
+        showToast("Invalid OTP", "error");
+        console.error(error);
+    });
+}
+
+function resendOtp() {
+    closeModal('otp-modal');
+    handleLoginChoice('mobile'); // Retry flow
 }
