@@ -12,7 +12,7 @@
         href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Poppins:wght@300;400;500;600&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging-compat.js"></script>
+    <!-- Firebase messaging moved to bottom, after firebase-app-compat -->
     <style>
         .legal-content h2 {
             color: var(--primary);
@@ -40,7 +40,7 @@
 
 <body>
 
-    <nav class="navbar">
+ <nav class="navbar">
         <div class="nav-container">
             <a href="index.html" class="logo">
                 <img src="logo.jpg" alt="Namo Namkeen" class="logo-img">
@@ -68,10 +68,10 @@
                         </div>
                     </div>
                 </div>
-                <div class="cart-trigger" onclick="toggleCart()">
+                <a href="index.html#menu-section" class="cart-trigger" aria-label="Open Menu">
                     <i class="fas fa-shopping-bag"></i>
                     <span id="cart-count" class="cart-count">0</span>
-                </div>
+                </a>
                 <div class="hamburger" onclick="toggleMobileMenu()">
                     <span class="bar"></span><span class="bar"></span><span class="bar"></span>
                 </div>
@@ -224,6 +224,9 @@
         </div>
     </div>
 
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
     <script src="script.js"></script>
 </body>
 

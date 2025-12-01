@@ -1686,6 +1686,7 @@ function loadStoreConfig() {
             if (document.getElementById('conf-del-charge')) document.getElementById('conf-del-charge').value = data.deliveryCharge || '';
             if (document.getElementById('conf-free-ship')) document.getElementById('conf-free-ship').value = data.freeShippingThreshold || '';
             if (data.minOrderValue) document.getElementById('conf-min-order').value = data.minOrderValue;
+            if (data.vapidKey) document.getElementById('conf-vapid').value = data.vapidKey;
         }
     }).catch(err => console.log("Config load error (first run?):", err));
 
@@ -1725,12 +1726,14 @@ function saveStoreConfig() {
     const deliveryCharge = parseFloat(document.getElementById('conf-del-charge').value) || 0;
     const freeShippingThreshold = parseFloat(document.getElementById('conf-free-ship').value) || 0;
     const minOrderValue = parseFloat(document.getElementById('conf-min-order').value) || 0;
+    const vapidKey = document.getElementById('conf-vapid').value.trim();
     db.collection("settings").doc("config").set({
         adminPhone,
         upiId,
         deliveryCharge,
         freeShippingThreshold,
-        minOrderValue
+        minOrderValue,
+        vapidKey: vapidKey
     }, { merge: true })
         .then(() => showToast("Store Config Saved", "success"))
         .catch(err => showToast("Error: " + err.message, "error"));
@@ -2256,27 +2259,33 @@ window.addEventListener('beforeinstallprompt', (e) => {
 });
 
 function enableAdminNotifications() {
-    // Replace with your generated VAPID Key
-    const vapidKey = "YOUR_VAPID_KEY_HERE";
+    // 1. Fetch Key from Firestore
+    db.collection("settings").doc("config").get().then(doc => {
+        if (doc.exists && doc.data().vapidKey) {
+            const vapidKey = doc.data().vapidKey;
 
-    Notification.requestPermission().then(permission => {
-        if (permission === 'granted') {
-            messaging.getToken({ vapidKey: vapidKey }).then((currentToken) => {
-                if (currentToken) {
-                    // Save Admin Token
-                    // We use a specific ID 'admin_device' or append to a collection
-                    db.collection("admin_tokens").doc(currentToken).set({
-                        token: currentToken,
-                        email: auth.currentUser.email,
-                        updatedAt: new Date()
-                    }).then(() => {
-                        showToast("Notifications Enabled! 🔔", "success");
-                        document.getElementById('notif-btn').style.display = 'none';
-                    });
+            // 2. Request Permission using Dynamic Key
+            Notification.requestPermission().then(permission => {
+                if (permission === 'granted') {
+                    messaging.getToken({ vapidKey: vapidKey }).then((currentToken) => {
+                        if (currentToken) {
+                            db.collection("admin_tokens").doc(currentToken).set({
+                                token: currentToken,
+                                email: auth.currentUser.email,
+                                updatedAt: new Date()
+                            }).then(() => {
+                                showToast("Notifications Enabled! 🔔", "success");
+                                const btn = document.getElementById('notif-btn');
+                                if (btn) btn.style.display = 'none';
+                            });
+                        }
+                    }).catch((err) => showToast("Error: " + err, "error"));
+                } else {
+                    showToast("Permission Denied", "error");
                 }
-            }).catch((err) => showToast("Error: " + err, "error"));
+            });
         } else {
-            showToast("Permission Denied", "error");
+            showToast("VAPID Key not set in Settings!", "error");
         }
     });
 }

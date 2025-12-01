@@ -26,7 +26,7 @@ messaging.onBackgroundMessage(function(payload) {
   self.registration.showNotification(notificationTitle, notificationOptions);
 });
 
-const CACHE_NAME = 'namo-admin-v9';
+const CACHE_NAME = 'namo-admin-v11';
 const urlsToCache = [
   '/admin.html',
   '/admin.css', // Important: Cache the new styles

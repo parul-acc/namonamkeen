@@ -12,12 +12,11 @@
         rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/fuse.js@6.6.2"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging-compat.js"></script>
 </head>
 
 <body class="pricelist-body">
 
-    <nav class="navbar">
+ <nav class="navbar">
         <div class="nav-container">
             <a href="index.html" class="logo">
                 <img src="logo.jpg" alt="Namo Namkeen" class="logo-img">
@@ -45,10 +44,10 @@
                         </div>
                     </div>
                 </div>
-                <div class="cart-trigger" onclick="toggleCart()">
+                <a href="index.html#menu-section" class="cart-trigger" aria-label="Open Menu">
                     <i class="fas fa-shopping-bag"></i>
                     <span id="cart-count" class="cart-count">0</span>
-                </div>
+                </a>
                 <div class="hamburger" onclick="toggleMobileMenu()">
                     <span class="bar"></span><span class="bar"></span><span class="bar"></span>
                 </div>
@@ -130,93 +129,6 @@
     </footer>
 
     <div class="cart-overlay" onclick="toggleCart()"></div>
-    <div class="cart-sidebar" id="cart-sidebar">
-        <div class="cart-header">
-            <h3>Your Order</h3>
-            <div class="cart-header-actions">
-                <button id="clear-cart-btn" class="clear-btn" onclick="clearCart()" style="display: none;">
-                    <i class="fas fa-trash-alt"></i> Clear
-                </button>
-                <button class="close-cart" onclick="toggleCart()"><i class="fas fa-times"></i></button>
-            </div>
-        </div>
-
-        <div class="cart-scrollable-content">
-            <div id="cart-items" class="cart-items-list"></div>
-
-            <div class="cart-details-block">
-                <div class="coupon-section">
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
-                        <span style="font-size:0.8rem; font-weight:bold; color:#555;">Offers & Coupons</span>
-                        <small style="color:var(--primary); cursor:pointer;" onclick="toggleCouponList()">View
-                            All</small>
-                    </div>
-                    <div style="display:flex; gap:5px;">
-                        <input type="text" id="promo-code" placeholder="Enter Code" autocapitalize="characters">
-                        <button onclick="applyPromo()"
-                            style="background:var(--dark); color:white; border:none; padding:8px 15px; border-radius:5px; cursor:pointer;">Apply</button>
-                    </div>
-                    <p id="promo-msg" style="font-size:0.75rem; margin-top:5px; min-height:15px;"></p>
-                    <div id="coupon-list"
-                        style="display:none; background:#f9f9f9; padding:10px; margin-top:5px; border-radius:5px; border:1px solid #eee; max-height:150px; overflow-y:auto;">
-                    </div>
-                </div>
-
-                <div id="customer-details-inputs">
-                    <label class="input-label">Mobile Number <span style="color:red">*</span></label>
-                    <div class="phone-input-group">
-                        <span>+91</span>
-                        <input type="tel" id="cust-phone" maxlength="10" placeholder="9876543210" inputmode="numeric"
-                            pattern="[0-9]*">
-                    </div>
-
-                    <label class="input-label">Delivery Address <span style="color:red">*</span></label>
-                    <textarea id="cust-address" placeholder="House No, Street, Area, City..." rows="2"></textarea>
-                </div>
-
-                <div class="payment-section" style="margin-top: 20px;">
-                    <label class="input-label">Select Payment Method</label>
-                    <div class="payment-options">
-                        <label class="payment-card">
-                            <input type="radio" name="paymentMethod" value="UPI" checked onchange="togglePaymentUI()">
-                            <div class="pay-content">
-                                <i class="fas fa-qrcode" style="color: var(--primary); font-size: 1.2rem;"></i>
-                                <span>Pay via UPI</span>
-                            </div>
-                        </label>
-                        <label class="payment-card">
-                            <input type="radio" name="paymentMethod" value="COD" onchange="togglePaymentUI()">
-                            <div class="pay-content">
-                                <i class="fas fa-money-bill-wave" style="color: #27ae60; font-size: 1.2rem;"></i>
-                                <span>Cash on Delivery</span>
-                            </div>
-                        </label>
-                    </div>
-                </div>
-
-                <label class="input-label" style="margin-top:15px;">Delivery Note (Optional)</label>
-                <textarea id="delivery-note" placeholder="e.g. Leave at security, Don't ring bell..." rows="1"
-                    class="form-control" style="font-size:0.9rem;"></textarea>
-
-                <div class="total-row" style="margin-top: 20px; border-top: 1px dashed #ddd; padding-top: 15px;">
-                    <span>Total Amount:</span>
-                    <span id="cart-total">₹0</span>
-                </div>
-            </div>
-        </div>
-
-        <div class="cart-footer">
-            <div id="guest-login-option" style="text-align:center; margin-bottom:12px; font-size:0.9rem;">
-                <span style="color:#666;">Have an account?</span>
-                <a href="javascript:void(0)" onclick="openLoginChoiceModal()"
-                    style="color:var(--primary); font-weight:700; text-decoration:none; margin-left: 5px;">Login</a>
-            </div>
-
-            <button id="btn-main-checkout" class="btn-whatsapp-checkout" onclick="handleCheckout()">
-                Proceed to Pay <i class="fas fa-arrow-right"></i>
-            </button>
-        </div>
-    </div>
 
     <div id="login-choice-modal" class="modal-overlay">
         <div class="modal-content mobile-modal text-center">

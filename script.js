@@ -144,9 +144,15 @@ function fetchUserProfile(uid) {
             }
 
             // Auto-fill Checkout Fields
-            const phoneInput = document.getElementById('cust-phone');
-            const addrInput = document.getElementById('cust-address');
+           // Auto-fill Checkout Fields
+    const nameInput = document.getElementById('cust-name'); // <--- NEW
+    const phoneInput = document.getElementById('cust-phone');
             const emailInput = document.getElementById('cust-email'); // <--- NEW
+
+            if (nameInput) {
+        // Use Profile Name -> Auth Name -> Empty
+        nameInput.value = userProfile.name || (currentUser.displayName || "");
+    }
 
             if (phoneInput && !phoneInput.value && userProfile.phone) {
                 phoneInput.value = userProfile.phone.replace('+91', '');
@@ -292,6 +298,7 @@ function fetchData() {
                 // 1. Contact & Pay Info
                 if (data.upiId) shopConfig.upiId = data.upiId;
                 if (data.adminPhone) shopConfig.adminPhone = data.adminPhone.replace(/\D/g, '');
+                if (data.vapidKey) shopConfig.vapidKey = data.vapidKey;
 
                 // 2. Delivery Settings (The Fix)
                 if (data.deliveryCharge !== undefined) {
@@ -1153,6 +1160,11 @@ function handleCheckout() {
     const addrObj = getAddressFromInputs('cust');
     if (!addrObj) return showToast("Please enter a complete delivery address.", "error");
 
+    const nameInput = document.getElementById('cust-name');
+    if (nameInput && nameInput.value.trim().length < 2) {
+        return showToast("Please enter your Name", "error");
+    }
+
     // 5. Proceed
     vibrate(50);
     initiateRazorpayPayment();
@@ -1160,64 +1172,99 @@ function handleCheckout() {
 
 // 2. Called when payment is confirmed (UPI) or immediately (COD)
 async function finalizeOrder(paymentMode) {
-    toggleBtnLoading('btn-main-checkout', true);
-
-    const phone = document.getElementById('cust-phone').value;
-    const address = document.getElementById('cust-address').value;
-    const orderId = 'ORD-' + Date.now().toString().slice(-6);
-
-    // Calculate Totals again for security
-    let total = cart.reduce((sum, i) => sum + (i.price * i.qty), 0);
-    let discount = 0;
-
-    // FIX: Handle Coupon Logic safely
-    if (appliedDiscount && appliedDiscount.value > 0) {
-        if (appliedDiscount.type === 'percent') discount = Math.round(total * (appliedDiscount.value / 100));
-        else if (appliedDiscount.type === 'flat') discount = appliedDiscount.value;
+    // 1. Get Basic Inputs
+    const phoneInput = document.getElementById('cust-phone');
+    const nameInput = document.getElementById('cust-name');
+    
+    // 2. Get Email (Input > Auth > Empty)
+    let email = "";
+    const emailInput = document.getElementById('cust-email');
+    if (emailInput && emailInput.value.trim()) {
+        email = emailInput.value.trim();
+    } else if (currentUser && currentUser.email) {
+        email = currentUser.email;
     }
-    const finalAmount = Math.max(0, total - discount);
+
+    // 3. Get Address (Structured)
+    const addrObj = getAddressFromInputs('cust');
+    // Fallback validation (though main checkout should have caught this)
+    if (!addrObj) return showToast("Please complete delivery address", "error");
+
+    // 4. Generate Robust ID
+    const generateShortId = () => {
+        const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
+        let result = '';
+        for (let i = 0; i < 6; i++) {
+            result += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        return result.slice(0, 3) + '-' + result.slice(3);
+    };
+    const orderId = 'ORD-' + generateShortId();
+
+    // 5. User Details
+    const phone = phoneInput ? phoneInput.value.trim() : '';
+    let uid = currentUser ? currentUser.uid : `guest_${phone}`;
+    
+    // Determine Name
+    let uName = "Guest";
+    if (nameInput && nameInput.value.trim()) {
+        uName = nameInput.value.trim();
+    } else if (currentUser && currentUser.displayName) {
+        uName = currentUser.displayName;
+    }
+
+    // 6. Calculate Totals
+    const { subtotal, discountAmount, shipping, finalTotal } = getCartTotals();
+    const deliveryNote = document.getElementById('delivery-note') ? document.getElementById('delivery-note').value.trim() : '';
+
     try {
-        await db.collection("orders").add({
+        // --- SAVE TO FIRESTORE ---
+        await db.collection("orders").doc(String(orderId)).set({
             id: orderId,
-            userId: currentUser ? currentUser.uid : `guest_${phone}`, // FIX: Handle Guest User
-            userName: currentUser ? currentUser.displayName : "Guest",
+            userId: uid,
+            userName: uName,
             userPhone: phone,
-            userAddress: address,
+            userEmail: email,
+            
+            // Address Data
+            userAddress: addrObj.full,       // Display String
+            addressDetails: addrObj,         // Structured Object
+            
+            deliveryNote: deliveryNote,
             items: cart,
-            total: finalAmount,
+            
+            // Financials
+            subtotal: subtotal,
+            shippingCost: shipping,
             discount: appliedDiscount,
+            discountAmt: discountAmount,
+            total: finalTotal,
+            
+            // Payment Status
             paymentMethod: paymentMode,
             status: 'Pending',
             paymentStatus: paymentMode === 'UPI' ? 'Paid (User Confirmed)' : 'Pending',
             timestamp: new Date()
         });
 
-        // SUCCESS!
+        // --- SUCCESS UI ---
         cart = [];
-        appliedDiscount = { type: 'none', value: 0, code: null }; // Reset Discount
+        appliedDiscount = { type: 'none', value: 0, code: null };
+        saveCartLocal();
         updateCartUI();
-        document.getElementById('payment-modal').style.display = 'none';
-
-        // FIX: Close sidebar properly
+        
+        closeModal('payment-modal'); // Close the Scan modal
+        
+        // Close sidebar
         document.getElementById('cart-sidebar').classList.remove('active');
         document.querySelector('.cart-overlay').classList.remove('active');
 
-        // Show Success Modal
-        document.getElementById('success-order-id').innerText = orderId;
-        const waBtn = document.getElementById('wa-link-btn');
-        let msg = `*New Order: ${orderId}* - ₹${finalAmount}\nPayment: ${paymentMode}`;
-        waBtn.onclick = () => {
-            window.open(`https://wa.me/${shopConfig.adminPhone}?text=${encodeURIComponent(msg)}`, '_blank');
-        };
-
-        document.getElementById('success-modal').style.display = 'flex';
+        // Show Success
+        showSuccessModal(orderId, finalTotal, paymentMode);
 
     } catch (error) {
         console.error("Order Error:", error);
         showToast("Failed to place order. Please try again.", "error");
-    } finally {
-        // FIX: Ensure button is re-enabled even if error occurs
-        toggleBtnLoading('btn-main-checkout', false);
     }
 }
 
@@ -1249,8 +1296,9 @@ function googleLogin(isCheckoutFlow = false) {
     else toggleBtnLoading('login-btn', true);
 
     auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()).then(res => {
+        // 1. Capture Inputs from Checkout Form (if user typed before logging in)
         const enteredPhone = document.getElementById('cust-phone').value;
-        const enteredAddress = document.getElementById('cust-address').value;
+        const addrObj = getAddressFromInputs('cust'); // Helper reads new fields
 
         const updateData = {
             name: res.user.displayName,
@@ -1259,16 +1307,20 @@ function googleLogin(isCheckoutFlow = false) {
         };
 
         if (enteredPhone) updateData.phone = enteredPhone;
-        if (enteredAddress) updateData.address = enteredAddress;
+        
+        // 2. Save Address if valid
+        if (addrObj) {
+            updateData.address = addrObj.full;       // Save String
+            updateData.addressDetails = addrObj;     // Save Object
+        }
 
+        // 3. Save to Firestore
         db.collection("users").doc(res.user.uid).set(updateData, { merge: true });
 
         if (isCheckoutFlow) {
-            // FIX: Reset button before opening modal
             toggleBtnLoading('btn-main-checkout', false);
             initiateRazorpayPayment();
         }
-        requestUserNotifications();
 
     }).catch(e => {
         showToast(e.message, "error");
@@ -1278,6 +1330,7 @@ function googleLogin(isCheckoutFlow = false) {
 }
 
 function updateUserUI(loggedIn) {
+    const saveBtn = document.getElementById('btn-save-addr');
     // 1. Declare it here (Top Level of Function)
     const guestLink = document.getElementById('guest-login-option');
     if (loggedIn) {
@@ -1294,6 +1347,7 @@ function updateUserUI(loggedIn) {
 
         // Hide the guest login link if it exists
         if (guestLink) guestLink.style.display = 'none';
+        if(saveBtn) saveBtn.style.display = 'inline-block'; // Allow saving
 
     } else {
         document.getElementById('login-btn').style.display = 'block';
@@ -1301,6 +1355,7 @@ function updateUserUI(loggedIn) {
 
         // Show the guest login link if it exists
         if (guestLink) guestLink.style.display = 'block';
+        if(saveBtn) saveBtn.style.display = 'none'; // Hide for guests
     }
 }
 
@@ -2060,6 +2115,7 @@ async function saveOrderToFirebase(method, paymentStatus, txnId) {
     } else if (currentUser && currentUser.email) {
         email = currentUser.email;
     }
+    
 
     // 2. Generate Order ID
     const generateShortId = () => {
@@ -2073,7 +2129,14 @@ async function saveOrderToFirebase(method, paymentStatus, txnId) {
     const orderId = 'ORD-' + generateShortId();
 
     let uid = currentUser ? currentUser.uid : `guest_${phone}`;
-    let uName = currentUser ? currentUser.displayName : "Guest";
+  // --- FIX: Capture Name ---
+    let uName = "Guest";
+    const nameInput = document.getElementById('cust-name');
+    if (nameInput && nameInput.value.trim()) {
+        uName = nameInput.value.trim();
+    } else if (currentUser && currentUser.displayName) {
+        uName = currentUser.displayName;
+    }
     const deliveryNote = document.getElementById('delivery-note') ? document.getElementById('delivery-note').value.trim() : '';
 
     const { subtotal, discountAmount, shipping, finalTotal } = getCartTotals();
@@ -2181,12 +2244,19 @@ async function saveOrderToFirebase(method, paymentStatus, txnId) {
 
 function showSuccessModal(orderId, amount, method) {
     const custName = currentUser ? currentUser.displayName : "Guest";
-    const address = document.getElementById('cust-address').value;
+    
+    // --- FIX: Read from New Address Fields ---
+    const addrObj = getAddressFromInputs('cust');
+    // If for some reason inputs are cleared, fallback to generic text
+    const address = addrObj ? addrObj.full : "Address not captured"; 
+    // -----------------------------------------
+
+    // Optional Delivery Note
     const noteElem = document.getElementById('delivery-note');
     const noteText = (noteElem && noteElem.value.trim()) ? `\n📝 *Note:* ${noteElem.value.trim()}` : '';
 
     // Enhanced Message
-    const msg = `🎉 *New Order Received!* 🎉\n\n🆔 *Order ID:* ${orderId}\n👤 *Customer:* ${custName}\n📍 *Address:* ${address}\n${noteText}\n\n💰 *Amount:* ₹${amount}\n💳 *Payment:* ${method === 'Online' ? 'PAID ✅' : 'Cash on Delivery 🚚'}\n\nPlease confirm dispatch! 🚀`;
+    const msg = `🎉 *New Order Received!* 🎉\n\n🆔 *Order ID:* ${orderId}\n👤 *Customer:* ${custName}\n📍 *Address:* ${address}${noteText}\n\n💰 *Amount:* ₹${amount}\n💳 *Payment:* ${method === 'Online' ? 'PAID ✅' : 'Cash on Delivery 🚚'}\n\nPlease confirm dispatch! 🚀`;
 
     const orderIdElem = document.getElementById('success-order-id');
     if (orderIdElem) orderIdElem.innerText = orderId;
@@ -2201,6 +2271,7 @@ function showSuccessModal(orderId, amount, method) {
     const modal = document.getElementById('success-modal');
     if (modal) {
         modal.style.display = 'flex';
+        // Trigger confetti if available
         if (typeof confetti === 'function') {
             confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 }, colors: ['#e85d04', '#faa307', '#ffffff'] });
         }
@@ -2714,47 +2785,72 @@ function loadUserAddresses() {
 }
 
 function selectAddress(idx) {
-    const textarea = document.getElementById('cust-address');
+    const streetInput = document.getElementById('cust-addr-street');
+    const cityInput = document.getElementById('cust-addr-city');
+    const pinInput = document.getElementById('cust-addr-pin');
     const saveBtn = document.getElementById('btn-save-addr');
 
     if (idx === 'new') {
-        textarea.value = '';
-        textarea.disabled = false;
-        textarea.focus();
-        saveBtn.style.display = 'inline-block';
+        // Clear fields for typing
+        streetInput.value = '';
+        cityInput.value = 'Indore'; // Default city
+        pinInput.value = '';
+        
+        // Show Save Button
+        if(saveBtn) saveBtn.style.display = 'inline-block';
     } else {
-        const addr = userProfile.savedAddresses[idx];
-        textarea.value = addr.text;
-        // Optional: Disable editing of saved address to prevent accidental changes
-        // textarea.disabled = true; 
-        saveBtn.style.display = 'none';
+        // Load Saved Data
+        const savedItem = userProfile.savedAddresses[idx];
+        
+        if (savedItem.details) {
+            // New Format: Fill all fields
+            streetInput.value = savedItem.details.street || '';
+            cityInput.value = savedItem.details.city || 'Indore';
+            pinInput.value = savedItem.details.pin || '';
+        } else {
+            // Legacy Format (Old string addresses): Put everything in Street
+            streetInput.value = savedItem.text || '';
+            cityInput.value = 'Indore';
+            pinInput.value = '';
+        }
+        
+        // Hide Save Button (Already saved)
+        if(saveBtn) saveBtn.style.display = 'none';
     }
 }
 
 async function saveNewAddress() {
-    const text = document.getElementById('cust-address').value.trim();
-    if (text.length < 5) return showToast("Address too short", "error");
+    // 1. Read New Fields
+    const addrObj = getAddressFromInputs('cust');
+    
+    if (!addrObj) return showToast("Please complete address first", "error");
+    if (addrObj.street.length < 5) return showToast("Street address too short", "error");
 
     const label = prompt("Give this address a name (e.g., Home, Office):", "Home");
     if (!label) return;
 
-    const newAddr = { label, text };
+    // 2. Create Structured Entry
+    const newAddrEntry = { 
+        label: label, 
+        text: addrObj.full,      // For display in dropdown
+        details: addrObj         // For filling inputs later
+    };
 
     try {
         await db.collection("users").doc(currentUser.uid).update({
-            savedAddresses: firebase.firestore.FieldValue.arrayUnion(newAddr)
+            savedAddresses: firebase.firestore.FieldValue.arrayUnion(newAddrEntry)
         });
 
-        // Update local profile
+        // 3. Update Local State
         if (!userProfile.savedAddresses) userProfile.savedAddresses = [];
-        userProfile.savedAddresses.push(newAddr);
+        userProfile.savedAddresses.push(newAddrEntry);
 
         showToast("Address Saved!", "success");
-        loadUserAddresses(); // Refresh UI
+        loadUserAddresses(); // Refresh dropdown
 
-        // Select the newly added address (second to last option)
+        // Auto-select the new address
         const selector = document.getElementById('addr-selector');
-        selector.value = userProfile.savedAddresses.length - 1;
+        if(selector) selector.value = userProfile.savedAddresses.length - 1;
 
     } catch (e) {
         console.error(e);
@@ -3156,20 +3252,22 @@ function toggleGlobalLoading(show) {
     }
 }
 
-// Add this function
 function requestUserNotifications() {
-    const vapidKey = "YOUR_VAPID_KEY_HERE"; // Same key as admin
+    // Check if key is loaded
+    if (!shopConfig.vapidKey) {
+        console.log("VAPID Key missing from config");
+        return;
+    }
 
     Notification.requestPermission().then(permission => {
         if (permission === 'granted') {
-            messaging.getToken({ vapidKey: vapidKey }).then((currentToken) => {
+            messaging.getToken({ vapidKey: shopConfig.vapidKey }).then((currentToken) => {
                 if (currentToken && currentUser) {
-                    // Save Token to User Profile
                     db.collection("users").doc(currentUser.uid).update({
                         fcmToken: currentToken
                     });
                 }
-            });
+            }).catch(err => console.log("Token Error", err));
         }
     });
 }
