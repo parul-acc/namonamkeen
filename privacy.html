@@ -1,20 +1,42 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Privacy Policy | Namo Namkeen</title>
     <link rel="icon" href="logo.jpg" type="image/jpeg">
     <link rel="stylesheet" href="style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/fuse.js@6.6.2"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Poppins:wght@300;400;500;600&display=swap"
+        rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        .legal-content h2 { color: var(--primary); margin-top: 30px; font-size: 1.5rem; }
-        .legal-content p { color: #555; line-height: 1.8; margin-bottom: 15px; }
-        .legal-content ul { margin-bottom: 20px; padding-left: 20px; color: #555; }
-        .legal-content li { margin-bottom: 8px; }
+        .legal-content h2 {
+            color: var(--primary);
+            margin-top: 30px;
+            font-size: 1.5rem;
+        }
+
+        .legal-content p {
+            color: #555;
+            line-height: 1.8;
+            margin-bottom: 15px;
+        }
+
+        .legal-content ul {
+            margin-bottom: 20px;
+            padding-left: 20px;
+            color: #555;
+        }
+
+        .legal-content li {
+            margin-bottom: 8px;
+        }
     </style>
 </head>
+
 <body>
 
     <nav class="navbar">
@@ -25,10 +47,30 @@
             </a>
             <ul class="nav-menu">
                 <li><a href="index.html" class="nav-link">Home</a></li>
-                <li><a href="index.html#menu-section" class="nav-link">Order Online</a></li>
+                <li><a href="index.html#menu-section" class="nav-link">Menu</a></li>
                 <li><a href="pricelist.html" class="nav-link">Price List</a></li>
+                <li><a href="story.html" class="nav-link">Our Story</a></li>
+                <li><a href="blog.html" class="nav-link active">Blog</a></li>
+                <li><a href="faq.html" class="nav-link">FAQs</a></li>
             </ul>
             <div class="nav-actions">
+                <div id="user-auth-section">
+                    <button id="login-btn" class="btn-primary small-btn" onclick="openLoginChoiceModal()">Login</button>
+                    <div id="user-profile" style="display: none;">
+                        <img id="user-pic" src="" alt="User" onclick="toggleProfileMenu()">
+                        <div class="profile-dropdown" id="profile-menu">
+                            <p id="user-name">Guest</p>
+                            <hr>
+                            <button onclick="openProfileModal()">Edit Profile</button>
+                            <button onclick="showOrderHistory()">Order History</button>
+                            <button onclick="logout()">Logout</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="cart-trigger" onclick="toggleCart()">
+                    <i class="fas fa-shopping-bag"></i>
+                    <span id="cart-count" class="cart-count">0</span>
+                </div>
                 <div class="hamburger" onclick="toggleMobileMenu()">
                     <span class="bar"></span><span class="bar"></span><span class="bar"></span>
                 </div>
@@ -37,12 +79,14 @@
     </nav>
 
     <div class="mobile-nav" id="mobile-nav">
-       <a href="#home" onclick="toggleMobileMenu()"><i class="fas fa-home"></i> Home</a>
-        <a href="#menu-section" onclick="toggleMobileMenu()"><i class="fas fa-utensils"></i> Menu</a>
-        <a href="pricelist.html"><i class="fas fa-book-open"></i>Price List</a>
-        <a href="story.html"><i class="fas fa-book-open"></i> Our Story</a>
-        <a href="blog.html"><i class="fas fa-newspaper"></i> Blog</a>
-        <a href="faq.html"><i class="fas fa-question-circle"></i> FAQs</a>
+        <div class="mobile-nav-header">
+            <span class="mobile-nav-title">Namo Namkeen</span>
+            <button onclick="toggleMobileMenu()"
+                style="background:none; border:none; font-size:2rem; color:white;">&times;</button>
+        </div>
+        <a href="index.html">Home</a>
+        <a href="blog.html">Blog</a>
+        <a href="faq.html">FAQs</a>
     </div>
 
     <section class="section-pad bg-cream text-center">
@@ -54,10 +98,12 @@
 
     <section class="section-pad">
         <div class="container legal-content">
-            <p>At Namo Namkeen, we value your trust and are committed to protecting your privacy. This policy outlines how we collect, use, and safeguard your personal information.</p>
+            <p>At Namo Namkeen, we value your trust and are committed to protecting your privacy. This policy outlines
+                how we collect, use, and safeguard your personal information.</p>
 
             <h2>1. Information We Collect</h2>
-            <p>When you use our application to place an order or create an account, we may collect the following details:</p>
+            <p>When you use our application to place an order or create an account, we may collect the following
+                details:</p>
             <ul>
                 <li><strong>Personal Details:</strong> Name, Email Address, and Profile Picture (via Google Login).</li>
                 <li><strong>Contact Details:</strong> Phone Number and Delivery Address.</li>
@@ -65,7 +111,8 @@
             </ul>
 
             <h2>2. How We Use Your Data</h2>
-            <p>Your data is used strictly for the purpose of fulfilling your orders and improving our service. Specifically, we use it to:</p>
+            <p>Your data is used strictly for the purpose of fulfilling your orders and improving our service.
+                Specifically, we use it to:</p>
             <ul>
                 <li>Process your orders and coordinate delivery via WhatsApp.</li>
                 <li>Maintain your order history for easy reordering.</li>
@@ -73,30 +120,110 @@
             </ul>
 
             <h2>3. Data Sharing</h2>
-            <p>We do not sell, trade, or rent your personal identification information to others. We may share generic aggregated demographic information not linked to any personal identification information regarding visitors and users with our business partners and trusted affiliates.</p>
+            <p>We do not sell, trade, or rent your personal identification information to others. We may share generic
+                aggregated demographic information not linked to any personal identification information regarding
+                visitors and users with our business partners and trusted affiliates.</p>
 
             <h2>4. Security</h2>
-            <p>We adopt appropriate data collection, storage, and processing practices and security measures to protect against unauthorized access, alteration, disclosure, or destruction of your personal information.</p>
+            <p>We adopt appropriate data collection, storage, and processing practices and security measures to protect
+                against unauthorized access, alteration, disclosure, or destruction of your personal information.</p>
 
             <h2>5. Your Rights</h2>
-            <p>You have the right to request access to the personal data we hold about you. You may also request that we correct or delete your personal data by contacting us directly.</p>
+            <p>You have the right to request access to the personal data we hold about you. You may also request that we
+                correct or delete your personal data by contacting us directly.</p>
 
             <h2>6. Contact Us</h2>
-            <p>If you have any questions about this Privacy Policy, the practices of this site, or your dealings with this site, please contact us at: <strong>contact@namonamkeen.shop</strong> or via WhatsApp.</p>
+            <p>If you have any questions about this Privacy Policy, the practices of this site, or your dealings with
+                this site, please contact us at: <strong>contact@namonamkeen.shop</strong> or via WhatsApp.</p>
         </div>
     </section>
 
     <footer class="footer">
-        <div class="container text-center">
-            <p>&copy; 2025 Namo Namkeen. All rights reserved.</p>
-            <p>Designed by Parul Gangwal</p>
-            <p style="font-size: 0.8rem;">
-                <a href="privacy.html" style="color:#bbb; text-decoration:none; margin:0 5px;">Privacy Policy</a> | 
-                <a href="terms.html" style="color:#bbb; text-decoration:none; margin:0 5px;">Terms of Use</a>
-            </p>
+        <div class="container">
+            <div class="footer-top">
+                <div class="footer-section about">
+                    <p>Authentic Indian Sweets & Snacks, delivered to your doorstep. The Royal Taste of Indore.</p>
+                    <div class="social-links">
+                        <a href="#" class="social-icon"><i class="fab fa-instagram"></i></a>
+                        <a href="#" class="social-icon"><i class="fab fa-facebook-f"></i></a>
+                        <a href="#" class="social-icon"><i class="fab fa-whatsapp"></i></a>
+                    </div>
+                </div>
+                <div class="footer-section links">
+                    <h4>Quick Links</h4>
+                    <ul>
+                        <li><a href="index.html">Home</a></li>
+                        <li><a href="index.html#menu-section">Menu</a></li>
+                        <li><a href="story.html">Our Story</a></li>
+                        <li><a href="blog.html">Blog</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section links">
+                    <h4>Legal</h4>
+                    <ul>
+                        <li><a href="privacy.html">Privacy Policy</a></li>
+                        <li><a href="terms.html">Terms of Service</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section contact">
+                    <h4>Contact Us</h4>
+                    <p><i class="fas fa-map-marker-alt"></i> 131, Keshav Park, Mhow (M.P.)</p>
+                    <p><i class="fas fa-phone-alt"></i> +91 98266 98822</p>
+                    <p><i class="fas fa-envelope"></i> contact@namonamkeen.shop</p>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2025 Namo Namkeen. All Rights Reserved.</p>
+                <p>Designed with ❤️ by Parul Gangwal</p>
+            </div>
         </div>
     </footer>
 
+    <div id="recaptcha-container"></div>
+
+    <div id="global-loader" style="display: none;">
+        <div class="loader-content">
+            <div class="spinner-orange"></div>
+            <p>Verifying Securely...</p>
+        </div>
+    </div>
+
+    <div id="otp-modal" class="modal-overlay">
+        <div class="modal-content mobile-modal text-center" style="max-width: 350px;">
+            <button class="close-modal" onclick="closeModal('otp-modal')">&times;</button>
+            <h3>Verify Phone</h3>
+            <p style="color:#666; font-size:0.9rem; margin-bottom:15px;">
+                Enter the 6-digit code sent to <br><b id="otp-phone-display">+91 XXXXX XXXXX</b>
+            </p>
+
+            <input type="number" id="otp-input" class="form-control" placeholder="123456"
+                style="text-align:center; letter-spacing:5px; font-size:1.2rem; margin-bottom:15px;">
+
+            <button id="btn-verify-otp" class="btn-primary full-width" onclick="confirmOtp()">Verify & Login</button>
+
+            <p style="margin-top:15px; font-size:0.8rem; color:#999; cursor:pointer;" onclick="resendOtp()">Resend Code
+            </p>
+        </div>
+    </div>
+
+    <div id="login-choice-modal" class="modal-overlay">
+        <div class="modal-content mobile-modal text-center" style="max-width: 350px;">
+            <button class="close-modal" onclick="closeModal('login-choice-modal')">&times;</button>
+            <h3 style="margin-bottom: 5px; font-size: 1.5rem;">Welcome Back</h3>
+            <p style="color:#666; margin-bottom: 25px; font-size: 0.9rem;">Choose how you want to login</p>
+            <button class="login-option-btn" onclick="handleLoginChoice('google')">
+                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="20"> Continue with
+                Google
+            </button>
+            <button class="login-option-btn" onclick="handleLoginChoice('mobile')">
+                <i class="fas fa-mobile-alt" style="color: var(--primary); font-size: 1.2rem;"></i> Login via Mobile OTP
+            </button>
+            <p style="font-size: 0.75rem; color: #999; margin-top: 15px;">By continuing, you agree to our Terms &
+                Privacy Policy.</p>
+        </div>
+    </div>
+
     <script src="script.js"></script>
 </body>
+
 </html>

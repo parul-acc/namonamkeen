@@ -147,12 +147,20 @@ function fetchUserProfile(uid) {
             if (phoneInput && !phoneInput.value && userProfile.phone) {
                 phoneInput.value = userProfile.phone.replace('+91', '');
             }
-            if (addrInput && !addrInput.value && userProfile.address) {
-                addrInput.value = userProfile.address;
-            }
             // Auto-fill Email (Priority: Profile Data > Auth Data)
             if (emailInput && !emailInput.value) {
                 emailInput.value = userProfile.email || (currentUser.email || "");
+            }
+
+            // --- NEW AUTO-FILL LOGIC ---
+            if (userProfile.addressDetails) {
+                // If we have new structured data, use it
+                document.getElementById('cust-addr-street').value = userProfile.addressDetails.street || '';
+                document.getElementById('cust-addr-city').value = userProfile.addressDetails.city || 'Indore';
+                document.getElementById('cust-addr-pin').value = userProfile.addressDetails.pin || '';
+            } else if (userProfile.address) {
+                // Fallback for old data: Put everything in Street field
+                document.getElementById('cust-addr-street').value = userProfile.address;
             }
 
             const data = doc.data();
@@ -215,7 +223,8 @@ function safeSetHTML(element, html) {
 function fetchData() {
     // 1. Show Skeletons
     const grid = document.getElementById('menu-grid');
-    if (data.minOrderValue !== undefined) shopConfig.minOrderValue = parseFloat(data.minOrderValue);
+    // NOTE: Do not reference `data` here — it is only defined inside the
+    // settings onSnapshot callback below. Config values are applied there.
     if (grid) {
         let skeletonHtml = ''; // Build string first
         for (let i = 0; i < 6; i++) {
@@ -270,22 +279,24 @@ function fetchData() {
         checkDeepLink();
     }).catch(err => console.error("Products Error:", err));
 
-    // NEW: Fetch Shop Configuration from Firestore
-    unsubscribeListeners.config = // NEW: Fetch Shop Configuration from Firestore
+    unsubscribeListeners.config =
         db.collection("settings").doc("config").onSnapshot(doc => {
             if (doc.exists) {
+                // 'data' is defined HERE inside this block
                 const data = doc.data();
 
                 // 1. Basic Info
                 if (data.upiId) shopConfig.upiId = data.upiId;
                 if (data.adminPhone) shopConfig.adminPhone = data.adminPhone.replace(/\D/g, '');
 
-                // 2. Delivery Settings (CRITICAL FIX)
-                // Parse as float to ensure math works correctly
+                // 2. Delivery & Order Settings (ALL inside the if block)
                 if (data.deliveryCharge !== undefined) shopConfig.deliveryCharge = parseFloat(data.deliveryCharge);
                 if (data.freeShippingThreshold !== undefined) shopConfig.freeShippingThreshold = parseFloat(data.freeShippingThreshold);
 
-                // 3. Refresh Cart UI immediately to apply new fees
+                // This was the line causing the error - now it is safely inside
+                if (data.minOrderValue !== undefined) shopConfig.minOrderValue = parseFloat(data.minOrderValue);
+
+                // 3. Refresh Cart UI immediately to apply these new settings
                 updateCartUI();
             }
         });
@@ -857,18 +868,15 @@ function addToCart(p, v, qtyToAdd = 1) {
 }
 
 function updateCartUI() {
-    // --- FEATURE: Professional Shipping Meter ---
-    const freeShipLimit = shopConfig.freeShippingThreshold || 250;
-    const deliveryFee = shopConfig.deliveryCharge || 0;
     const con = document.getElementById('cart-items');
     if (!con) return;
     con.innerHTML = '';
 
-    // 1. Initialize variables safely
+    // 1. Initialize variables
     let subtotal = 0, count = 0;
     let finalDeliveryCost = 0;
 
-    // Elements
+    // 2. Get Elements (Declare ONCE at the top)
     const clearBtn = document.getElementById('clear-cart-btn');
     const promoCodeInput = document.getElementById('promo-code');
     const promoMsg = document.getElementById('promo-msg');
@@ -889,7 +897,6 @@ function updateCartUI() {
 
         appliedDiscount = { type: 'none', value: 0, code: null };
         if (promoCodeInput) promoCodeInput.value = '';
-
         finalDeliveryCost = 0;
 
     } else {
@@ -897,84 +904,60 @@ function updateCartUI() {
         if (detailsBlock) detailsBlock.style.display = 'block';
         if (checkoutBtn) checkoutBtn.style.display = 'flex';
 
+        // --- LOYALTY LOGIC ---
         let loyaltyHtml = '';
-        if (currentUser && userProfile && userProfile.walletBalance > 0) {
-            const maxRedeemable = Math.min(userProfile.walletBalance, subtotal); // Can't redeem more than order value
+        const loyaltyContainer = document.getElementById('loyalty-section');
 
-            // Check if already applied
+        if (currentUser && userProfile && userProfile.walletBalance > 0) {
+            let tempTotal = cart.reduce((sum, i) => sum + (i.price * i.qty), 0);
+            const maxRedeemable = Math.min(userProfile.walletBalance, tempTotal);
             const isChecked = (appliedDiscount.type === 'loyalty') ? 'checked' : '';
 
             loyaltyHtml = `
-    <div style="background:#fff8e1; padding:10px; border-radius:8px; margin-bottom:15px; border:1px dashed #e85d04; display:flex; align-items:center; gap:10px;">
-        <i class="fas fa-coins" style="color:#f1c40f;"></i>
-        <div style="flex:1;">
-            <div style="font-weight:600; font-size:0.9rem;">Use Namo Coins</div>
-            <div style="font-size:0.8rem; color:#666;">Balance: ${userProfile.walletBalance} (Save ₹${maxRedeemable})</div>
-        </div>
-        <input type="checkbox" id="use-coins" ${isChecked} onchange="toggleLoyalty(${maxRedeemable})">
-    </div>`;
-
-            // Inject the loyalty HTML into the container we just created
-            const loyaltyContainer = document.getElementById('loyalty-section');
-            if (loyaltyContainer) {
-                loyaltyContainer.innerHTML = loyaltyHtml;
-            }
+            <div style="background:#fff8e1; padding:10px; border-radius:8px; margin-bottom:15px; border:1px dashed #e85d04; display:flex; align-items:center; gap:10px;">
+                <i class="fas fa-coins" style="color:#f1c40f;"></i>
+                <div style="flex:1;">
+                    <div style="font-weight:600; font-size:0.9rem;">Use Namo Coins</div>
+                    <div style="font-size:0.8rem; color:#666;">Balance: ${userProfile.walletBalance} (Save ₹${maxRedeemable})</div>
+                </div>
+                <input type="checkbox" id="use-coins" ${isChecked} onchange="toggleLoyalty(${maxRedeemable})">
+            </div>`;
         }
+        if (loyaltyContainer) loyaltyContainer.innerHTML = loyaltyHtml;
 
-        // Inside updateCartUI, right before updating totals
-        const minOrder = shopConfig.minOrderValue || 0;
-        const checkoutBtn = document.getElementById('btn-main-checkout');
-        const warningMsg = document.getElementById('cart-warning-msg') || createWarningMsgElement(); // Helper to create div if missing
-
-        if (subtotal < minOrder) {
-            checkoutBtn.disabled = true;
-            checkoutBtn.style.background = '#ccc';
-            checkoutBtn.innerHTML = `Add ₹${minOrder - subtotal} more to order`;
-        } else {
-            checkoutBtn.disabled = false;
-            checkoutBtn.style.background = ''; // Reset
-            togglePaymentUI(); // Restore correct text
-        }
-
-        // Calculate total strictly for shipping logic
+        // --- SHIPPING METER ---
+        const freeShipLimit = shopConfig.freeShippingThreshold || 250;
+        const deliveryFee = shopConfig.deliveryCharge || 0;
         let currentTotal = cart.reduce((sum, i) => sum + (i.price * i.qty), 0);
 
         if (currentTotal >= freeShipLimit) {
-            // CASE A: Free Delivery Unlocked (Show Badge)
             finalDeliveryCost = 0;
             con.innerHTML += `
                 <div class="shipping-bar-container" style="background: #ecfdf5; border: 1px solid #a7f3d0; padding: 12px;">
                     <div style="color: #059669; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 0.95rem;">
-                        <i class="fas fa-check-circle"></i>
-                        <span>Free Delivery Applied</span>
-                        <i class="fas fa-shipping-fast"></i>
+                        <i class="fas fa-check-circle"></i> <span>Free Delivery Applied</span> <i class="fas fa-shipping-fast"></i>
                     </div>
                 </div>`;
         } else {
-            // CASE B: Goal Not Met (Show Progress Bar)
             finalDeliveryCost = deliveryFee;
             let percent = Math.min(100, (currentTotal / freeShipLimit) * 100);
-
             con.innerHTML += `
                 <div class="shipping-bar-container">
                     <div class="shipping-text">Add <strong>₹${freeShipLimit - currentTotal}</strong> for Free Delivery</div>
-                    <div class="progress-track">
-                        <div class="progress-fill" style="width: ${percent}%"></div>
-                    </div>
+                    <div class="progress-track"><div class="progress-fill" style="width: ${percent}%"></div></div>
                 </div>`;
         }
 
-        // Render Items
+        // --- RENDER ITEMS ---
         cart.forEach(i => {
             subtotal += i.price * i.qty;
             count += i.qty;
-
             con.innerHTML += `
             <div class="cart-item">
-                <img src="${sanitizeUrl(i.image)}" onerror="this.onerror=null; this.src='logo.jpg';">
+                <img src="${i.image}" onerror="this.onerror=null; this.src='logo.jpg';">
                 <div class="item-details" style="flex-grow:1;">
-                    <h4>${escapeHtml(String(i.name))}</h4>
-                    <div style="font-size:0.85rem; color:#666;">${escapeHtml(String(i.weight))}</div>
+                    <h4>${i.name}</h4>
+                    <div style="font-size:0.85rem; color:#666;">${i.weight}</div>
                     <div style="font-weight:bold; color:var(--primary);">₹${i.price}</div>
                     <div class="item-controls">
                         <button class="qty-btn" onclick="changeQty('${i.cartId}', -1)">-</button>
@@ -987,8 +970,10 @@ function updateCartUI() {
         });
     }
 
-    // Coupon Validation Logic
-    if (appliedDiscount && appliedDiscount.code) {
+    // --- CALCULATIONS & VALIDATION ---
+
+    // 1. Coupon Validation
+    if (appliedDiscount && appliedDiscount.code && appliedDiscount.type !== 'loyalty') {
         const couponRule = activeCoupons.find(c => c.code === appliedDiscount.code);
         if (couponRule && couponRule.minOrder && subtotal < couponRule.minOrder) {
             appliedDiscount = { type: 'none', value: 0, code: null };
@@ -1001,63 +986,52 @@ function updateCartUI() {
         }
     }
 
-    // Calculate Final Totals
+    // 2. Final Math
     let discountAmount = 0;
     if (appliedDiscount.type === 'percent') {
         discountAmount = Math.round(subtotal * (appliedDiscount.value / 100));
-    } else if (appliedDiscount.type === 'flat') {
+    } else if (appliedDiscount.type === 'flat' || appliedDiscount.type === 'loyalty') {
         discountAmount = appliedDiscount.value;
     }
     if (discountAmount > subtotal) discountAmount = subtotal;
 
-    // Safe final calculation
     const final = (subtotal - discountAmount) + finalDeliveryCost;
 
-    // Up-sell Logic (Only if not free shipping yet)
-    const gap = freeShipLimit - final;
-    if (gap > 0 && gap < 150 && cart.length > 0) {
-        const upsellItem = products.find(p => p.price <= 60 && p.in_stock);
-        if (upsellItem) {
-            const alreadyInCart = cart.find(i => i.productId === upsellItem.id);
-            if (!alreadyInCart) {
-                con.innerHTML += `
-                    <div style="background:#f0f9ff; border:1px dashed #0288d1; padding:10px; margin-bottom:15px; border-radius:8px; display:flex; align-items:center; justify-content:space-between;">
-                        <div style="display:flex; align-items:center; gap:10px;">
-                            <img src="${upsellItem.image}" style="width:40px; height:40px; border-radius:50%; object-fit:cover;">
-                            <div style="font-size:0.85rem; color:#0277bd;">
-                                <strong>Add ${upsellItem.name}?</strong><br>
-                                Only ₹${upsellItem.price}
-                            </div>
-                        </div>
-                        <button onclick="addToCartFromGrid(${upsellItem.id})" style="background:#0288d1; color:white; border:none; padding:5px 12px; border-radius:20px; font-size:0.75rem; cursor:pointer;">
-                            + Add
-                        </button>
-                    </div>`;
-            }
+    // 3. Min Order Validation
+    const minOrder = shopConfig.minOrderValue || 0;
+    if (cart.length > 0 && final < minOrder) {
+        if (checkoutBtn) {
+            checkoutBtn.disabled = true;
+            checkoutBtn.style.background = '#ccc';
+            checkoutBtn.innerHTML = `Add ₹${minOrder - final} more to order`;
+        }
+    } else {
+        if (checkoutBtn) {
+            checkoutBtn.disabled = false;
+            checkoutBtn.style.background = ''; // Reset CSS
+            togglePaymentUI(); // Restore "Pay Online" or "Place Order" text
         }
     }
 
-    // Update Footer Totals
+    // 4. Update Footer Totals
     const totalEl = document.getElementById('cart-total');
     if (totalEl) totalEl.innerText = '₹' + final.toLocaleString('en-IN');
 
     const countEl = document.getElementById('cart-count');
     if (countEl) countEl.innerText = count;
 
-    // Share Cart Button Logic
+    // 5. Share Cart Button
     const footer = document.querySelector('.cart-footer');
     const oldShare = document.getElementById('share-cart-btn');
     if (oldShare) oldShare.remove();
 
-    if (cart.length > 0 && footer) {
+    if (cart.length > 0 && footer && checkoutBtn) {
         const shareBtn = document.createElement('button');
         shareBtn.id = 'share-cart-btn';
         shareBtn.className = 'share-cart-btn';
         shareBtn.innerHTML = '<i class="fas fa-share-alt"></i> Share Order with Family';
         shareBtn.onclick = shareCartOnWhatsApp;
-
-        const mainBtn = document.getElementById('btn-main-checkout');
-        if (mainBtn) footer.insertBefore(shareBtn, mainBtn);
+        footer.insertBefore(shareBtn, checkoutBtn);
     }
 }
 
@@ -1065,7 +1039,9 @@ function previewProfilePic(input) {
     if (input.files && input.files[0]) {
         const reader = new FileReader();
         reader.onload = function (e) {
+            // Update the preview image in the modal
             document.getElementById('edit-profile-pic').src = e.target.result;
+            // Store the Base64 string in the hidden input
             document.getElementById('profile-pic-base64').value = e.target.result;
         }
         reader.readAsDataURL(input.files[0]);
@@ -1173,10 +1149,13 @@ async function handleCheckout() {
     const address = addressInput.value.trim();
 
     // 3. Validate
-    if (cart.length === 0) return showToast("Your cart is empty!", "error");
-    if (!/^[0-9]{10}$/.test(phone)) return showToast("Please enter a valid 10-digit mobile number.", "error");
-    if (address.length < 5) return showToast("Please enter a complete delivery address.", "error");
+    if (cart.length === 0) return showToast("Cart is empty", "error");
+    if (!/^[0-9]{10}$/.test(phone)) return showToast("Invalid phone", "error");
 
+    // Check Address Inputs
+    const street = document.getElementById('cust-addr-street').value.trim();
+    const pin = document.getElementById('cust-addr-pin').value.trim();
+    if (street.length < 3 || pin.length < 6) return showToast("Complete address & Pincode required", "error");
     try {
         await validateCartIntegrity(); // <--- ADD THIS
     } catch (e) {
@@ -1628,16 +1607,56 @@ function ensureModalExists(modalId) {
     if (modalId === 'profile-modal') {
         modalHTML = `
         <div id="profile-modal" class="modal-overlay">
-            <div class="modal-content">
-                <button class="close-modal" onclick="closeProfileModal()">&times;</button>
-                <h2 style="color:var(--primary); margin-top:0;">Edit Profile</h2>
-                <label style="font-weight:bold; display:block; margin-top:15px;">Your Name</label>
-                <input type="text" id="edit-name" disabled style="width:100%; padding:10px; border:1px solid #eee; background:#f9f9f9; border-radius:5px; color:#777;">
-                <label style="font-weight:bold; display:block; margin-top:15px;">Mobile Number</label>
-                <input type="tel" id="edit-phone" placeholder="10-digit number" style="width:100%; padding:10px; border:1px solid #ccc; border-radius:5px;">
-                <label style="font-weight:bold; display:block; margin-top:15px;">Default Address</label>
-                <textarea id="edit-address" rows="3" placeholder="Your full address..." style="width:100%; padding:10px; border:1px solid #ccc; border-radius:5px; resize:none;"></textarea>
-                <button onclick="saveProfile()" class="btn-primary" style="width:100%; margin-top:20px; padding:12px;">Save Changes</button>
+            <div class="modal-content mobile-modal" style="max-height: 85vh; overflow-y: auto;">
+                
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                    <h2 style="color:var(--primary); margin:0;">Edit Profile</h2>
+                    <button class="close-modal" onclick="closeProfileModal()" style="position:static;">&times;</button>
+                </div>
+
+                <div style="text-align:center; margin-bottom:15px;">
+                    <img id="edit-profile-pic" src="logo.jpg" style="width:80px; height:80px; border-radius:50%; object-fit:cover; border:2px solid var(--primary);">
+                    <br>
+                    <label for="profile-pic-upload" style="color:var(--primary); font-size:0.8rem; cursor:pointer; text-decoration:underline;">Change Photo</label>
+                    <input type="file" id="profile-pic-upload" accept="image/*" style="display:none;" onchange="previewProfilePic(this)">
+                    <input type="hidden" id="profile-pic-base64">
+                </div>
+
+                <label class="input-label">Your Name</label>
+                <input type="text" id="edit-name" class="form-control" placeholder="Enter your name">
+                
+                <label class="input-label">Email Address</label>
+                <input type="email" id="edit-email" class="form-control" placeholder="name@example.com">
+
+                <label class="input-label">Mobile Number</label>
+                <input type="tel" id="edit-phone" class="form-control" placeholder="10-digit number">
+                
+                <label class="input-label">Address Details</label>
+                <input type="text" id="edit-addr-street" class="form-control" placeholder="House No, Street, Area" style="margin-bottom: 10px;">
+                <div style="display: flex; gap: 10px;">
+                    <input type="text" id="edit-addr-city" class="form-control" placeholder="City" value="Indore">
+                    <input type="number" id="edit-addr-pin" class="form-control" placeholder="Pincode">
+                </div>
+                
+                <button onclick="saveProfile()" class="btn-primary full-width" style="margin-top:20px; padding:12px;">Save Changes</button>
+
+                <hr style="margin: 20px 0; border: 0; border-top: 1px dashed #ddd;">
+
+                <button onclick="toggleReferralSection()" style="background:none; border:none; color:#0288d1; font-weight:600; cursor:pointer; width:100%; text-align:left; display:flex; justify-content:space-between; align-items:center;">
+                    <span><i class="fas fa-gift"></i> Refer & Earn ₹50</span>
+                    <i class="fas fa-chevron-down" id="ref-chevron"></i>
+                </button>
+
+                <div id="referral-section" style="display:none; margin-top:15px; background:#f0f9ff; padding:15px; border-radius:8px; border:1px solid #bae6fd;">
+                    <div style="display:flex; gap:10px; margin-bottom:15px;">
+                        <input type="text" id="my-ref-code" readonly value="..." style="flex:1; background:white; border:1px dashed #0288d1; padding:10px; text-align:center; font-weight:bold; letter-spacing:1px; color:#0288d1;">
+                        <button class="btn-primary" onclick="copyRefCode()" style="padding:0 15px;"><i class="far fa-copy"></i></button>
+                    </div>
+                    <div style="display:flex; gap:10px;">
+                        <input type="text" id="enter-ref-code" placeholder="Enter Code" class="form-control" style="text-transform:uppercase;">
+                        <button class="btn-primary" onclick="redeemReferral()" style="background:#27ae60;">Redeem</button>
+                    </div>
+                </div>
             </div>
         </div>`;
     }
@@ -1692,17 +1711,42 @@ function ensureModalExists(modalId) {
 }
 
 function openProfileModal() {
-    ensureModalExists('profile-modal'); // <--- Inject if missing
+    ensureModalExists('profile-modal');
 
     document.getElementById('profile-modal').style.display = 'flex';
     document.getElementById('profile-menu').classList.remove('active');
 
-    if (currentUser) {
-        document.getElementById('edit-name').value = currentUser.displayName || '';
-        if (userProfile) {
-            document.getElementById('edit-phone').value = userProfile.phone || '';
-            document.getElementById('edit-address').value = userProfile.address || '';
-            document.getElementById('edit-email').value = userProfile.email || '';
+    // Initialize Referrals
+    if (typeof initReferral === 'function') initReferral();
+
+    if (userProfile) {
+        // Fill Basic Fields
+        document.getElementById('edit-name').value = userProfile.name || '';
+        document.getElementById('edit-phone').value = userProfile.phone || '';
+        document.getElementById('edit-email').value = userProfile.email || '';
+
+        // --- NEW: Fill Address Fields ---
+        if (userProfile.addressDetails) {
+            // If we have structured data, use it
+            document.getElementById('edit-addr-street').value = userProfile.addressDetails.street || '';
+            document.getElementById('edit-addr-city').value = userProfile.addressDetails.city || 'Indore';
+            document.getElementById('edit-addr-pin').value = userProfile.addressDetails.pin || '';
+        } else {
+            // Fallback for old data: put entire string in street
+            document.getElementById('edit-addr-street').value = userProfile.address || '';
+            document.getElementById('edit-addr-city').value = 'Indore';
+            document.getElementById('edit-addr-pin').value = '';
+        }
+
+        // Fill Photo
+        const imgEl = document.getElementById('edit-profile-pic');
+        const hiddenInput = document.getElementById('profile-pic-base64');
+        if (userProfile.photoURL) {
+            imgEl.src = userProfile.photoURL;
+            hiddenInput.value = userProfile.photoURL;
+        } else {
+            imgEl.src = 'logo.jpg';
+            hiddenInput.value = '';
         }
     }
 }
@@ -1757,48 +1801,90 @@ function toggleReferralSection() {
 
 // Updated saveProfile to include Name
 function saveProfile() {
-    const name = document.getElementById('edit-name').value.trim();
-    const email = document.getElementById('edit-email').value.trim(); // NEW
-    const phone = document.getElementById('edit-phone').value.trim();
-    const address = document.getElementById('edit-address').value.trim();
-    const picBase64 = document.getElementById('profile-pic-base64').value;
+    const nameInput = document.getElementById('edit-name');
+    const phoneInput = document.getElementById('edit-phone');
+    const emailInput = document.getElementById('edit-email');
 
-    if (!name) return showToast("Name cannot be empty", "error");
+    // 1. Get Basic Data
+    const name = nameInput ? nameInput.value.trim() : '';
+    const phone = phoneInput ? phoneInput.value.trim() : '';
+    const email = emailInput ? emailInput.value.trim() : '';
 
+    // 2. Get Address Data (Using the helper we added earlier)
+    const addrObj = getAddressFromInputs('edit');
+
+    // 3. Get Profile Picture Data
+    const picInput = document.getElementById('profile-pic-base64');
+    const picBase64 = picInput ? picInput.value : null;
+
+    // --- Validation ---
+    if (!name) return showToast("Name is required", "error");
+    if (!addrObj) return showToast("Complete address required", "error");
+
+    // --- Prepare Update Object ---
     const updateData = {
         name: name,
-        email: email, // SAVE EMAIL
         phone: phone,
-        address: address
+        email: email,
+        address: addrObj.full,        // Save String
+        addressDetails: addrObj,      // Save Object
+        lastUpdated: new Date()
     };
+
+    // Only add photo if user uploaded a new one
     if (picBase64) {
         updateData.photoURL = picBase64;
     }
 
-    db.collection("users").doc(currentUser.uid).set(updateData, { merge: true }).then(() => {
-        // Update local variable
-        if (!userProfile) userProfile = {};
-        userProfile.email = email; // Update local state
-        userProfile.name = name;
-        userProfile.phone = phone;
-        userProfile.address = address;
-        if (picBase64) document.getElementById('user-pic').src = picBase64;
+    toggleBtnLoading('btn-save-profile', true); // Optional visual feedback
 
-        // Update Auth Profile (so 'Guest' changes to real name in UI)
-        currentUser.updateProfile({ displayName: name });
-        document.getElementById('user-name').innerText = name;
+    // --- Save to Firestore ---
+    db.collection("users").doc(currentUser.uid).set(updateData, { merge: true })
+        .then(() => {
+            // --- Update Local State ---
+            if (!userProfile) userProfile = {};
+            Object.assign(userProfile, updateData);
 
-        // Also update checkout fields immediately
-        const nameInput = document.getElementById('cust-name'); // If you have one
-        const phoneInput = document.getElementById('cust-phone');
-        const addrInput = document.getElementById('cust-address');
+            // 1. Update Header Name
+            if (currentUser.displayName !== name) {
+                currentUser.updateProfile({ displayName: name });
+                const userNameEl = document.getElementById('user-name');
+                if (userNameEl) userNameEl.innerText = name;
+            }
 
-        if (phoneInput) phoneInput.value = phone.replace('+91', '');
-        if (addrInput) addrInput.value = address;
+            // 2. Update Header Image (Immediate Refresh)
+            if (picBase64) {
+                const userPicEl = document.getElementById('user-pic');
+                if (userPicEl) userPicEl.src = picBase64;
 
-        closeProfileModal();
-        showToast("Profile Updated", "success");
-    });
+                // Also update Auth profile photo if possible (optional)
+                currentUser.updateProfile({ photoURL: picBase64 });
+            }
+
+            // 3. Auto-fill Checkout Fields (If visible)
+            const custName = document.getElementById('cust-name');
+            const custEmail = document.getElementById('cust-email');
+            const custPhone = document.getElementById('cust-phone');
+
+            const custStreet = document.getElementById('cust-addr-street');
+            const custCity = document.getElementById('cust-addr-city');
+            const custPin = document.getElementById('cust-addr-pin');
+
+            if (custName) custName.value = name;
+            if (custEmail) custEmail.value = email;
+            if (custPhone && !custPhone.value) custPhone.value = phone.replace('+91', '');
+
+            if (custStreet) custStreet.value = addrObj.street;
+            if (custCity) custCity.value = addrObj.city;
+            if (custPin) custPin.value = addrObj.pin;
+
+            closeProfileModal();
+            showToast("Profile Updated Successfully", "success");
+        })
+        .catch(err => {
+            console.error("Profile Save Error:", err);
+            showToast("Error updating profile", "error");
+        });
 }
 
 function playVideo(w) { const v = w.querySelector('video'); document.querySelectorAll('.video-wrapper.playing video').forEach(o => { if (o !== v) { o.pause(); o.closest('.video-wrapper').classList.remove('playing'); } }); if (v.paused) { w.classList.add('playing'); v.play(); } else { w.classList.remove('playing'); v.pause(); } }
@@ -1992,10 +2078,16 @@ async function saveOrderToFirebase(method, paymentStatus, txnId) {
     toggleBtnLoading('btn-main-checkout', true);
 
     const phone = document.getElementById('cust-phone').value.trim();
-    const address = document.getElementById('cust-address').value.trim();
+    let email = document.getElementById('cust-email').value.trim();
+    if (!email && currentUser && currentUser.email) email = currentUser.email;
 
-    // 1. Capture Email (Input > Auth > Empty)
-    let email = "";
+    // --- GET ADDRESS ---
+    const addrObj = getAddressFromInputs('cust');
+    if (!addrObj) {
+        toggleBtnLoading('btn-main-checkout', false);
+        return showToast("Please complete delivery address", "error");
+    }
+
     const emailInput = document.getElementById('cust-email');
     if (emailInput && emailInput.value.trim()) {
         email = emailInput.value.trim();
@@ -2022,8 +2114,6 @@ async function saveOrderToFirebase(method, paymentStatus, txnId) {
 
     try {
         const batch = db.batch();
-
-        // --- A. PREPARE ORDER DATA ---
         const orderRef = db.collection("orders").doc(String(orderId));
         batch.set(orderRef, {
             id: orderId,
@@ -2031,7 +2121,9 @@ async function saveOrderToFirebase(method, paymentStatus, txnId) {
             userName: uName,
             userPhone: phone,
             userEmail: email, // Save email for Cloud Function
-            userAddress: address,
+            // SAVE STRUCTURED ADDRESS
+            userAddress: addrObj.full,       // Display String
+            addressDetails: addrObj,         // Data Object
             deliveryNote: deliveryNote,
             items: cart,
             subtotal: subtotal,
@@ -2053,7 +2145,8 @@ async function saveOrderToFirebase(method, paymentStatus, txnId) {
         let userUpdateData = {
             name: uName,
             phone: phone,
-            address: address,
+            address: addrObj.full,        // Update main string
+            addressDetails: addrObj,      // Update structure
             lastOrder: new Date(),
             type: currentUser ? 'Registered' : 'Guest'
         };
@@ -2444,11 +2537,18 @@ const suggestionsBox = document.getElementById('search-suggestions');
 let fuse; // Hold the Fuse instance
 
 // Initialize Fuse once products are loaded
+// Initialize Fuse safely
 function initFuzzySearch() {
+    // Safety Check: If Fuse script isn't loaded, stop here instead of crashing
+    if (typeof Fuse === 'undefined') {
+        console.warn("Fuse.js not loaded. Search will fallback to simple filtering.");
+        return;
+    }
+
     const options = {
-        keys: ['name', 'nameHi', 'category', 'desc'], // Fields to search
-        threshold: 0.4, // 0.0 = perfect match, 1.0 = match anything. 0.4 is good for typos.
-        distance: 100   // How close the match needs to be
+        keys: ['name', 'nameHi', 'category', 'desc'],
+        threshold: 0.4,
+        distance: 100
     };
     fuse = new Fuse(products, options);
 }
@@ -2921,28 +3021,33 @@ function setupRecaptcha() {
 }
 
 function initiatePhoneLogin(phoneNumber) {
-    toggleBtnLoading('login-btn', true); // Show loading
-    showToast("Sending OTP...", "neutral");
+    // 1. Show Global Loader
+    toggleGlobalLoading(true);
+    // showToast("Sending OTP...", "neutral"); // Optional: Loader is enough
 
     const appVerifier = window.recaptchaVerifier;
 
     auth.signInWithPhoneNumber(phoneNumber, appVerifier)
         .then((result) => {
-            // OTP Sent Successfully
             confirmationResult = result;
-            toggleBtnLoading('login-btn', false);
 
-            // Show OTP Modal
+            // 2. Hide Loader
+            toggleGlobalLoading(false);
+
             document.getElementById('otp-phone-display').innerText = phoneNumber;
             document.getElementById('otp-modal').style.display = 'flex';
-            document.getElementById('otp-input').focus();
+
+            // Auto-focus the input for better UX
+            setTimeout(() => document.getElementById('otp-input').focus(), 300);
+
             showToast("OTP Sent!", "success");
         }).catch((error) => {
             console.error("SMS Error:", error);
-            toggleBtnLoading('login-btn', false);
-            showToast("SMS Failed: " + error.message, "error");
 
-            // Reset Recaptcha on error so user can try again
+            // 3. Hide Loader on Error
+            toggleGlobalLoading(false);
+
+            showToast("SMS Failed: " + error.message, "error");
             if (window.recaptchaVerifier) window.recaptchaVerifier.clear();
             setupRecaptcha();
         });
@@ -2952,7 +3057,8 @@ function confirmOtp() {
     const code = document.getElementById('otp-input').value.trim();
     if (code.length !== 6) return showToast("Enter 6-digit code", "error");
 
-    toggleBtnLoading('btn-verify-otp', true);
+    // 1. Show Global Loader
+    toggleGlobalLoading(true);
 
     confirmationResult.confirm(code).then((result) => {
         const user = result.user;
@@ -2963,20 +3069,15 @@ function confirmOtp() {
             isNewUserOrIncomplete = true;
         }
 
-        // 1. Prepare Data to Save
-        const updateData = {
-            phone: user.phoneNumber,
-            lastLogin: new Date()
-        };
-        // Set default name if missing
+        // ... (Your existing profile update logic) ...
+        const updateData = { phone: user.phoneNumber, lastLogin: new Date() };
         if (!user.displayName) updateData.name = "User " + user.phoneNumber.slice(-4);
-
-        // 2. Update Firestore
         db.collection("users").doc(user.uid).set(updateData, { merge: true });
 
-        // 3. UI Cleanup
+        // 2. Hide Loader & Close Modal
+        toggleGlobalLoading(false);
         closeModal('otp-modal');
-        toggleBtnLoading('btn-verify-otp', false);
+
         showToast("Login Successful!", "success");
 
         // --- NEW: Prompt for Name if missing ---
@@ -2987,26 +3088,21 @@ function confirmOtp() {
             }, 500);
         }
 
-        // --- FIX: Auto-fill Phone Field for Checkout ---
+        // Auto-fill Logic
         const phoneInput = document.getElementById('cust-phone');
         if (phoneInput) {
-            // Remove '+91' so it passes the 10-digit validation check
-            // Example: '+919876543210' -> '9876543210'
             let cleanPhone = user.phoneNumber.replace('+91', '').replace(/[^0-9]/g, '');
             phoneInput.value = cleanPhone;
         }
-        // -----------------------------------------------
 
-        // 4. Proceed to Payment immediately
         if (cart.length > 0) {
             initiateRazorpayPayment();
         }
 
     }).catch((error) => {
-        toggleBtnLoading('btn-verify-otp', false);
+        toggleGlobalLoading(false);
         console.error(error);
 
-        // Show specific error messages for common issues
         if (error.code === 'auth/invalid-verification-code') {
             showToast("Invalid OTP. Please check code.", "error");
         } else {
@@ -3068,3 +3164,36 @@ window.addEventListener('beforeinstallprompt', (e) => {
         });
     }
 });
+
+// Helper to construct address object
+// Helper to construct address object from inputs
+function getAddressFromInputs(prefix) {
+    // prefix is either 'edit' (Profile Modal) or 'cust' (Checkout)
+    const streetInput = document.getElementById(`${prefix}-addr-street`);
+    const cityInput = document.getElementById(`${prefix}-addr-city`);
+    const pinInput = document.getElementById(`${prefix}-addr-pin`);
+
+    // Safety check in case elements are missing
+    if (!streetInput || !cityInput || !pinInput) return null;
+
+    const street = streetInput.value.trim();
+    const city = cityInput.value.trim();
+    const pin = pinInput.value.trim();
+
+    // Basic Validation
+    if (!street || !city || !pin) return null;
+
+    return {
+        street: street,
+        city: city,
+        pin: pin,
+        full: `${street}, ${city} - ${pin}` // Combined string for easy display
+    };
+}
+
+function toggleGlobalLoading(show) {
+    const loader = document.getElementById('global-loader');
+    if (loader) {
+        loader.style.display = show ? 'flex' : 'none';
+    }
+}

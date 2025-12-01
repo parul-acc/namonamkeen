@@ -65,7 +65,7 @@ if (window.location.pathname.endsWith('admin-local.html')) {
 }
 
 function adminLogin() { auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()); }
-function logout() { 
+function logout() {
     // Cleanup all listeners before logging out
     if (reviewsUnsubscribe) reviewsUnsubscribe();
     if (inventoryUnsubscribe) inventoryUnsubscribe();
@@ -74,7 +74,7 @@ function logout() {
     if (expensesUnsubscribe) expensesUnsubscribe();
     if (ordersUnsubscribe) ordersUnsubscribe();
     if (dashboardUnsubscribe) dashboardUnsubscribe();
-    auth.signOut().then(() => location.reload()); 
+    auth.signOut().then(() => location.reload());
 }
 
 function initDashboard() {
@@ -1497,8 +1497,15 @@ function updatePosQty(idx, change) {
 async function submitPosOrder() {
     const name = document.getElementById('pos-name').value.trim();
     let phone = document.getElementById('pos-phone').value.trim(); // Changed const to let
+    // --- NEW ADDRESS READ ---
+    const street = document.getElementById('pos-addr-street').value.trim();
+    const city = document.getElementById('pos-addr-city').value.trim();
+    const pin = document.getElementById('pos-addr-pin').value.trim();
+
+    const fullAddress = (street && pin) ? `${street}, ${city} - ${pin}` : "Walk-in Customer";
+    const addressDetails = (street && pin) ? { street, city, pin, full: fullAddress } : null;
+
     phone = phone.replace('+91', '').replace(/[^0-9]/g, '');
-    const address = document.getElementById('pos-address').value.trim() || "Walk-in Customer";
     const status = document.getElementById('pos-status').value;
     const uid = `guest_${phone}`;
     if (!name || !phone) return showToast("Enter Name & Phone", "error");
@@ -1523,10 +1530,21 @@ async function submitPosOrder() {
         const batch = db.batch();
         batch.set(db.collection("orders").doc(orderId), {
             id: orderId, userId: uid, userName: name, userPhone: phone, userAddress: address,
-            items: adminCart, total: total, status: status, paymentMethod: 'Cash/UPI (POS)', paymentStatus: 'Paid', timestamp: new Date(), source: 'Admin POS'
+            items: adminCart, total: total, status: status, paymentMethod: 'Cash/UPI (POS)', paymentStatus: 'Paid', timestamp: new Date(), source: 'Admin POS',
+            userAddress: fullAddress,
+            addressDetails: addressDetails,
         });
-        batch.set(db.collection("users").doc(uid), { name: name, phone: phone, address: address, lastOrder: new Date(), type: 'POS Customer' }, { merge: true });
+        batch.set(db.collection("users").doc(uid), {
+            name: name,
+            phone: phone,
+            address: fullAddress,
+            addressDetails: addressDetails,
+            lastOrder: new Date(),
+            type: 'POS Customer'
+        }, { merge: true });
         await batch.commit();
+        document.getElementById('pos-addr-street').value = '';
+        document.getElementById('pos-addr-pin').value = '';
         showToast("Order Placed!", "success");
         adminCart = []; renderAdminCart(); document.getElementById('pos-name').value = ''; document.getElementById('pos-phone').value = '';
         switchView('orders');
@@ -1856,7 +1874,7 @@ function renderPosProducts() {
 
         const img = p.image || 'logo.jpg';
         // Use an encoded name for the onclick and escape display values
-       const safeNameForClick = encodeURIComponent(p.name || '');
+        const safeNameForClick = encodeURIComponent(p.name || '');
 
         grid.innerHTML += `
             <div class="pos-card" onclick="addToAdminCart('${p.id}', '${safeNameForClick}', ${price}, '${weight}', '${sanitizeUrl(img)}')">

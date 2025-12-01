@@ -301,8 +301,17 @@
                         </select>
                     </div>
 
-                    <textarea id="cust-address" placeholder="House No, Street, Area, City..." rows="2"
-                        class="form-control"></textarea>
+                    <div class="address-grid" style="display: flex; flex-direction: column; gap: 10px;">
+                        <input type="text" id="cust-addr-street" class="form-control"
+                            placeholder="House No, Building, Street Area *">
+
+                        <div style="display: flex; gap: 10px;">
+                            <input type="text" id="cust-addr-city" class="form-control" placeholder="City *"
+                                value="Indore">
+                            <input type="number" id="cust-addr-pin" class="form-control" placeholder="Pincode *"
+                                style="width: 120px;">
+                        </div>
+                    </div>
 
                     <button id="btn-save-addr" onclick="saveNewAddress()"
                         style="display:none; margin-top:5px; font-size:0.8rem; background:none; border:none; color:var(--primary); cursor:pointer; text-decoration:underline; width:auto; padding:0;">
@@ -390,18 +399,26 @@
             <label class="input-label">Email Address</label>
             <input type="email" id="edit-email" class="form-control" placeholder="name@example.com">
 
-            <label class="input-label">Default Address</label>
-            <textarea id="edit-address" rows="3" class="form-control" placeholder="Your full address..."></textarea>
+            <label class="input-label">Address Details</label>
+            <input type="text" id="edit-addr-street" class="form-control" placeholder="House No, Street, Area"
+                style="margin-bottom: 10px;">
+            <div style="display: flex; gap: 10px;">
+                <input type="text" id="edit-addr-city" class="form-control" placeholder="City" value="Indore">
+                <input type="number" id="edit-addr-pin" class="form-control" placeholder="Pincode">
+            </div>
 
             <div style="text-align:center; margin-bottom:15px;">
                 <img id="edit-profile-pic" src="logo.jpg"
                     style="width:80px; height:80px; border-radius:50%; object-fit:cover; border:2px solid var(--primary);">
                 <br>
+
                 <label for="profile-pic-upload"
-                    style="color:var(--primary); font-size:0.8rem; cursor:pointer; text-decoration:underline;">Change
-                    Photo</label>
+                    style="color:var(--primary); font-size:0.8rem; cursor:pointer; text-decoration:underline; font-weight:600;">
+                    Change Photo
+                </label>
                 <input type="file" id="profile-pic-upload" accept="image/*" style="display:none;"
                     onchange="previewProfilePic(this)">
+
                 <input type="hidden" id="profile-pic-base64">
             </div>
 
@@ -700,6 +717,13 @@
 
             <p style="margin-top:15px; font-size:0.8rem; color:#999; cursor:pointer;" onclick="resendOtp()">Resend Code
             </p>
+        </div>
+    </div>
+
+    <div id="global-loader" style="display: none;">
+        <div class="loader-content">
+            <div class="spinner-orange"></div>
+            <p>Verifying Securely...</p>
         </div>
     </div>
     <script src="script.js"></script>

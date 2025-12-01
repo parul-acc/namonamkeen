@@ -123,8 +123,43 @@
     </div>
 
     <footer class="footer">
-        <div class="container text-center">
-            <p>&copy; 2025 Namo Namkeen</p>
+        <div class="container">
+            <div class="footer-top">
+                <div class="footer-section about">
+                    <p>Authentic Indian Sweets & Snacks, delivered to your doorstep. The Royal Taste of Indore.</p>
+                    <div class="social-links">
+                        <a href="#" class="social-icon"><i class="fab fa-instagram"></i></a>
+                        <a href="#" class="social-icon"><i class="fab fa-facebook-f"></i></a>
+                        <a href="#" class="social-icon"><i class="fab fa-whatsapp"></i></a>
+                    </div>
+                </div>
+                <div class="footer-section links">
+                    <h4>Quick Links</h4>
+                    <ul>
+                        <li><a href="index.html">Home</a></li>
+                        <li><a href="index.html#menu-section">Menu</a></li>
+                        <li><a href="story.html">Our Story</a></li>
+                        <li><a href="blog.html">Blog</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section links">
+                    <h4>Legal</h4>
+                    <ul>
+                        <li><a href="privacy.html">Privacy Policy</a></li>
+                        <li><a href="terms.html">Terms of Service</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section contact">
+                    <h4>Contact Us</h4>
+                    <p><i class="fas fa-map-marker-alt"></i> 131, Keshav Park, Mhow (M.P.)</p>
+                    <p><i class="fas fa-phone-alt"></i> +91 98266 98822</p>
+                    <p><i class="fas fa-envelope"></i> contact@namonamkeen.shop</p>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2025 Namo Namkeen. All Rights Reserved.</p>
+                <p>Designed with ❤️ by Parul Gangwal</p>
+            </div>
         </div>
     </footer>
 
@@ -226,10 +261,55 @@
     </div>
 
     <div id="toast-container"></div>
+
+    <div id="recaptcha-container"></div>
+
+    <div id="global-loader" style="display: none;">
+        <div class="loader-content">
+            <div class="spinner-orange"></div>
+            <p>Verifying Securely...</p>
+        </div>
+    </div>
+
+    <div id="otp-modal" class="modal-overlay">
+        <div class="modal-content mobile-modal text-center" style="max-width: 350px;">
+            <button class="close-modal" onclick="closeModal('otp-modal')">&times;</button>
+            <h3>Verify Phone</h3>
+            <p style="color:#666; font-size:0.9rem; margin-bottom:15px;">
+                Enter the 6-digit code sent to <br><b id="otp-phone-display">+91 XXXXX XXXXX</b>
+            </p>
+
+            <input type="number" id="otp-input" class="form-control" placeholder="123456"
+                style="text-align:center; letter-spacing:5px; font-size:1.2rem; margin-bottom:15px;">
+
+            <button id="btn-verify-otp" class="btn-primary full-width" onclick="confirmOtp()">Verify & Login</button>
+
+            <p style="margin-top:15px; font-size:0.8rem; color:#999; cursor:pointer;" onclick="resendOtp()">Resend Code
+            </p>
+        </div>
+    </div>
+
+    <div id="login-choice-modal" class="modal-overlay">
+        <div class="modal-content mobile-modal text-center" style="max-width: 350px;">
+            <button class="close-modal" onclick="closeModal('login-choice-modal')">&times;</button>
+            <h3 style="margin-bottom: 5px; font-size: 1.5rem;">Welcome Back</h3>
+            <p style="color:#666; margin-bottom: 25px; font-size: 0.9rem;">Choose how you want to login</p>
+            <button class="login-option-btn" onclick="handleLoginChoice('google')">
+                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="20"> Continue with
+                Google
+            </button>
+            <button class="login-option-btn" onclick="handleLoginChoice('mobile')">
+                <i class="fas fa-mobile-alt" style="color: var(--primary); font-size: 1.2rem;"></i> Login via Mobile OTP
+            </button>
+            <p style="font-size: 0.75rem; color: #999; margin-top: 15px;">By continuing, you agree to our Terms &
+                Privacy Policy.</p>
+        </div>
+    </div>
+
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-    <script src="script.js"></script>
+
 
     <script>
         // --- FIX 1: Initialize the global variable ---
@@ -283,6 +363,8 @@
             document.getElementById('blog-modal').style.display = 'none';
         }
     </script>
+
+    <script src="script.js"></script>
 </body>
 
 </html>
