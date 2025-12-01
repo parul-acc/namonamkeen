@@ -17,7 +17,7 @@ const transporter = nodemailer.createTransport({
 });
 
 // --- FUNCTION 1: Send Invoice Email ---
-exports.sendOrderConfirmation = functions.region("ap-south1").firestore
+exports.sendOrderConfirmation = functions.firestore
     .document("orders/{orderId}")
     .onCreate(async (snap, context) => {
         const order = snap.data();
@@ -97,7 +97,7 @@ exports.sendOrderConfirmation = functions.region("ap-south1").firestore
     });
 
 // --- FUNCTION 2: Create Secure Payment Order ---
-exports.createPaymentOrder = functions.region("ap-south1").https.onCall(async (data, context) => {
+exports.createPaymentOrder = functions.https.onCall(async (data, context) => {
     // 1. Security Check
     if (!context.auth) {
         throw new functions.https.HttpsError("unauthenticated", "User must be logged in.");
@@ -156,7 +156,7 @@ exports.createPaymentOrder = functions.region("ap-south1").https.onCall(async (d
 });
 
 // --- FUNCTION 3: Log Sales (Optional) ---
-exports.logSalesData = functions.region("ap-south1").firestore
+exports.logSalesData = functions.firestore
     .document("orders/{orderId}")
     .onCreate(async (snap, context) => {
         // ... (Keep existing logSalesData logic if you added it) ...
