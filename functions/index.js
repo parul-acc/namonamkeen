@@ -126,7 +126,7 @@ exports.sendOrderConfirmation = functions.firestore
 
 // --- FUNCTION 2: Create Secure Payment Order ---
 // --- FUNCTION 2: Create Secure Payment Order (Server-Side Price Check) ---
-exports.createPaymentOrder = functions.region("ap-south1").https.onCall(async (data, context) => {
+exports.createPaymentOrder = functions.https.onCall(async (data, context) => {
     if (!context.auth) throw new functions.https.HttpsError("unauthenticated", "User must be logged in.");
 
     const clientCart = data.cart;
@@ -199,7 +199,7 @@ exports.createPaymentOrder = functions.region("ap-south1").https.onCall(async (d
 });
 
 // --- FUNCTION 3: Auto-Update Loyalty Wallet ---
-exports.updateLoyaltyWallet = functions.region("ap-south1").firestore
+exports.updateLoyaltyWallet = functions.firestore
     .document("orders/{orderId}")
     .onCreate(async (snap, context) => {
         const order = snap.data();
@@ -252,7 +252,7 @@ exports.updateLoyaltyWallet = functions.region("ap-south1").firestore
     });
 
 // --- FUNCTION 3: Log Sales for Inventory Tracking ---
-exports.logSalesData = functions.region("ap-south1").firestore
+exports.logSalesData = functions.firestore
     .document("orders/{orderId}")
     .onCreate(async (snap, context) => {
         const order = snap.data();
