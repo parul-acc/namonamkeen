@@ -3653,3 +3653,9 @@ textarea:focus,
     /* Smooth fade effect */
     z-index: 0;
 }
+
+#product-modal .close-modal {
+    position: static !important; /* Forces it to respect the Flexbox layout */
+    padding: 0;
+    margin: 0;
+}

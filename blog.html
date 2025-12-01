@@ -11,6 +11,7 @@
         href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Poppins:wght@300;400;500;600&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/fuse.js@6.6.2"></script>
 </head>
 
 <body>
@@ -231,6 +232,8 @@
     <script src="script.js"></script>
 
     <script>
+        // --- FIX 1: Initialize the global variable ---
+        const blogPosts = {};
         // Add this inside the existing <script> tag in blog.html
         window.addEventListener('DOMContentLoaded', () => {
             const container = document.querySelector('.blog-grid');

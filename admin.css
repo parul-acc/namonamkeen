@@ -1159,3 +1159,159 @@ body.loading .main-content {
     min-width: 250px;
     justify-content: center;
 }
+
+/* --- MODERN INPUTS (Cleaner Look) --- */
+.form-control,
+.search-input {
+    background-color: #f8fafc;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    padding: 12px;
+    font-size: 16px;
+    /* Prevents iOS zoom */
+    color: #334155;
+    transition: 0.2s;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.01);
+}
+
+.form-control:focus,
+.search-input:focus {
+    background-color: #fff;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(232, 93, 4, 0.15);
+    outline: none;
+}
+
+/* --- MOBILE POS FIXES (Critical) --- */
+@media (max-width: 900px) {
+
+    /* 1. Main Layout: Enable Scrolling */
+    .pos-layout {
+        display: flex;
+        flex-direction: column !important;
+        height: auto !important;
+        /* Allow full page scroll */
+        overflow: visible !important;
+        padding-bottom: 220px !important;
+        /* Huge padding so content isn't hidden behind the fixed bottom bar */
+        gap: 20px;
+    }
+
+    /* 2. Products Section (Top) */
+    .pos-left {
+        order: 1;
+        /* Show First */
+        width: 100%;
+        height: auto !important;
+        background: transparent;
+        box-shadow: none;
+        border: none;
+    }
+
+    .pos-left .card-header {
+        padding: 10px 0;
+        background: transparent;
+        border: none;
+    }
+
+    /* FIX FOR GIANT IMAGES: Force 2 Columns */
+    .pos-product-grid {
+        display: grid !important;
+        grid-template-columns: repeat(2, 1fr) !important;
+        /* 2 Items per row always */
+        gap: 10px;
+        padding: 5px;
+        max-height: 50vh;
+        /* Scrollable area for products */
+        overflow-y: auto;
+        background: #fff;
+        border-radius: 12px;
+        border: 1px solid #eee;
+    }
+
+    .pos-card {
+        width: 100%;
+        border: 1px solid #f1f5f9;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+    }
+
+    .pos-card-img-wrap {
+        height: 100px !important;
+        /* Fixed small height */
+        width: 100%;
+    }
+
+    .pos-card-img-wrap img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .pos-card h4 {
+        font-size: 0.85rem;
+        margin-bottom: 2px;
+    }
+
+    /* 3. Customer & Cart Section */
+    .pos-right {
+        order: 2;
+        /* Show Second */
+        width: 100%;
+        height: auto !important;
+        box-shadow: none;
+        border: none;
+        background: transparent;
+    }
+
+    /* Hide the card header for "Customer Details" to save space */
+    .pos-right .card-header {
+        display: none;
+    }
+
+    .pos-right>div {
+        padding: 0 !important;
+    }
+
+    /* Side-by-Side Name & Phone */
+    #pos-name {
+        margin-bottom: 10px;
+    }
+
+    #pos-phone {
+        margin-bottom: 10px;
+    }
+
+    /* 4. FIXED BOTTOM BAR (Place Order) */
+    /* This makes the button always visible at the bottom of the screen */
+    .pos-total-section {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        background: #fff;
+        z-index: 9999;
+        padding: 15px;
+        border-top: 2px solid var(--primary);
+        box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.15);
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        border-radius: 20px 20px 0 0;
+    }
+
+    .pos-total-section button {
+        height: 50px;
+        font-size: 1.1rem;
+    }
+
+    /* Cart List Styling inside the flow */
+    .pos-cart-list {
+        background: white;
+        border-radius: 12px;
+        padding: 10px;
+        max-height: 200px;
+        overflow-y: auto;
+        border: 1px solid #e2e8f0;
+        margin-top: 10px;
+    }
+}

@@ -64,6 +64,20 @@ function logout() { auth.signOut().then(() => location.reload()); }
 
 function initDashboard() {
     console.log("Initializing Dashboard...");
+    // Listener for Blog Image Upload
+    document.addEventListener('change', function (e) {
+        if (e.target && e.target.id === 'blog-image-file') {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function (evt) {
+                    // Save the Base64 string to the hidden input
+                    document.getElementById('blog-image-base64').value = evt.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+    });
     // FIX: Reveal the UI now that we know the user is an Admin
     document.body.classList.remove('loading');
     loadDashboardData('All');
@@ -151,10 +165,10 @@ function loadReviews() {
             }
 
             // In loadReviews loop:
-const isPending = r.status === 'pending';
-const actionBtn = isPending 
-    ? `<button class="btn btn-success btn-sm" onclick="approveReview('${doc.id}')">Approve</button>`
-    : `<button class="icon-btn btn-danger" onclick="deleteReview(...)"><i class="fas fa-trash"></i></button>`;
+            const isPending = r.status === 'pending';
+            const actionBtn = isPending
+                ? `<button class="btn btn-success btn-sm" onclick="approveReview('${doc.id}')">Approve</button>`
+                : `<button class="icon-btn btn-danger" onclick="deleteReview(...)"><i class="fas fa-trash"></i></button>`;
 
             tbody.innerHTML += `
             <tr>
@@ -177,7 +191,7 @@ const actionBtn = isPending
 
 function approveReview(id) {
     db.collection("reviews").doc(id).update({ status: 'approved' })
-      .then(() => showToast("Review Approved", "success"));
+        .then(() => showToast("Review Approved", "success"));
 }
 
 async function deleteReview(reviewId, productId, rating) {
@@ -1802,7 +1816,8 @@ function loadBlogCMS() {
 function openBlogEditor() {
     document.getElementById('blog-id').value = '';
     document.getElementById('blog-title').value = '';
-    document.getElementById('blog-image').value = '';
+    document.getElementById('blog-image-file').value = ''; // Clear file input
+    document.getElementById('blog-image-base64').value = ''; // Clear hidden data
     document.getElementById('blog-content').value = '';
     document.getElementById('blog-editor-modal').style.display = 'flex';
 }
@@ -1812,21 +1827,27 @@ function editBlog(id) {
         const b = doc.data();
         document.getElementById('blog-id').value = id;
         document.getElementById('blog-title').value = b.title;
-        document.getElementById('blog-image').value = b.image;
+        // Load existing image into hidden field so we don't lose it if we don't upload a new one
+        document.getElementById('blog-image-base64').value = b.image || ''; 
         document.getElementById('blog-content').value = b.content;
         document.getElementById('blog-editor-modal').style.display = 'flex';
+        
+        // Reset file input
+        document.getElementById('blog-image-file').value = ''; 
     });
 }
 
 function saveBlogPost() {
     const id = document.getElementById('blog-id').value;
+    
     const data = {
         title: document.getElementById('blog-title').value,
-        image: document.getElementById('blog-image').value,
+        // Use the hidden Base64 value
+        image: document.getElementById('blog-image-base64').value, 
         content: document.getElementById('blog-content').value,
         date: new Date()
     };
-
+    
     const ref = id ? db.collection("blogs").doc(id) : db.collection("blogs").doc();
     ref.set(data, { merge: true }).then(() => {
         closeModal('blog-editor-modal');
@@ -1857,13 +1878,13 @@ function loadFinance() {
         let expense = 0;
         const tbody = document.getElementById('expense-body');
         tbody.innerHTML = '';
-        
+
         snap.forEach(doc => {
             const e = doc.data();
             expense += parseFloat(e.amount);
             tbody.innerHTML += `<tr><td>${e.date.toDate().toLocaleDateString()}</td><td>${e.desc}</td><td>${e.category}</td><td style="color:red">-₹${e.amount}</td></tr>`;
         });
-        
+
         document.getElementById('fin-expense').innerText = '₹' + expense.toLocaleString();
         calculateProfit(null, expense);
     });
@@ -1871,8 +1892,8 @@ function loadFinance() {
 
 let globalRev = 0, globalExp = 0;
 function calculateProfit(rev, exp) {
-    if(rev !== null) globalRev = rev;
-    if(exp !== null) globalExp = exp;
+    if (rev !== null) globalRev = rev;
+    if (exp !== null) globalExp = exp;
     const profit = globalRev - globalExp;
     const el = document.getElementById('fin-profit');
     el.innerText = '₹' + profit.toLocaleString();
@@ -1883,9 +1904,9 @@ function saveExpense() {
     const desc = document.getElementById('exp-desc').value;
     const cat = document.getElementById('exp-cat').value;
     const amt = parseFloat(document.getElementById('exp-amt').value);
-    
-    if(!desc || !amt) return showToast("Invalid Data", "error");
-    
+
+    if (!desc || !amt) return showToast("Invalid Data", "error");
+
     db.collection("expenses").add({
         desc, category: cat, amount: amt, date: new Date()
     }).then(() => {
@@ -1897,18 +1918,18 @@ function saveExpense() {
 async function calculateSegments() {
     showToast("Analyzing customer data...", "neutral");
     const usersSnap = await db.collection("users").get();
-    
+
     const batch = db.batch();
     let count = 0;
 
     for (const doc of usersSnap.docs) {
         const u = doc.data();
-        
+
         // Calculate Total Spend (You might need to query orders for this user if not stored in user doc)
         const ordersSnap = await db.collection("orders").where("userId", "==", doc.id).get();
         let totalSpend = 0;
-        ordersSnap.forEach(o => { 
-            if(o.data().status !== 'Cancelled') totalSpend += o.data().total 
+        ordersSnap.forEach(o => {
+            if (o.data().status !== 'Cancelled') totalSpend += o.data().total
         });
 
         let segment = 'Regular';

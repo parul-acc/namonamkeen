@@ -589,7 +589,12 @@
             </div>
             <input type="hidden" id="blog-id">
             <input id="blog-title" class="form-control" placeholder="Post Title" style="margin-bottom:10px;">
-            <input id="blog-image" class="form-control" placeholder="Cover Image URL" style="margin-bottom:10px;">
+            <div style="margin-bottom:10px;">
+                <label class="form-label">Cover Image</label>
+                <input type="file" id="blog-image-file" class="form-control" accept="image/*">
+                <input type="hidden" id="blog-image-base64"> <small style="color:#666;">Leave empty to keep existing
+                    image</small>
+            </div>
             <textarea id="blog-content" class="form-control" rows="10"
                 placeholder="HTML Content (Use <p>, <b>, etc.)"></textarea>
             <button class="btn btn-primary full-width" onclick="saveBlogPost()"
@@ -598,34 +603,60 @@
     </div>
 
     <div id="view-finance" class="view-section">
-    <div class="stats-grid">
-        <div class="stat-card border-green"><h3>Total Revenue</h3><h1 id="fin-revenue">₹0</h1></div>
-        <div class="stat-card border-red"><h3>Total Expenses</h3><h1 id="fin-expense">₹0</h1></div>
-        <div class="stat-card border-purple"><h3>Net Profit</h3><h1 id="fin-profit">₹0</h1></div>
-    </div>
-    
-    <div class="card">
-        <div class="card-header">
-            <h3>Expense Log</h3>
-            <button class="btn btn-primary" onclick="openExpenseModal()">+ Add Expense</button>
+        <div class="stats-grid">
+            <div class="stat-card border-green">
+                <h3>Total Revenue</h3>
+                <h1 id="fin-revenue">₹0</h1>
+            </div>
+            <div class="stat-card border-red">
+                <h3>Total Expenses</h3>
+                <h1 id="fin-expense">₹0</h1>
+            </div>
+            <div class="stat-card border-purple">
+                <h3>Net Profit</h3>
+                <h1 id="fin-profit">₹0</h1>
+            </div>
         </div>
-        <div class="table-responsive">
-            <table><thead><tr><th>Date</th><th>Desc</th><th>Category</th><th>Amount</th></tr></thead><tbody id="expense-body"></tbody></table>
-        </div>
-    </div>
-</div>
 
-<div id="expense-modal" class="modal">
-    <div class="modal-content">
-        <div class="modal-header"><h3>Log Expense</h3><button class="close-btn" onclick="closeModal('expense-modal')">&times;</button></div>
-        <input id="exp-desc" class="form-control" placeholder="Description (e.g. Packaging)" style="margin-bottom:10px;">
-        <select id="exp-cat" class="form-control" style="margin-bottom:10px;">
-            <option>Raw Material</option><option>Packaging</option><option>Delivery/Fuel</option><option>Salary</option><option>Other</option>
-        </select>
-        <input type="number" id="exp-amt" class="form-control" placeholder="Amount (₹)">
-        <button class="btn btn-primary full-width" onclick="saveExpense()" style="margin-top:15px;">Save</button>
+        <div class="card">
+            <div class="card-header">
+                <h3>Expense Log</h3>
+                <button class="btn btn-primary" onclick="openExpenseModal()">+ Add Expense</button>
+            </div>
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Desc</th>
+                            <th>Category</th>
+                            <th>Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody id="expense-body"></tbody>
+                </table>
+            </div>
+        </div>
     </div>
-</div>
+
+    <div id="expense-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Log Expense</h3><button class="close-btn" onclick="closeModal('expense-modal')">&times;</button>
+            </div>
+            <input id="exp-desc" class="form-control" placeholder="Description (e.g. Packaging)"
+                style="margin-bottom:10px;">
+            <select id="exp-cat" class="form-control" style="margin-bottom:10px;">
+                <option>Raw Material</option>
+                <option>Packaging</option>
+                <option>Delivery/Fuel</option>
+                <option>Salary</option>
+                <option>Other</option>
+            </select>
+            <input type="number" id="exp-amt" class="form-control" placeholder="Amount (₹)">
+            <button class="btn btn-primary full-width" onclick="saveExpense()" style="margin-top:15px;">Save</button>
+        </div>
+    </div>
 
     <script src="admin.js"></script>
 </body>

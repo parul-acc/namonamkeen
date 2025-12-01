@@ -33,6 +33,7 @@ let searchQuery = '';
 let currentLang = 'en';
 let selectedHamperItems = [];
 let historyOrders = [];
+let currentModalQty = 1;
 
 // NEW: Add this Shop Config
 // ⚠️ CRITICAL: razorpayKeyId must be configured before deployment
@@ -533,30 +534,33 @@ function findResult(keyword) {
     document.getElementById('quiz-content').innerHTML = `<div class="quiz-result"><h3 style="color:green">Try This!</h3><img src="${p.image}" class="result-img" onerror="this.onerror=null; this.src='logo.jpg';"><h2>${p.name}</h2><button class="btn-primary" style="padding:10px;" onclick="openProductDetail(${p.id}); closeQuiz();">View</button></div>`;
 }
 
-// --- 8. PRODUCT MODAL ---
+// --- 8. PRODUCT MODAL (Redesigned like Image 2) ---
 function openProductDetail(id) {
     const p = products.find(x => x.id === id);
-    updateSchema(p);
     if (!p) return;
+    
+    // Reset Qty on open
+    currentModalQty = 1; 
+
+    // Update SEO Schema if function exists
+    if (typeof updateSchema === 'function') updateSchema(p);
 
     const name = currentLang === 'en' ? p.name : (p.nameHi || p.name);
     const desc = currentLang === 'en' ? p.desc : (p.descHi || p.desc);
-
-    const ingredients = p.ingredients || "Gram Flour, Spices, Oil";
-    const shelfLife = p.shelfLife || "3 Months";
     const category = p.category ? p.category.charAt(0).toUpperCase() + p.category.slice(1) : "Snacks";
 
+    // --- Variant Logic ---
     let variantHtml = '';
     let initialPrice = p.price;
     let isAvailable = p.in_stock;
 
-    // Variant Logic
+    // Default to first variant
     if (p.variants && p.variants.length > 0) {
         const firstActive = p.variants.find(v => v.inStock !== false);
         initialPrice = firstActive ? firstActive.price : p.variants[0].price;
         if (!firstActive) isAvailable = false;
 
-        variantHtml = `<select id="modal-variant-select" class="pm-select" onchange="updateModalPrice(this)">`;
+        variantHtml = `<select id="modal-variant-select" class="pm-select" onchange="updateModalPrice(this)" style="margin-top:10px; width:100%; padding:8px; border-radius:5px; border:1px solid #ddd;">`;
         p.variants.forEach((v, idx) => {
             const stockStatus = (v.inStock !== false);
             const disabledAttr = stockStatus ? '' : 'disabled';
@@ -565,71 +569,93 @@ function openProductDetail(id) {
             variantHtml += `<option value="${idx}" data-price="${v.price}" ${disabledAttr} ${selectedAttr}>${label}</option>`;
         });
         variantHtml += `</select>`;
+    }
+
+    // --- Share Button Logic ---
+    const shareUrl = `${window.location.origin}/?pid=${p.id}`;
+    const shareText = `Check out ${name} on Namo Namkeen! 😋`;
+    let shareBtnHtml = '';
+
+    if (navigator.share) {
+        shareBtnHtml = `<button onclick="shareNative('${name.replace(/'/g, "\\'")}', '${shareUrl}')" style="background:none; border:none; color:#2ecc71; font-size:1.5rem; cursor:pointer;"><i class="fas fa-share-alt"></i></button>`;
     } else {
-        variantHtml = `<div style="padding:8px; background:#f9f9f9; border-radius:5px; font-weight:600; font-size:0.85rem; text-align:center;">Standard</div>`;
+        const waUrl = `https://wa.me/?text=${encodeURIComponent(shareText + ' ' + shareUrl)}`;
+        shareBtnHtml = `<a href="${waUrl}" target="_blank" style="color:#25D366; font-size:1.5rem;"><i class="fab fa-whatsapp"></i></a>`;
     }
 
-    // Button Logic - REMOVED INLINE STYLES, ADDED CLASS 'pm-btn'
-    let btnHtml = `<button class="btn-primary pm-btn" onclick="addToCartFromModal(${p.id})">Add <i class="fas fa-shopping-bag"></i></button>`;
-    if (!isAvailable) {
-        btnHtml = `<button class="btn-primary pm-btn" style="background:#ccc; cursor:not-allowed;" disabled>Sold Out</button>`;
-    }
-
-    // 1. Create the Share Link
-    const shareText = encodeURIComponent(`Check out this ${name} from Namo Namkeen! It looks delicious. 😋 Order here: https://namonamkeen.shop`);
-    const shareUrl = `https://wa.me/?text=${shareText}`;
-
-    let html = `
-        <div class="pm-grid">
-            <div class="pm-image-container">
-                <img src="${p.image}" class="pm-img" onerror="this.onerror=null; this.src='logo.jpg';">
+    // --- NEW MODAL HTML STRUCTURE ---
+    const html = `
+        <div style="display: flex; flex-direction: column; height: 100%;">
+            
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                ${shareBtnHtml}
+                <button onclick="closeProductModal()" style="background:none; border:none; color:#e85d04; font-size:1.8rem; cursor:pointer; line-height:1;">&times;</button>
             </div>
 
-            <div class="pm-details">
-               <div style="display:flex; justify-content:space-between; align-items:start;">
-                    <span class="pm-category">${category}</span>
-                    ${shareBtnHtml} 
-               </div>
+            <div style="text-align: center; margin-bottom: 15px;">
+                <img src="${p.image}" style="width: 200px; height: 200px; object-fit: cover; border-radius: 50%; box-shadow: 0 5px 15px rgba(0,0,0,0.1);" onerror="this.src='logo.jpg'">
             </div>
-                <h2 class="pm-title">${name}</h2>
-                <p class="pm-desc">${desc}</p>
 
-                <div class="pm-meta-box">
-                    <div class="pm-meta-item">
-                        <i class="fas fa-utensils"></i> 
-                        <span><strong>Ing:</strong> ${ingredients}</span>
-                    </div>
-                    <div class="pm-meta-item">
-                        <i class="fas fa-clock"></i> 
-                        <span><strong>Shelf:</strong> ${shelfLife}</span>
-                    </div>
+            <div style="flex-grow: 1;">
+                <h2 style="margin: 0; font-size: 1.6rem; color: #333;">${name}</h2>
+                <p style="color: #999; font-size: 0.85rem; margin: 2px 0 10px;">Category: ${category}</p>
+                <p style="color: #666; font-size: 0.95rem; line-height: 1.5;">${desc}</p>
+                
+                ${variantHtml}
+                
+                <h3 id="modal-price-display" style="color: #2ecc71; font-size: 1.8rem; margin: 15px 0 0;">₹${initialPrice}</h3>
+            </div>
+
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 20px; gap: 15px;">
+                
+                <div style="display: flex; align-items: center; border: 1px solid #ddd; border-radius: 8px; overflow: hidden; height: 45px;">
+                    <button onclick="updateModalQty(-1)" style="width: 40px; height: 100%; border:none; background: #fff; font-size: 1.2rem; color: #666;">-</button>
+                    <span id="modal-qty-display" style="min-width: 30px; text-align: center; font-weight: bold; font-size: 1.1rem;">1</span>
+                    <button onclick="updateModalQty(1)" style="width: 40px; height: 100%; border:none; background: #fff; font-size: 1.2rem; color: #666;">+</button>
                 </div>
 
-                <div class="pm-controls">
-                    <div class="pm-price-row">
-                        <span class="pm-price" id="modal-price-display">₹${initialPrice}</span>
-                    </div>
-                    
-                    <div class="pm-variant-wrapper">
-                        ${variantHtml}
-                    </div>
-                    
-                    ${btnHtml}
-                </div>
+                <button onclick="addToCartFromModal(${p.id})" 
+                    style="flex: 1; height: 45px; background: #e85d04; color: white; border: none; border-radius: 8px; font-size: 1.1rem; font-weight: 600; cursor: pointer;"
+                    ${!isAvailable ? 'disabled style="background:#ccc; cursor:not-allowed; flex:1; height:45px; border:none; border-radius:8px;"' : ''}>
+                    ${isAvailable ? 'Add' : 'Sold Out'}
+                </button>
             </div>
-        </div>`;
+
+        </div>
+    `;
 
     document.getElementById('p-modal-body').innerHTML = html;
-
-    // Ensure modal isn't too tall on mobile
+    
+    // Fix Mobile Styling for Modal Container
     const modalContent = document.querySelector('#product-modal .modal-content');
-    if (modalContent) {
-        modalContent.style.maxWidth = "800px";
-        modalContent.style.width = "90%";
-        // Remove fixed height if set previously to allow content to flow
+    if(modalContent) {
+        modalContent.style.padding = "20px";
+        modalContent.style.maxWidth = "400px"; // Mobile card width
+        modalContent.style.borderRadius = "15px";
     }
 
     document.getElementById('product-modal').style.display = 'flex';
+}
+
+// --- NEW HELPER FUNCTIONS ---
+
+function updateModalQty(change) {
+    let newQty = currentModalQty + change;
+    if (newQty < 1) newQty = 1;
+    currentModalQty = newQty;
+    document.getElementById('modal-qty-display').innerText = currentModalQty;
+}
+
+// --- Helper Function for Native Sharing ---
+// Add this right below openProductDetail function
+function shareNative(title, url) {
+    if (navigator.share) {
+        navigator.share({
+            title: title,
+            text: `Check out ${title} on Namo Namkeen!`,
+            url: url
+        }).catch(console.error);
+    }
 }
 
 // 1. Add this function to script.js
@@ -661,25 +687,28 @@ function updateModalPrice(sel) {
 function addToCartFromModal(id) {
     const p = products.find(x => x.id === id);
     const sel = document.getElementById('modal-variant-select');
+    
     let v = { weight: 'Standard', price: p.price };
-    if (sel) v = p.variants[sel.value];
-    else if (p.variants && p.variants.length > 0) v = p.variants[0];
+    if (sel) {
+        v = p.variants[sel.value];
+    } else if (p.variants && p.variants.length > 0) {
+        v = p.variants[0];
+    }
 
-    addToCart(p, v);
+    // Add item with the specific quantity selected
+    addToCart(p, v, currentModalQty);
     closeProductModal();
 }
 
 function closeProductModal() { document.getElementById('product-modal').style.display = 'none'; }
 
-// --- 9. CART ---
-// --- 9. CART ---
-function addToCart(p, v) {
+function addToCart(p, v, qtyToAdd = 1) { 
     const cartId = `${p.id}-${v.weight.replace(/\s/g, '')}`;
     const ex = cart.find(i => i.cartId === cartId);
 
     if (ex) {
-        ex.qty++;
-        showToast(`Updated ${p.name} quantity (+1)`, "success");
+        ex.qty += qtyToAdd; // Add specific amount
+        showToast(`Updated ${p.name} quantity (+${qtyToAdd})`, "success");
     } else {
         cart.push({
             cartId: cartId,
@@ -688,22 +717,14 @@ function addToCart(p, v) {
             image: p.image,
             weight: v.weight,
             price: v.price,
-            qty: 1
+            qty: qtyToAdd // Set initial amount
         });
         showToast(`${p.name} added to cart! 🛒`, "success");
     }
 
     updateCartUI();
-    // toggleCart(); <--- REMOVED: Don't open sidebar automatically
     saveCartLocal();
-    vibrate(50); // Haptic feedback remains
-
-    // Optional: Animate the cart icon to catch attention
-    const cartIcon = document.querySelector('.cart-trigger i');
-    if (cartIcon) {
-        cartIcon.style.transform = "scale(1.4)";
-        setTimeout(() => cartIcon.style.transform = "scale(1)", 200);
-    }
+    vibrate(50);
 }
 
 function updateCartUI() {
@@ -1715,7 +1736,8 @@ async function saveOrderToFirebase(method, paymentStatus, txnId) {
 
     const phone = document.getElementById('cust-phone').value.trim();
     const address = document.getElementById('cust-address').value.trim();
-    // Generates a 6-character ID like "7X9-A2B"
+
+    // Generate a robust short ID
     const generateShortId = () => {
         const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
         let result = '';
@@ -1724,60 +1746,24 @@ async function saveOrderToFirebase(method, paymentStatus, txnId) {
         }
         return result.slice(0, 3) + '-' + result.slice(3);
     };
-
     const orderId = 'ORD-' + generateShortId();
 
     // 1. Determine User ID (Guest or Registered)
     let uid = currentUser ? currentUser.uid : `guest_${phone}`;
     let uName = currentUser ? currentUser.displayName : "Guest";
 
-    // 2. Capture Delivery Note (FIX: Declare before use)
+    // 2. Capture Delivery Note
     const deliveryNote = document.getElementById('delivery-note') ? document.getElementById('delivery-note').value.trim() : '';
 
-    // 3. Calculate Totals (FIX: Use centralized function)
+    // 3. Calculate Totals
     const { subtotal, discountAmount, shipping, finalTotal } = getCartTotals();
 
-    // --- LOYALTY LOGIC: Earn Points & LOG HISTORY ---
-    if (currentUser) {
-        // Earn 1 Coin for every ₹100 spent
-        const coinsEarned = Math.floor(finalTotal / 100);
-
-        if (coinsEarned > 0) {
-            batch.update(userRef, {
-                walletBalance: firebase.firestore.FieldValue.increment(coinsEarned)
-            });
-
-            // LOG CREDIT
-            const historyRef = db.collection("users").doc(uid).collection("wallet_history").doc();
-            batch.set(historyRef, {
-                amount: coinsEarned,
-                type: 'credit',
-                description: `Earned from Order #${orderId}`,
-                timestamp: new Date()
-            });
-        }
-
-        // If they USED points in this order, deduct them & LOG DEBIT
-        if (appliedDiscount.type === 'loyalty') {
-            batch.update(userRef, {
-                walletBalance: firebase.firestore.FieldValue.increment(-appliedDiscount.value)
-            });
-
-            // LOG DEBIT
-            const debitRef = db.collection("users").doc(uid).collection("wallet_history").doc();
-            batch.set(debitRef, {
-                amount: appliedDiscount.value,
-                type: 'debit',
-                description: `Redeemed on Order #${orderId}`,
-                timestamp: new Date()
-            });
-        }
-    }
-
     try {
+        // --- FIX: DECLARE BATCH HERE ---
         const batch = db.batch();
-        const orderRef = db.collection("orders").doc(String(orderId));
 
+        // A. Create Order Document
+        const orderRef = db.collection("orders").doc(String(orderId));
         batch.set(orderRef, {
             id: orderId,
             userId: uid,
@@ -1786,11 +1772,11 @@ async function saveOrderToFirebase(method, paymentStatus, txnId) {
             userAddress: address,
             deliveryNote: deliveryNote,
             items: cart,
-            subtotal: subtotal,        // Save Subtotal
-            shippingCost: shipping,    // Save Shipping Cost
-            discount: appliedDiscount, // Save Discount Info
-            discountAmt: discountAmount,// Save Discount Amount
-            total: finalTotal,         // Final Paid Amount
+            subtotal: subtotal,
+            shippingCost: shipping,
+            discount: appliedDiscount,
+            discountAmt: discountAmount,
+            total: finalTotal,
             paymentMethod: method,
             status: 'Pending',
             paymentStatus: paymentStatus,
@@ -1798,7 +1784,7 @@ async function saveOrderToFirebase(method, paymentStatus, txnId) {
             timestamp: new Date()
         });
 
-        // B. Update/Create User Profile (Sync Guest Data)
+        // B. Update/Create User Profile
         const userRef = db.collection("users").doc(String(uid));
         batch.set(userRef, {
             name: uName,
@@ -1808,29 +1794,52 @@ async function saveOrderToFirebase(method, paymentStatus, txnId) {
             type: currentUser ? 'Registered' : 'Guest'
         }, { merge: true });
 
-        // --- LOYALTY LOGIC: Earn Points ---
+        // --- LOYALTY & WALLET LOGIC ---
         if (currentUser) {
-            // Earn 1 Coin for every ₹100 spent
+            // 1. Earn Points (1 Coin per ₹100)
             const coinsEarned = Math.floor(finalTotal / 100);
 
             if (coinsEarned > 0) {
-                // Increment user's wallet balance
+                // Update Balance
                 batch.update(userRef, {
                     walletBalance: firebase.firestore.FieldValue.increment(coinsEarned)
                 });
+
+                // Log History (Credit)
+                const historyRef = db.collection("users").doc(uid).collection("wallet_history").doc();
+                batch.set(historyRef, {
+                    amount: coinsEarned,
+                    type: 'credit',
+                    description: `Earned from Order #${orderId}`,
+                    timestamp: new Date()
+                });
             }
 
-            // If they USED points in this order, deduct them
+            // 2. Deduct Points (If used)
             if (appliedDiscount.type === 'loyalty') {
+                // Update Balance
                 batch.update(userRef, {
                     walletBalance: firebase.firestore.FieldValue.increment(-appliedDiscount.value)
+                });
+
+                // Log History (Debit)
+                const debitRef = db.collection("users").doc(uid).collection("wallet_history").doc();
+                batch.set(debitRef, {
+                    amount: appliedDiscount.value,
+                    type: 'debit',
+                    description: `Redeemed on Order #${orderId}`,
+                    timestamp: new Date()
                 });
             }
         }
 
+        // C. Commit Changes
         await batch.commit();
+
+        // D. Success UI
         showSuccessModal(orderId, finalTotal, method);
 
+        // Cleanup
         cart = [];
         appliedDiscount = { type: 'none', value: 0, code: null };
         saveCartLocal();
@@ -1839,7 +1848,7 @@ async function saveOrderToFirebase(method, paymentStatus, txnId) {
 
     } catch (error) {
         console.error("Order Error:", error);
-        showToast("Error placing order.", "error");
+        showToast("Error placing order. Please try again.", "error");
     } finally {
         toggleBtnLoading('btn-main-checkout', false);
     }
