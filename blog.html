@@ -24,7 +24,7 @@
             <ul class="nav-menu">
                 <li><a href="index.html" class="nav-link">Home</a></li>
                 <li><a href="index.html#menu-section" class="nav-link">Menu</a></li>
-                 <li><a href="pricelist.html" class="nav-link">Price List</a></li>
+                <li><a href="pricelist.html" class="nav-link">Price List</a></li>
                 <li><a href="story.html" class="nav-link">Our Story</a></li>
                 <li><a href="blog.html" class="nav-link active">Blog</a></li>
                 <li><a href="faq.html" class="nav-link">FAQs</a></li>
@@ -128,86 +128,93 @@
     </footer>
 
     <div class="cart-overlay" onclick="toggleCart()"></div>
-<div class="cart-sidebar" id="cart-sidebar">
-    <div class="cart-header">
-        <h3>Your Order</h3>
-        <div class="cart-header-actions">
-            <button id="clear-cart-btn" class="clear-btn" onclick="clearCart()" style="display: none;">
-                <i class="fas fa-trash-alt"></i> Clear
+    <div class="cart-sidebar" id="cart-sidebar">
+        <div class="cart-header">
+            <h3>Your Order</h3>
+            <div class="cart-header-actions">
+                <button id="clear-cart-btn" class="clear-btn" onclick="clearCart()" style="display: none;">
+                    <i class="fas fa-trash-alt"></i> Clear
+                </button>
+                <button class="close-cart" onclick="toggleCart()"><i class="fas fa-times"></i></button>
+            </div>
+        </div>
+
+        <div class="cart-scrollable-content">
+            <div id="cart-items" class="cart-items-list"></div>
+
+            <div class="cart-details-block">
+                <div class="coupon-section">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+                        <span style="font-size:0.8rem; font-weight:bold; color:#555;">Offers & Coupons</span>
+                        <small style="color:var(--primary); cursor:pointer;" onclick="toggleCouponList()">View
+                            All</small>
+                    </div>
+                    <div style="display:flex; gap:5px;">
+                        <input type="text" id="promo-code" placeholder="Enter Code" autocapitalize="characters">
+                        <button onclick="applyPromo()"
+                            style="background:var(--dark); color:white; border:none; padding:8px 15px; border-radius:5px; cursor:pointer;">Apply</button>
+                    </div>
+                    <p id="promo-msg" style="font-size:0.75rem; margin-top:5px; min-height:15px;"></p>
+                    <div id="coupon-list"
+                        style="display:none; background:#f9f9f9; padding:10px; margin-top:5px; border-radius:5px; border:1px solid #eee; max-height:150px; overflow-y:auto;">
+                    </div>
+                </div>
+
+                <div id="customer-details-inputs">
+                    <label class="input-label">Mobile Number <span style="color:red">*</span></label>
+                    <div class="phone-input-group">
+                        <span>+91</span>
+                        <input type="tel" id="cust-phone" maxlength="10" placeholder="9876543210" inputmode="numeric"
+                            pattern="[0-9]*">
+                    </div>
+
+                    <label class="input-label">Delivery Address <span style="color:red">*</span></label>
+                    <textarea id="cust-address" placeholder="House No, Street, Area, City..." rows="2"></textarea>
+                </div>
+
+                <div class="payment-section" style="margin-top: 20px;">
+                    <label class="input-label">Select Payment Method</label>
+                    <div class="payment-options">
+                        <label class="payment-card">
+                            <input type="radio" name="paymentMethod" value="UPI" checked onchange="togglePaymentUI()">
+                            <div class="pay-content">
+                                <i class="fas fa-qrcode" style="color: var(--primary); font-size: 1.2rem;"></i>
+                                <span>Pay via UPI</span>
+                            </div>
+                        </label>
+                        <label class="payment-card">
+                            <input type="radio" name="paymentMethod" value="COD" onchange="togglePaymentUI()">
+                            <div class="pay-content">
+                                <i class="fas fa-money-bill-wave" style="color: #27ae60; font-size: 1.2rem;"></i>
+                                <span>Cash on Delivery</span>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <label class="input-label" style="margin-top:15px;">Delivery Note (Optional)</label>
+                <textarea id="delivery-note" placeholder="e.g. Leave at security, Don't ring bell..." rows="1"
+                    class="form-control" style="font-size:0.9rem;"></textarea>
+
+                <div class="total-row" style="margin-top: 20px; border-top: 1px dashed #ddd; padding-top: 15px;">
+                    <span>Total Amount:</span>
+                    <span id="cart-total">₹0</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="cart-footer">
+            <div id="guest-login-option" style="text-align:center; margin-bottom:12px; font-size:0.9rem;">
+                <span style="color:#666;">Have an account?</span>
+                <a href="javascript:void(0)" onclick="openLoginChoiceModal()"
+                    style="color:var(--primary); font-weight:700; text-decoration:none; margin-left: 5px;">Login</a>
+            </div>
+
+            <button id="btn-main-checkout" class="btn-whatsapp-checkout" onclick="handleCheckout()">
+                Proceed to Pay <i class="fas fa-arrow-right"></i>
             </button>
-            <button class="close-cart" onclick="toggleCart()"><i class="fas fa-times"></i></button>
         </div>
     </div>
-
-    <div class="cart-scrollable-content">
-        <div id="cart-items" class="cart-items-list"></div>
-
-        <div class="cart-details-block">
-            <div class="coupon-section">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
-                    <span style="font-size:0.8rem; font-weight:bold; color:#555;">Offers & Coupons</span>
-                    <small style="color:var(--primary); cursor:pointer;" onclick="toggleCouponList()">View All</small>
-                </div>
-                <div style="display:flex; gap:5px;">
-                    <input type="text" id="promo-code" placeholder="Enter Code" autocapitalize="characters">
-                    <button onclick="applyPromo()" style="background:var(--dark); color:white; border:none; padding:8px 15px; border-radius:5px; cursor:pointer;">Apply</button>
-                </div>
-                <p id="promo-msg" style="font-size:0.75rem; margin-top:5px; min-height:15px;"></p>
-                <div id="coupon-list" style="display:none; background:#f9f9f9; padding:10px; margin-top:5px; border-radius:5px; border:1px solid #eee; max-height:150px; overflow-y:auto;"></div>
-            </div>
-
-            <div id="customer-details-inputs">
-                <label class="input-label">Mobile Number <span style="color:red">*</span></label>
-                <div class="phone-input-group">
-                    <span>+91</span>
-                    <input type="tel" id="cust-phone" maxlength="10" placeholder="9876543210" inputmode="numeric" pattern="[0-9]*">
-                </div>
-
-                <label class="input-label">Delivery Address <span style="color:red">*</span></label>
-                <textarea id="cust-address" placeholder="House No, Street, Area, City..." rows="2"></textarea>
-            </div>
-
-            <div class="payment-section" style="margin-top: 20px;">
-                <label class="input-label">Select Payment Method</label>
-                <div class="payment-options">
-                    <label class="payment-card">
-                        <input type="radio" name="paymentMethod" value="UPI" checked onchange="togglePaymentUI()">
-                        <div class="pay-content">
-                            <i class="fas fa-qrcode" style="color: var(--primary); font-size: 1.2rem;"></i>
-                            <span>Pay via UPI</span>
-                        </div>
-                    </label>
-                    <label class="payment-card">
-                        <input type="radio" name="paymentMethod" value="COD" onchange="togglePaymentUI()">
-                        <div class="pay-content">
-                            <i class="fas fa-money-bill-wave" style="color: #27ae60; font-size: 1.2rem;"></i>
-                            <span>Cash on Delivery</span>
-                        </div>
-                    </label>
-                </div>
-            </div>
-
-            <label class="input-label" style="margin-top:15px;">Delivery Note (Optional)</label>
-            <textarea id="delivery-note" placeholder="e.g. Leave at security, Don't ring bell..." rows="1" class="form-control" style="font-size:0.9rem;"></textarea>
-
-            <div class="total-row" style="margin-top: 20px; border-top: 1px dashed #ddd; padding-top: 15px;">
-                <span>Total Amount:</span>
-                <span id="cart-total">₹0</span>
-            </div>
-        </div>
-    </div>
-
-    <div class="cart-footer">
-        <div id="guest-login-option" style="text-align:center; margin-bottom:12px; font-size:0.9rem;">
-            <span style="color:#666;">Have an account?</span>
-            <a href="javascript:void(0)" onclick="openLoginChoiceModal()" style="color:var(--primary); font-weight:700; text-decoration:none; margin-left: 5px;">Login</a>
-        </div>
-
-        <button id="btn-main-checkout" class="btn-whatsapp-checkout" onclick="handleCheckout()">
-            Proceed to Pay <i class="fas fa-arrow-right"></i>
-        </button>
-    </div>
-</div>
 
     <div id="login-choice-modal" class="modal-overlay">
         <div class="modal-content mobile-modal text-center">
@@ -224,67 +231,33 @@
     <script src="script.js"></script>
 
     <script>
-        const blogPosts = {
-            1: {
-                title: "5 Creative Ways to Use 'Sev' in Breakfast",
-                date: "Oct 15, 2025",
-                image: "assets/images/banner.jpg",
-                content: `
-                    <p>We all know <strong>Indori Poha</strong> is incomplete without a generous handful of Sev. But did you know this crunchy topping is more versatile than you think?</p>
-                    
-                    <h4>1. The Upma Crunch</h4>
-                    <p>Sprinkle <em>Ratlami Sev</em> on your morning Upma. The spicy clove flavor cuts through the mild semolina taste perfectly.</p>
-                    
-                    <h4>2. Sev Paratha</h4>
-                    <p>Instead of Aloo, try stuffing your paratha with a mix of <em>Ujjaini Sev</em>, onions, and coriander. It’s a popular breakfast in Rajasthan!</p>
-                    
-                    <h4>3. Curd Rice Garnish</h4>
-                    <p>Add a twist to South Indian Curd Rice with <em>Nylon Sev</em>. It adds texture without overpowering the dish.</p>
-                    
-                    <h4>4. Sev Sandwich</h4>
-                    <p>Bombay Sandwich style! Butter bread, add green chutney, cucumber, tomato, and a thick layer of Sev before grilling.</p>
-                    
-                    <h4>5. Tomato Sev Soup</h4>
-                    <p>A winter favorite. Add thick Sev to hot tomato soup just before serving for a delicious 'crouton' alternative.</p>
-                `
-            },
-            2: {
-                title: "Why Homemade Gujiya Tastes Better",
-                date: "Nov 02, 2025",
-                image: "assets/images/product/gujiya.jpg",
-                content: `
-                    <p>Diwali is incomplete without Gujiya. While store-bought sweets are convenient, nothing beats the taste of homemade Gujiya. Here is why ours stands out.</p>
-                    
-                    <h4>The Secret is the 'Khoya'</h4>
-                    <p>We don't use milk powder. We slow-cook full-fat milk for hours until it turns into rich, granular Khoya (Mawa). This gives our Gujiya a moist, melt-in-the-mouth center.</p>
-                    
-                    <h4>Frying Temperature Matters</h4>
-                    <p>Many commercial kitchens fry at high heat for speed. We fry at low-medium heat. This ensures the outer pastry is flaky and cooked through, not just browned on the outside.</p>
-                    
-                    <h4>Pure Desi Ghee</h4>
-                    <p>We believe in the power of Ghee. It acts as a natural preservative and adds that distinct aroma you remember from your grandmother's kitchen.</p>
-                `
-            },
-            3: {
-                title: "History of Ratlami Sev",
-                date: "Nov 20, 2025",
-                image: "assets/images/product/Ratlami_Sev.jpg",
-                content: `
-                    <p>Ratlami Sev isn't just a snack; it's a GI (Geographical Indication) tagged heritage food of Madhya Pradesh. But how did it start?</p>
-                    
-                    <h4>Royal Beginnings</h4>
-                    <p>History suggests that Mughal emperors passing through the Malwa region demanded a snack similar to vermicelli but with a spicy kick. The local Bhil tribes prepared a dish using gram flour and local spices.</p>
-                    
-                    <h4>The 'Laung' Factor</h4>
-                    <p>The defining ingredient of Ratlami Sev is <strong>Cloves (Laung)</strong> and Black Pepper. This combination was originally used to keep the body warm during cold Malwa nights.</p>
-                    
-                    <h4>Why is it so crisp?</h4>
-                    <p>Authentic Ratlami Sev dough is kneaded with a special mix of oil and water (called 'Moyan') which makes it incredibly crisp yet brittle.</p>
-                    
-                    <p>At <strong>Namo Namkeen</strong>, we follow this 200-year-old recipe strictly, ensuring you get the authentic taste of history in every bite.</p>
-                `
-            }
-        };
+        // Add this inside the existing <script> tag in blog.html
+        window.addEventListener('DOMContentLoaded', () => {
+            const container = document.querySelector('.blog-grid');
+            container.innerHTML = '<p>Loading stories...</p>';
+
+            db.collection("blogs").orderBy("date", "desc").get().then(snap => {
+                container.innerHTML = '';
+                if (snap.empty) { container.innerHTML = '<p>No stories yet.</p>'; return; }
+
+                snap.forEach(doc => {
+                    const b = doc.data();
+                    // Cache content for modal
+                    blogPosts[doc.id] = b;
+
+                    container.innerHTML += `
+            <article class="blog-card">
+                <img src="${b.image}" class="blog-img" onerror="this.src='logo.jpg'">
+                <div class="blog-content">
+                    <span class="blog-date">${b.date.toDate().toLocaleDateString()}</span>
+                    <h3 class="blog-title">${b.title}</h3>
+                    <p style="color:#666; font-size:0.9rem; margin-bottom:15px;">${b.content.replace(/<[^>]*>?/gm, '').substring(0, 80)}...</p>
+                    <a href="javascript:void(0)" onclick="openBlog('${doc.id}')" class="read-more">Read Full Story &rarr;</a>
+                </div>
+            </article>`;
+                });
+            });
+        });
 
         function openBlog(id) {
             const blog = blogPosts[id];

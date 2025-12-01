@@ -137,6 +137,7 @@ function fetchUserProfile(uid) {
             }
         }
     });
+    initReferral(); // NEW: Check referral on login
 }
 
 // --- HELPER: Sanitize user/product data to prevent XSS ---
@@ -212,6 +213,7 @@ function fetchData() {
         initFuzzySearch();
         renderMenu();
         renderHamperOptions();
+        checkDeepLink();
     }).catch(err => console.error("Products Error:", err));
 
     // NEW: Fetch Shop Configuration from Firestore
@@ -282,6 +284,13 @@ function validateAppliedCoupon() {
     }
 }
 
+let currentSort = 'default';
+
+function sortMenu(sortVal) {
+    currentSort = sortVal;
+    renderMenu();
+}
+
 // --- 5. RENDER MENU ---
 function renderMenu() {
     const grid = document.getElementById('menu-grid');
@@ -294,6 +303,26 @@ function renderMenu() {
         const matchesSearch = name.includes(searchQuery.toLowerCase());
         return matchesCat && matchesSearch;
     });
+
+    filtered.sort((a, b) => {
+        // 1. Featured items first
+        if (a.isFeatured && !b.isFeatured) return -1;
+        if (!a.isFeatured && b.isFeatured) return 1;
+        // 2. Then Bestsellers
+        if (a.bestseller && !b.bestseller) return -1;
+        if (!a.bestseller && b.bestseller) return 1;
+        return 0;
+    });
+
+    if (currentSort === 'price-low') {
+        filtered.sort((a, b) => a.price - b.price);
+    } else if (currentSort === 'price-high') {
+        filtered.sort((a, b) => b.price - a.price);
+    } else if (currentSort === 'rating') {
+        // Calculate average rating safely
+        const getRating = (p) => p.ratingCount ? (p.ratingSum / p.ratingCount) : 0;
+        filtered.sort((a, b) => getRating(b) - getRating(a));
+    }
 
     if (filtered.length === 0) {
         grid.innerHTML = '<p style="text-align:center; grid-column:1/-1;">No products found.</p>';
@@ -557,11 +586,10 @@ function openProductDetail(id) {
             </div>
 
             <div class="pm-details">
-                <div style="display:flex; justify-content:space-between; align-items:start;">
-                <span class="pm-category">${category}</span>
-                <a href="${shareUrl}" target="_blank" style="color:#25D366; font-size:1.2rem;" title="Share on WhatsApp">
-                    <i class="fab fa-whatsapp"></i>
-                </a>
+               <div style="display:flex; justify-content:space-between; align-items:start;">
+                    <span class="pm-category">${category}</span>
+                    ${shareBtnHtml} 
+               </div>
             </div>
                 <h2 class="pm-title">${name}</h2>
                 <p class="pm-desc">${desc}</p>
@@ -1248,23 +1276,46 @@ function closeHistory() {
 }
 
 // Invoice & Repeat
+// Invoice & Repeat
 function openInvoice(orderId) {
     const order = historyOrders.find(o => o.id === orderId);
     if (!order) return showToast("Order details not found.", "error");
+
+    // Fill basic details
     document.getElementById('inv-customer-name').innerText = order.userName;
     document.getElementById('inv-customer-email').innerText = currentUser.email || '-';
     document.getElementById('inv-order-id').innerText = `#${order.id}`;
     document.getElementById('inv-date').innerText = order.timestamp ? new Date(order.timestamp.seconds * 1000).toLocaleDateString() : '-';
+
+    // Fill items table
     const tbody = document.getElementById('inv-items-body');
     tbody.innerHTML = '';
     order.items.forEach(i => {
         tbody.innerHTML += `<tr><td>${i.name} <br><small>${i.weight}</small></td><td class="text-center">${i.qty}</td><td class="text-right">₹${i.price}</td><td class="text-right">₹${i.price * i.qty}</td></tr>`;
     });
+
     document.getElementById('inv-grand-total').innerText = `₹${order.total}`;
 
-    // FIX: Use Dynamic UPI ID from Config
+    // --- NEW: INTERACTIVE QR CODE LOGIC ---
+    // 1. Construct the UPI Payment Link
     const upiLink = `upi://pay?pa=${shopConfig.upiId}&pn=NamoNamkeen&am=${order.total}&cu=INR`;
-    document.getElementById('inv-qr-img').src = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(upiLink)}`;
+
+    // 2. Generate the QR Image URL
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(upiLink)}`;
+
+    // 3. Inject clickable HTML into the QR Section
+    const qrContainer = document.getElementById('inv-qr-section');
+    if (qrContainer) {
+        qrContainer.innerHTML = `
+            <p style="margin:0 0 10px; font-weight:bold; color:#d35400;">Tap QR to Pay via App</p>
+            <a href="${upiLink}" target="_blank" style="display:inline-block; transition:transform 0.2s;" onclick="this.style.transform='scale(0.95)'">
+                <img src="${qrUrl}" alt="Scan or Tap to Pay" style="width:150px; height:150px; mix-blend-mode: multiply; border: 2px solid rgba(232,93,4,0.3); border-radius: 8px;">
+            </a>
+            <p style="margin:10px 0 0; font-size:0.8rem; color:#555;">Works with GPay, PhonePe, Paytm</p>
+        `;
+    }
+    // --------------------------------------
+
     document.getElementById('invoice-modal').style.display = 'flex';
 }
 
@@ -1664,7 +1715,17 @@ async function saveOrderToFirebase(method, paymentStatus, txnId) {
 
     const phone = document.getElementById('cust-phone').value.trim();
     const address = document.getElementById('cust-address').value.trim();
-    const orderId = 'ORD-' + Date.now().toString().slice(-6);
+    // Generates a 6-character ID like "7X9-A2B"
+    const generateShortId = () => {
+        const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
+        let result = '';
+        for (let i = 0; i < 6; i++) {
+            result += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        return result.slice(0, 3) + '-' + result.slice(3);
+    };
+
+    const orderId = 'ORD-' + generateShortId();
 
     // 1. Determine User ID (Guest or Registered)
     let uid = currentUser ? currentUser.uid : `guest_${phone}`;
@@ -1675,6 +1736,43 @@ async function saveOrderToFirebase(method, paymentStatus, txnId) {
 
     // 3. Calculate Totals (FIX: Use centralized function)
     const { subtotal, discountAmount, shipping, finalTotal } = getCartTotals();
+
+    // --- LOYALTY LOGIC: Earn Points & LOG HISTORY ---
+    if (currentUser) {
+        // Earn 1 Coin for every ₹100 spent
+        const coinsEarned = Math.floor(finalTotal / 100);
+
+        if (coinsEarned > 0) {
+            batch.update(userRef, {
+                walletBalance: firebase.firestore.FieldValue.increment(coinsEarned)
+            });
+
+            // LOG CREDIT
+            const historyRef = db.collection("users").doc(uid).collection("wallet_history").doc();
+            batch.set(historyRef, {
+                amount: coinsEarned,
+                type: 'credit',
+                description: `Earned from Order #${orderId}`,
+                timestamp: new Date()
+            });
+        }
+
+        // If they USED points in this order, deduct them & LOG DEBIT
+        if (appliedDiscount.type === 'loyalty') {
+            batch.update(userRef, {
+                walletBalance: firebase.firestore.FieldValue.increment(-appliedDiscount.value)
+            });
+
+            // LOG DEBIT
+            const debitRef = db.collection("users").doc(uid).collection("wallet_history").doc();
+            batch.set(debitRef, {
+                amount: appliedDiscount.value,
+                type: 'debit',
+                description: `Redeemed on Order #${orderId}`,
+                timestamp: new Date()
+            });
+        }
+    }
 
     try {
         const batch = db.batch();
@@ -1814,11 +1912,28 @@ async function submitReview() {
     // This fixes issues if you have alphanumeric IDs like "Mix123"
     const pid = isNaN(Number(pidStr)) ? pidStr : Number(pidStr);
 
+    // 1. Image Handling
+    const fileInput = document.getElementById('review-img-upload');
+    let base64Img = null;
+
+    if (fileInput.files.length > 0) {
+        const file = fileInput.files[0];
+        if (file.size > 500 * 1024) return showToast("Image too large (Max 500KB)", "error");
+
+        // Convert to Base64
+        base64Img = await new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = (e) => resolve(e.target.result);
+            reader.readAsDataURL(file);
+        });
+    }
+
     toggleBtnLoading('btn-submit-review', true);
 
     try {
         // 4. Check for Duplicates
         const check = await db.collection("reviews")
+            .where("status", "==", "approved")
             .where("orderId", "==", oid)
             .where("productId", "==", pid)
             .get();
@@ -1831,13 +1946,15 @@ async function submitReview() {
         }
 
         // 5. Add Review (FIX: Added fallback for userName to prevent crashes)
+        // 2. Add Review Object
         await db.collection("reviews").add({
             productId: pid,
             orderId: oid,
             userId: currentUser.uid,
-            userName: currentUser.displayName || 'Customer', // Fixes "undefined" error
+            userName: currentUser.displayName || 'Customer',
             rating: rating,
             comment: comment,
+            imageUrl: base64Img, // Save the image string
             timestamp: new Date()
         });
 
@@ -1868,6 +1985,8 @@ async function submitReview() {
 // --- TOAST FUNCTION ---
 function showToast(message, type = 'neutral') {
     const container = document.getElementById('toast-container');
+    if (!container) return; // Ensure container exists
+
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
 
@@ -1876,12 +1995,15 @@ function showToast(message, type = 'neutral') {
     if (type === 'error') icon = '<i class="fas fa-exclamation-circle" style="color:#e74c3c"></i>';
 
     toast.innerHTML = `${icon} <span>${message}</span>`;
+
+    // Add to DOM
     container.appendChild(toast);
 
     // Remove after 3 seconds
     setTimeout(() => {
         toast.style.opacity = '0';
-        setTimeout(() => toast.remove(), 400);
+        toast.style.transform = 'translateY(10px)'; // Drop down effect
+        setTimeout(() => toast.remove(), 300);
     }, 3000);
 }
 
@@ -2167,21 +2289,40 @@ function downloadPDF() {
 
 // Add function to bottom of script.js
 // Add function to bottom of script.js
+// UPDATE loadStorefront() in script.js
 function loadStorefront() {
-    // FIX: Safety check - only run if we are on the homepage
-    const homeSection = document.getElementById('home');
-    if (!homeSection) return;
+    const hero = document.getElementById('home');
+    if (!hero) return;
 
     db.collection("settings").doc("layout").get().then(doc => {
         if (doc.exists) {
             const data = doc.data();
+            // Text
             if (data.heroTitle) document.getElementById('hero-title').innerHTML = data.heroTitle.replace(/\n/g, '<br>');
             if (data.heroSubtitle) document.getElementById('hero-subtitle').innerText = data.heroSubtitle;
-            if (data.heroImage) {
-                homeSection.style.backgroundImage = `url('${data.heroImage}')`;
+
+            // Carousel Logic
+            if (data.banners && data.banners.length > 0) {
+                let currentSlide = 0;
+                // Create background layer if not exists
+                let bgLayer = document.getElementById('hero-bg');
+                if (!bgLayer) {
+                    bgLayer = document.createElement('div');
+                    bgLayer.id = 'hero-bg';
+                    hero.insertBefore(bgLayer, hero.firstChild);
+                }
+
+                // Rotation Function
+                const rotateBanner = () => {
+                    bgLayer.style.backgroundImage = `url('${data.banners[currentSlide]}')`;
+                    currentSlide = (currentSlide + 1) % data.banners.length;
+                };
+
+                rotateBanner(); // Init
+                if (data.banners.length > 1) setInterval(rotateBanner, 5000); // Rotate every 5s
             }
         }
-    }).catch(e => console.log("Layout load error (using default)", e));
+    });
 }
 
 function vibrate(ms = 50) {
@@ -2297,3 +2438,153 @@ async function saveNewAddress() {
     }
 }
 
+function checkDeepLink() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const pid = urlParams.get('pid');
+
+    if (pid) {
+        // Clear the param so refreshing doesn't keep opening it
+        window.history.replaceState({}, document.title, "/");
+
+        // Slight delay to ensure DOM is ready
+        setTimeout(() => {
+            const product = products.find(p => p.id == pid);
+            if (product) {
+                openProductDetail(product.id);
+            } else {
+                showToast("Product not found", "error");
+            }
+        }, 500);
+    }
+}
+
+// 1. ADD THIS FUNCTION to view history
+function openWalletHistory() {
+    if (!currentUser) return;
+    document.getElementById('wallet-modal').style.display = 'flex';
+    const list = document.getElementById('wallet-history-list');
+    list.innerHTML = '<div style="text-align:center; padding:20px;"><i class="fas fa-spinner fa-spin"></i> Loading...</div>';
+
+    db.collection("users").doc(currentUser.uid).collection("wallet_history")
+        .orderBy("timestamp", "desc").limit(50).get()
+        .then(snap => {
+            if (snap.empty) {
+                list.innerHTML = '<div style="text-align:center; padding:20px; color:#999;">No transactions yet.</div>';
+                return;
+            }
+
+            let html = '';
+            snap.forEach(doc => {
+                const t = doc.data();
+                const date = t.timestamp ? t.timestamp.toDate().toLocaleDateString() : '-';
+                const color = t.type === 'credit' ? 'green' : 'red';
+                const sign = t.type === 'credit' ? '+' : '-';
+
+                html += `
+              <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 0; border-bottom:1px solid #eee;">
+                  <div>
+                      <div style="font-weight:600; color:#333;">${t.description}</div>
+                      <div style="font-size:0.8rem; color:#888;">${date}</div>
+                  </div>
+                  <div style="font-weight:bold; color:${color}; font-size:1.1rem;">
+                      ${sign} ${t.amount}
+                  </div>
+              </div>`;
+            });
+            list.innerHTML = html;
+        });
+}
+
+// 1. Call this inside fetchUserProfile() or when opening profile modal
+async function initReferral() {
+    if (!currentUser || !userProfile) return;
+
+    // Generate code if not exists
+    if (!userProfile.referralCode) {
+        // Create simple code: First 4 chars of name + Last 4 of UID
+        const base = (currentUser.displayName || "USER").replace(/\s/g, '').substring(0, 4).toUpperCase();
+        const suffix = currentUser.uid.substring(0, 4).toUpperCase();
+        const code = base + suffix;
+
+        await db.collection("users").doc(currentUser.uid).update({ referralCode: code });
+        userProfile.referralCode = code;
+    }
+
+    document.getElementById('my-ref-code').value = userProfile.referralCode;
+}
+
+// 2. Helper to copy code
+function copyRefCode() {
+    const code = document.getElementById('my-ref-code');
+    code.select();
+    document.execCommand("copy");
+    showToast("Code copied to clipboard!", "success");
+}
+
+// 3. Redeem Function
+async function redeemReferral() {
+    const input = document.getElementById('enter-ref-code');
+    const code = input.value.trim().toUpperCase();
+
+    if (!code) return showToast("Enter a code", "error");
+    if (code === userProfile.referralCode) return showToast("You can't refer yourself!", "error");
+    if (userProfile.referredBy) return showToast("You have already redeemed a code.", "error");
+
+    try {
+        // Find the referrer
+        const snap = await db.collection("users").where("referralCode", "==", code).limit(1).get();
+
+        if (snap.empty) {
+            return showToast("Invalid Referral Code", "error");
+        }
+
+        const referrerDoc = snap.docs[0];
+        const referrerId = referrerDoc.id;
+        const referrerData = referrerDoc.data();
+
+        const batch = db.batch();
+        const rewardAmount = 50;
+
+        // 1. Credit Current User (You)
+        const myRef = db.collection("users").doc(currentUser.uid);
+        batch.update(myRef, {
+            walletBalance: firebase.firestore.FieldValue.increment(rewardAmount),
+            referredBy: code
+        });
+
+        // Log History for You
+        const myHist = myRef.collection("wallet_history").doc();
+        batch.set(myHist, {
+            amount: rewardAmount,
+            type: 'credit',
+            description: `Referral Bonus (Code: ${code})`,
+            timestamp: new Date()
+        });
+
+        // 2. Credit Referrer (Friend)
+        const friendRef = db.collection("users").doc(referrerId);
+        batch.update(friendRef, {
+            walletBalance: firebase.firestore.FieldValue.increment(rewardAmount)
+        });
+
+        // Log History for Friend
+        const friendHist = friendRef.collection("wallet_history").doc();
+        batch.set(friendHist, {
+            amount: rewardAmount,
+            type: 'credit',
+            description: `Referral Reward (User: ${currentUser.displayName})`,
+            timestamp: new Date()
+        });
+
+        await batch.commit();
+
+        showToast(`Success! ₹${rewardAmount} added to your wallet.`, "success");
+        userProfile.referredBy = code; // Update local state
+        input.value = '';
+        input.disabled = true; // Prevent double dip
+
+    } catch (e) {
+        console.error(e);
+        showToast("Error processing referral", "error");
+    }
+}

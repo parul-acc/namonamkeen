@@ -144,6 +144,18 @@ function loadReviews() {
                 stars += `<i class="fas fa-star" style="color: ${i < r.rating ? '#ffc107' : '#ddd'}; font-size:0.8rem;"></i>`;
             }
 
+            // Check for image
+            let reviewImageHtml = '';
+            if (r.imageUrl) {
+                reviewImageHtml = `<br><img src="${r.imageUrl}" style="width:50px; height:50px; object-fit:cover; border-radius:4px; margin-top:5px; cursor:pointer;" onclick="window.open(this.src)">`;
+            }
+
+            // In loadReviews loop:
+const isPending = r.status === 'pending';
+const actionBtn = isPending 
+    ? `<button class="btn btn-success btn-sm" onclick="approveReview('${doc.id}')">Approve</button>`
+    : `<button class="icon-btn btn-danger" onclick="deleteReview(...)"><i class="fas fa-trash"></i></button>`;
+
             tbody.innerHTML += `
             <tr>
                 <td><small>${date}</small></td>
@@ -155,15 +167,17 @@ function loadReviews() {
                 </td>
                 <td>${escapeHtml(r.userName)}</td>
                 <td>${stars}</td>
-                <td style="max-width:300px; white-space:normal; color:#555;">${escapeHtml(r.comment)}</td>
-                <td>
-                    <button class="icon-btn btn-danger" onclick="deleteReview('${doc.id}', ${r.productId}, ${r.rating})" title="Delete Review">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </td>
+                <td style="max-width:300px; white-space:normal; color:#555;">${escapeHtml(r.comment)}
+                ${reviewImageHtml} </td></td>
+                <td>${actionBtn}</td>
             </tr>`;
         });
     });
+}
+
+function approveReview(id) {
+    db.collection("reviews").doc(id).update({ status: 'approved' })
+      .then(() => showToast("Review Approved", "success"));
 }
 
 async function deleteReview(reviewId, productId, rating) {
@@ -244,7 +258,7 @@ function renderCustomerRows(tbody, items) {
 
         tbody.innerHTML += `
             <tr>
-                <td><strong>${name}</strong><br><small>${email}</small></td>
+                <td>${u.segment}<strong>${name}</strong><br><small>${email}</small></td>
                 <td>${phone}</td>
                 <td>${address}</td>
                 <td>${date}</td>
@@ -565,6 +579,12 @@ function renderOrderRows(tbody, items) {
         const itemCount = o.items.length;
         const isHighValue = o.total > 350 ? 'high-value-row' : '';
 
+        // Check if COD and Unpaid
+        const isCodUnpaid = o.paymentMethod === 'COD' && o.paymentStatus !== 'Paid';
+        const payBtn = isCodUnpaid ?
+            `<button class="icon-btn btn-green" onclick="markOrderPaid('${o.docId}')" title="Mark Payment Received"><i class="fas fa-money-bill-wave"></i></button>`
+            : '';
+
         // FIX: Use data attributes to store messy strings (addresses with quotes/newlines)
         // instead of passing them directly into the onclick function which breaks syntax.
         const safeAddress = escapeHtml(o.userAddress);
@@ -595,6 +615,7 @@ function renderOrderRows(tbody, items) {
                 <td><span class="status-pill ${statusClass}">${o.status}</span></td>
                 <td>
                     <button class="icon-btn btn-blue" onclick="viewOrder('${o.docId}')" title="View"><i class="fas fa-eye"></i></button>
+                    ${payBtn}
                     <button class="icon-btn" style="background:#555;" onclick="printPackingSlip('${o.docId}')" title="Print"><i class="fas fa-print"></i></button>
                     ${cancelBtn}
                     ${o.status === 'Pending' ? `<button class="icon-btn btn-green" onclick="setStatus('${o.docId}', 'Packed')" title="Mark Packed"><i class="fas fa-box"></i></button>` : ''}
@@ -961,6 +982,7 @@ function editProduct(id) {
         document.getElementById('p-image').value = p.image;
         document.getElementById('p-stock').checked = p.in_stock;
         document.getElementById('p-bestseller').checked = p.bestseller;
+        document.getElementById('p-featured').checked = p.isFeatured || false;
         const vc = document.getElementById('variant-container');
         vc.innerHTML = '';
         if (p.variants && p.variants.length > 0) {
@@ -1008,7 +1030,7 @@ function saveProduct() {
         productId: id,
         productName: document.getElementById('p-name').value,
         action: 'Update/Edit',
-        updatedBy: 'Admin', // Or currentUser.email
+        updatedBy: 'Admin',
         timestamp: new Date()
     };
     db.collection("inventory_logs").add(logEntry);
@@ -1022,7 +1044,8 @@ function saveProduct() {
         in_stock: document.getElementById('p-stock').checked,
         bestseller: document.getElementById('p-bestseller').checked,
         variants: vs,
-        price: basePrice
+        price: basePrice,
+        isFeatured: document.getElementById('p-featured').checked
     }, { merge: true }).then(() => closeModal('product-modal'));
 }
 
@@ -1176,18 +1199,26 @@ function bulkPrintSlips() {
 
 function showToast(message, type = 'neutral') {
     const container = document.getElementById('toast-container');
-    if (!container) {
-        // Fallback create if missing
-        const div = document.createElement('div'); div.id = 'toast-container'; document.body.appendChild(div);
-    }
+    if (!container) return; // Ensure container exists
+
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
+
     let icon = '';
     if (type === 'success') icon = '<i class="fas fa-check-circle" style="color:#2ecc71"></i>';
     if (type === 'error') icon = '<i class="fas fa-exclamation-circle" style="color:#e74c3c"></i>';
+
     toast.innerHTML = `${icon} <span>${message}</span>`;
-    document.getElementById('toast-container').appendChild(toast);
-    setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 400); }, 3000);
+
+    // Add to DOM
+    container.appendChild(toast);
+
+    // Remove after 3 seconds
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(10px)'; // Drop down effect
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
 }
 
 // --- POS LOGIC ---
@@ -1293,7 +1324,17 @@ async function submitPosOrder() {
     if (!name || !phone) return showToast("Enter Name & Phone", "error");
     if (adminCart.length === 0) return showToast("Cart Empty", "error");
     const total = adminCart.reduce((sum, i) => sum + (i.price * i.qty), 0);
-    const orderId = 'POS-' + Date.now().toString().slice(-6);
+    // Generates a 6-character ID like "7X9-A2B"
+    const generateShortId = () => {
+        const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
+        let result = '';
+        for (let i = 0; i < 6; i++) {
+            result += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        return result.slice(0, 3) + '-' + result.slice(3);
+    };
+
+    const orderId = 'ORD-' + generateShortId();
     try {
         const userSnapshot = await db.collection("users").where("phone", "==", phone).limit(1).get();
         if (!userSnapshot.empty) {
@@ -1442,11 +1483,30 @@ function loadStoreConfig() {
     db.collection("settings").doc("layout").get().then(doc => {
         if (doc.exists) {
             const data = doc.data();
-            if (document.getElementById('layout-title')) document.getElementById('layout-title').value = data.heroTitle || '';
-            if (document.getElementById('layout-subtitle')) document.getElementById('layout-subtitle').value = data.heroSubtitle || '';
-            if (document.getElementById('layout-bg')) document.getElementById('layout-bg').value = data.heroImage || '';
+            if (data.banners && Array.isArray(data.banners)) {
+                document.getElementById('banner-container').innerHTML = ''; // Clear default
+                data.banners.forEach(url => addBannerInput(url));
+            } else if (data.heroImage) {
+                addBannerInput(data.heroImage); // Fallback for old single image
+            } else {
+                addBannerInput(); // Empty start
+            }
+            if (data.heroTitle) document.getElementById('layout-title').value = data.heroTitle;
+            if (data.heroSubtitle) document.getElementById('layout-subtitle').value = data.heroSubtitle;
         }
     });
+}
+
+function addBannerInput(value = '') {
+    const container = document.getElementById('banner-container');
+    const div = document.createElement('div');
+    div.className = 'banner-row';
+    div.style.cssText = "display:flex; gap:10px; margin-bottom:10px;";
+    div.innerHTML = `
+        <input type="text" class="form-control banner-url" placeholder="Image URL (1920x600)" value="${value}">
+        <button class="btn btn-danger" onclick="this.parentElement.remove()">X</button>
+    `;
+    container.appendChild(div);
 }
 
 function saveStoreConfig() {
@@ -1466,17 +1526,18 @@ function saveStoreConfig() {
 }
 
 function saveLayoutConfig() {
+    const banners = [];
+    document.querySelectorAll('.banner-url').forEach(input => {
+        if (input.value.trim()) banners.push(input.value.trim());
+    });
+
     const heroTitle = document.getElementById('layout-title').value.trim();
     const heroSubtitle = document.getElementById('layout-subtitle').value.trim();
-    const heroImage = document.getElementById('layout-bg').value.trim();
 
     db.collection("settings").doc("layout").set({
-        heroTitle,
-        heroSubtitle,
-        heroImage
+        banners, heroTitle, heroSubtitle
     }, { merge: true })
-        .then(() => showToast("Layout Updated", "success"))
-        .catch(err => showToast("Error: " + err.message, "error"));
+        .then(() => showToast("Layout Updated", "success"));
 }
 
 let soundEnabled = false;
@@ -1664,6 +1725,205 @@ function viewLogs() {
         });
     });
 }
-// Add a button <button onclick="viewLogs()">History</button> in the Inventory header in admin.html
+
+async function markOrderPaid(docId) {
+    if (!await showConfirm("Confirm payment received for this order?")) return;
+
+    db.collection("orders").doc(docId).update({
+        paymentStatus: 'Paid',
+        paymentDate: new Date()
+    }).then(() => {
+        showToast("Payment status updated", "success");
+    }).catch(err => showToast("Error: " + err.message, "error"));
+}
+
+async function exportAllOrders() {
+    if (!await showConfirm("Download FULL order history? This may take time.")) return;
+
+    showToast("Fetching all data...", "neutral");
+
+    try {
+        let allOrders = [];
+        let lastDoc = null;
+        let hasMore = true;
+
+        while (hasMore) {
+            let ref = db.collection("orders").orderBy("timestamp", "desc").limit(500);
+            if (lastDoc) ref = ref.startAfter(lastDoc);
+
+            const snap = await ref.get();
+            if (snap.empty) {
+                hasMore = false;
+            } else {
+                lastDoc = snap.docs[snap.docs.length - 1];
+                snap.forEach(doc => allOrders.push(doc.data()));
+                showToast(`Fetched ${allOrders.length} records...`, "neutral");
+            }
+        }
+
+        // Generate CSV
+        let csv = "Date,Order ID,Customer,Phone,Address,Items,Total,Payment,Status\n";
+        allOrders.forEach(o => {
+            const d = o.timestamp ? new Date(o.timestamp.seconds * 1000).toLocaleDateString() : '-';
+            const addr = o.userAddress ? o.userAddress.replace(/"/g, '""').replace(/\n/g, ' ') : "";
+            const items = o.items ? o.items.map(i => `${i.name} (${i.qty})`).join(' | ') : "";
+
+            csv += `"${d}","${o.id}","${escapeHtml(o.userName)}","${o.userPhone}","${addr}","${items}",${o.total},"${o.paymentMethod}",${o.status}\n`;
+        });
+
+        downloadCSV(csv, "FULL_Namo_Orders.csv");
+        showToast("Export Complete!", "success");
+
+    } catch (e) {
+        console.error(e);
+        showToast("Export failed: " + e.message, "error");
+    }
+}
+
+// --- BLOG CMS LOGIC ---
+function loadBlogCMS() {
+    const container = document.getElementById('blog-list');
+    db.collection("blogs").orderBy("date", "desc").get().then(snap => {
+        container.innerHTML = '';
+        snap.forEach(doc => {
+            const b = doc.data();
+            container.innerHTML += `
+            <div style="display:flex; justify-content:space-between; border-bottom:1px solid #eee; padding:10px;">
+                <div><strong>${b.title}</strong><br><small>${b.date.toDate().toLocaleDateString()}</small></div>
+                <div>
+                    <button class="btn btn-blue btn-sm" onclick="editBlog('${doc.id}')">Edit</button>
+                    <button class="btn btn-danger btn-sm" onclick="deleteBlog('${doc.id}')">Del</button>
+                </div>
+            </div>`;
+        });
+    });
+}
+
+function openBlogEditor() {
+    document.getElementById('blog-id').value = '';
+    document.getElementById('blog-title').value = '';
+    document.getElementById('blog-image').value = '';
+    document.getElementById('blog-content').value = '';
+    document.getElementById('blog-editor-modal').style.display = 'flex';
+}
+
+function editBlog(id) {
+    db.collection("blogs").doc(id).get().then(doc => {
+        const b = doc.data();
+        document.getElementById('blog-id').value = id;
+        document.getElementById('blog-title').value = b.title;
+        document.getElementById('blog-image').value = b.image;
+        document.getElementById('blog-content').value = b.content;
+        document.getElementById('blog-editor-modal').style.display = 'flex';
+    });
+}
+
+function saveBlogPost() {
+    const id = document.getElementById('blog-id').value;
+    const data = {
+        title: document.getElementById('blog-title').value,
+        image: document.getElementById('blog-image').value,
+        content: document.getElementById('blog-content').value,
+        date: new Date()
+    };
+
+    const ref = id ? db.collection("blogs").doc(id) : db.collection("blogs").doc();
+    ref.set(data, { merge: true }).then(() => {
+        closeModal('blog-editor-modal');
+        loadBlogCMS();
+        showToast("Blog Published", "success");
+    });
+}
+
+async function deleteBlog(id) {
+    if (await showConfirm("Delete post?")) {
+        await db.collection("blogs").doc(id).delete();
+        loadBlogCMS();
+    }
+}
+
+function loadFinance() {
+    // 1. Calculate Revenue (From Orders)
+    // Note: In a real app, optimize this to not read ALL orders every time.
+    db.collection("orders").where("status", "!=", "Cancelled").get().then(snap => {
+        let revenue = 0;
+        snap.forEach(d => revenue += d.data().total);
+        document.getElementById('fin-revenue').innerText = '₹' + revenue.toLocaleString();
+        calculateProfit(revenue);
+    });
+
+    // 2. Load Expenses
+    db.collection("expenses").orderBy("date", "desc").onSnapshot(snap => {
+        let expense = 0;
+        const tbody = document.getElementById('expense-body');
+        tbody.innerHTML = '';
+        
+        snap.forEach(doc => {
+            const e = doc.data();
+            expense += parseFloat(e.amount);
+            tbody.innerHTML += `<tr><td>${e.date.toDate().toLocaleDateString()}</td><td>${e.desc}</td><td>${e.category}</td><td style="color:red">-₹${e.amount}</td></tr>`;
+        });
+        
+        document.getElementById('fin-expense').innerText = '₹' + expense.toLocaleString();
+        calculateProfit(null, expense);
+    });
+}
+
+let globalRev = 0, globalExp = 0;
+function calculateProfit(rev, exp) {
+    if(rev !== null) globalRev = rev;
+    if(exp !== null) globalExp = exp;
+    const profit = globalRev - globalExp;
+    const el = document.getElementById('fin-profit');
+    el.innerText = '₹' + profit.toLocaleString();
+    el.style.color = profit >= 0 ? 'green' : 'red';
+}
+
+function saveExpense() {
+    const desc = document.getElementById('exp-desc').value;
+    const cat = document.getElementById('exp-cat').value;
+    const amt = parseFloat(document.getElementById('exp-amt').value);
+    
+    if(!desc || !amt) return showToast("Invalid Data", "error");
+    
+    db.collection("expenses").add({
+        desc, category: cat, amount: amt, date: new Date()
+    }).then(() => {
+        closeModal('expense-modal');
+        showToast("Expense Added", "success");
+    });
+}
+
+async function calculateSegments() {
+    showToast("Analyzing customer data...", "neutral");
+    const usersSnap = await db.collection("users").get();
+    
+    const batch = db.batch();
+    let count = 0;
+
+    for (const doc of usersSnap.docs) {
+        const u = doc.data();
+        
+        // Calculate Total Spend (You might need to query orders for this user if not stored in user doc)
+        const ordersSnap = await db.collection("orders").where("userId", "==", doc.id).get();
+        let totalSpend = 0;
+        ordersSnap.forEach(o => { 
+            if(o.data().status !== 'Cancelled') totalSpend += o.data().total 
+        });
+
+        let segment = 'Regular';
+        if (totalSpend > 5000) segment = 'Gold';
+        else if (totalSpend > 2000) segment = 'Silver';
+
+        if (u.segment !== segment) {
+            batch.update(doc.ref, { segment: segment, totalLifetimeSpend: totalSpend });
+            count++;
+        }
+    }
+
+    await batch.commit();
+    showToast(`Updated ${count} customer segments!`, "success");
+    loadCustomers(); // Refresh table
+}
 
 registerAdminServiceWorker();

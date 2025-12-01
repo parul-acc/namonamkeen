@@ -806,218 +806,356 @@ tr:hover td {
         border-top: 2px solid #ffeeba;
     }
 
-    /* Mobile Responsiveness */
-    @media (max-width: 900px) {
-        .pos-layout {
-            flex-direction: column-reverse;
-            /* FIX: Cart goes to TOP, Products to BOTTOM */
-            height: auto;
-            /* Allow full page scrolling on mobile */
-            overflow: visible;
-            gap: 15px;
-        }
+}
 
-        .pos-right {
-            width: 100%;
-            min-width: auto;
-            max-height: 40vh;
-            /* Limit cart height so it doesn't take full screen */
-            overflow-y: auto;
-            border-bottom: 4px solid var(--primary);
-            /* Visual separator */
-        }
+/* Add to admin.css */
+.status-cancelled {
+    background: #fef2f2;
+    color: #b91c1c;
+    border: 1px solid #fecaca;
+}
 
-        .pos-left {
-            height: 60vh;
-            /* Give products a fixed scrollable area */
-        }
+/* --- CUSTOM CONFIRM MODAL (Admin Side) --- */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 9999;
+    display: none;
+    /* Hidden by default */
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(3px);
+}
 
-        .pos-product-grid {
-            padding: 10px;
-            grid-template-columns: repeat(3, 1fr);
-            /* 3 items per row on mobile for density */
-            gap: 10px;
-        }
+.confirm-box {
+    background: white;
+    padding: 25px;
+    border-radius: 12px;
+    text-align: center;
+    max-width: 350px;
+    width: 90%;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
 
-        .pos-card img {
-            width: 50px;
-            height: 50px;
-            /* Smaller images on mobile */
-        }
+.confirm-actions {
+    display: flex;
+    gap: 15px;
+    margin-top: 20px;
+    justify-content: center;
+}
 
-        .pos-card h4 {
-            font-size: 0.8rem;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-    }
+.btn-confirm-yes {
+    background: #e85d04;
+    color: white;
+    flex: 1;
+    padding: 10px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+}
 
-    /* Add to admin.css */
-    .status-cancelled {
-        background: #fef2f2;
-        color: #b91c1c;
-        border: 1px solid #fecaca;
-    }
+.btn-confirm-no {
+    background: #f3f4f6;
+    color: #333;
+    flex: 1;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+}
 
-    /* --- CUSTOM CONFIRM MODAL (Admin Side) --- */
-    .modal-overlay {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.6);
-        z-index: 9999;
-        display: none;
-        /* Hidden by default */
-        align-items: center;
-        justify-content: center;
-        backdrop-filter: blur(3px);
-    }
+/* Update .charts-grid in admin.css */
+.charts-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr;
+    /* Adjust columns */
+    gap: 20px;
+    margin-bottom: 30px;
+}
 
-    .confirm-box {
-        background: white;
-        padding: 25px;
-        border-radius: 12px;
-        text-align: center;
-        max-width: 350px;
-        width: 90%;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-    }
-
-    .confirm-actions {
-        display: flex;
-        gap: 15px;
-        margin-top: 20px;
-        justify-content: center;
-    }
-
-    .btn-confirm-yes {
-        background: #e85d04;
-        color: white;
-        flex: 1;
-        padding: 10px;
-        border: none;
-        border-radius: 8px;
-        cursor: pointer;
-        font-weight: 600;
-    }
-
-    .btn-confirm-no {
-        background: #f3f4f6;
-        color: #333;
-        flex: 1;
-        padding: 10px;
-        border: 1px solid #ddd;
-        border-radius: 8px;
-        cursor: pointer;
-        font-weight: 600;
-    }
-
-    /* Update .charts-grid in admin.css */
+@media (max-width: 1200px) {
     .charts-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+@media (max-width: 900px) {
+    .charts-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* High Value Order Row */
+tr.high-value-row td {
+    background-color: #fffbf0 !important;
+    /* Light Gold */
+    border-top: 1px solid #ffeeba;
+}
+
+/* Address Copy Effect */
+.copy-addr {
+    cursor: pointer;
+    border-bottom: 1px dashed #999;
+    transition: 0.2s;
+}
+
+.copy-addr:hover {
+    color: var(--primary);
+    border-bottom-color: var(--primary);
+    background: rgba(232, 93, 4, 0.05);
+}
+
+.btn-rate {
+    font-size: 0.75rem;
+    padding: 4px 10px;
+    background: white;
+    border: 1px solid var(--primary);
+    color: var(--primary);
+    border-radius: 15px;
+    cursor: pointer;
+    margin-left: 10px;
+    transition: 0.2s;
+
+    /* FIX: Prevents button text from breaking */
+    white-space: nowrap;
+    flex-shrink: 0;
+    /* Ensures button doesn't shrink if space is tight */
+}
+
+@media (max-width: 900px) {
+
+    /* 1. Stats Cards: Force 2 per row on tablets, 1 per row on very small screens */
+    .stats-grid {
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 10px;
+    }
+
+    /* 2. Charts: Stack vertically */
+    .charts-grid {
+        grid-template-columns: 1fr;
+    }
+
+    /* 3. Table: Allow horizontal scroll */
+    .table-responsive {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* 4. POS Layout: Stack vertically */
+    .pos-layout {
+        flex-direction: column-reverse;
+        /* Cart on top, products below */
+    }
+
+    .pos-right {
+        margin-bottom: 20px;
+        border-bottom: 2px dashed #eee;
+    }
+}
+
+/* Very Small Screens (Phones) */
+@media (max-width: 480px) {
+    .stats-grid {
+        grid-template-columns: 1fr;
+        /* 1 Card per row for very small screens */
+    }
+
+    .brand h3 {
+        font-size: 1rem;
+    }
+}
+
+/* Hide Admin UI by default for security */
+body.loading .sidebar,
+body.loading .main-content {
+    display: none !important;
+}
+
+/* --- MODERN INPUT STYLING (Global) --- */
+.form-control,
+.search-input {
+    background-color: #f8fafc;
+    /* Light cool gray */
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    /* Softer rounded corners */
+    padding: 12px 15px;
+    font-size: 0.95rem;
+    color: #334155;
+    transition: all 0.2s ease;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.02);
+}
+
+.form-control:focus,
+.search-input:focus {
+    background-color: #ffffff;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(232, 93, 4, 0.15);
+    /* Orange glow */
+    outline: none;
+}
+
+/* Label styling if you add labels later */
+.form-label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #64748b;
+    margin-bottom: 5px;
+    display: block;
+}
+
+/* --- MOBILE POS OPTIMIZATIONS --- */
+@media (max-width: 900px) {
+
+    /* 1. FLIP LAYOUT: Products Top, Cart Bottom */
+    .pos-layout {
+        flex-direction: column !important;
+        /* Override inline/previous styles */
+        height: auto !important;
+        /* Allow page to scroll naturally */
+        gap: 15px;
+        padding-bottom: 30px;
+    }
+
+    /* 2. PRODUCT SECTION (Now on Top) */
+    .pos-left {
+        order: 1;
+        /* Shows First */
+        max-height: 50vh;
+        /* Limit height so you can see the cart peek below */
+        min-height: 300px;
+        display: flex;
+        flex-direction: column;
+    }
+
+    /* Ensure the grid scrolls within the constrained height */
+    .pos-product-grid {
+        overflow-y: auto;
+        padding-bottom: 10px;
+        /* Make grid items slightly smaller for mobile density */
+        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+        gap: 10px;
+    }
+
+    /* Product Card adjustments for mobile */
+    .pos-card-img-wrap {
+        height: 80px;
+        /* Compact images */
+    }
+
+    .pos-card h4 {
+        font-size: 0.8rem;
+        margin-bottom: 2px;
+    }
+
+    .pos-meta span {
+        font-size: 0.7rem;
+    }
+
+    /* 3. CART & CUSTOMER SECTION (Now at Bottom) */
+    .pos-right {
+        order: 2;
+        /* Shows Second */
+        height: auto;
+        overflow: visible;
+    }
+
+    /* 4. COMPACT FORM: Name & Phone Side-by-Side */
+    /* This applies to the div containing inputs in admin.html (pos-right) */
+    .pos-right div[style*="padding: 15px;"] {
         display: grid;
-        grid-template-columns: 2fr 1fr 1fr;
-        /* Adjust columns */
-        gap: 20px;
-        margin-bottom: 30px;
+        grid-template-columns: 1fr 1fr;
+        /* 2 Columns */
+        gap: 10px;
     }
 
-    @media (max-width: 1200px) {
-        .charts-grid {
-            grid-template-columns: 1fr 1fr;
-        }
+    /* Make Name & Phone share a row */
+    #pos-name {
+        grid-column: 1 / 2;
+        /* First column */
+        margin-bottom: 0 !important;
     }
 
-    @media (max-width: 900px) {
-        .charts-grid {
-            grid-template-columns: 1fr;
-        }
+    #pos-phone {
+        grid-column: 2 / 3;
+        /* Second column */
+        margin-bottom: 0 !important;
     }
 
-    /* High Value Order Row */
-    tr.high-value-row td {
-        background-color: #fffbf0 !important;
-        /* Light Gold */
-        border-top: 1px solid #ffeeba;
+    /* Make Address & everything else full width */
+    #pos-address,
+    hr,
+    h4,
+    .pos-cart-list,
+    .pos-total-section {
+        grid-column: 1 / -1;
+        /* Span full width */
     }
 
-    /* Address Copy Effect */
-    .copy-addr {
-        cursor: pointer;
-        border-bottom: 1px dashed #999;
-        transition: 0.2s;
+    /* Adjust Address height to save space */
+    #pos-address {
+        height: 60px;
     }
 
-    .copy-addr:hover {
-        color: var(--primary);
-        border-bottom-color: var(--primary);
-        background: rgba(232, 93, 4, 0.05);
+    /* Fix Cart List height on mobile */
+    .pos-cart-list {
+        max-height: 200px;
+        /* Scrollable if long */
+        overflow-y: auto;
+        border: 1px solid #f1f5f9;
+        border-radius: 8px;
+        padding: 5px;
     }
 
-    .btn-rate {
-        font-size: 0.75rem;
-        padding: 4px 10px;
-        background: white;
-        border: 1px solid var(--primary);
-        color: var(--primary);
-        border-radius: 15px;
-        cursor: pointer;
-        margin-left: 10px;
-        transition: 0.2s;
-
-        /* FIX: Prevents button text from breaking */
-        white-space: nowrap;
-        flex-shrink: 0;
-        /* Ensures button doesn't shrink if space is tight */
+    /* Make Place Order button sticky/prominent */
+    .pos-total-section {
+        position: sticky;
+        bottom: 0;
+        background: #fffbf0;
+        z-index: 10;
+        border-top: 2px solid var(--primary);
+        box-shadow: 0 -5px 15px rgba(0, 0, 0, 0.1);
+        margin: 0 -15px -15px -15px;
+        /* Stretch to edges */
+        padding: 15px;
     }
+}
 
-    @media (max-width: 900px) {
+#toast-container {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 7000;
+    display: flex;
+    flex-direction: column-reverse;
+    /* Stacks new ones on top */
+    gap: 10px;
+    pointer-events: none;
+    /* Allows clicking through empty space */
+}
 
-        /* 1. Stats Cards: Force 2 per row on tablets, 1 per row on very small screens */
-        .stats-grid {
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 10px;
-        }
-
-        /* 2. Charts: Stack vertically */
-        .charts-grid {
-            grid-template-columns: 1fr;
-        }
-
-        /* 3. Table: Allow horizontal scroll */
-        .table-responsive {
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
-        }
-
-        /* 4. POS Layout: Stack vertically */
-        .pos-layout {
-            flex-direction: column-reverse;
-            /* Cart on top, products below */
-        }
-
-        .pos-right {
-            margin-bottom: 20px;
-            border-bottom: 2px dashed #eee;
-        }
-    }
-
-    /* Very Small Screens (Phones) */
-    @media (max-width: 480px) {
-        .stats-grid {
-            grid-template-columns: 1fr;
-            /* 1 Card per row for very small screens */
-        }
-
-        .brand h3 {
-            font-size: 1rem;
-        }
-    }
-
-    /* Hide Admin UI by default for security */
-    body.loading .sidebar,
-    body.loading .main-content {
-        display: none !important;
-    }
+.toast {
+    pointer-events: auto;
+    transition: all 0.3s ease;
+    background: rgba(44, 24, 16, 0.95);
+    /* Dark Brown */
+    color: white;
+    padding: 12px 25px;
+    border-radius: 50px;
+    font-size: 0.9rem;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    animation: slideUpFade 0.4s ease forwards;
+    opacity: 0;
+    min-width: 250px;
+    justify-content: center;
+}

@@ -2582,11 +2582,16 @@ textarea:focus,
     transform: translateX(-50%);
     z-index: 7000;
     display: flex;
-    flex-direction: column;
+    flex-direction: column-reverse;
+    /* Stacks new ones on top */
     gap: 10px;
+    pointer-events: none;
+    /* Allows clicking through empty space */
 }
 
 .toast {
+    pointer-events: auto;
+    transition: all 0.3s ease;
     background: rgba(44, 24, 16, 0.95);
     /* Dark Brown */
     color: white;
@@ -3634,4 +3639,17 @@ textarea:focus,
         /* Let content grow */
         height: auto !important;
     }
+}
+
+#hero-bg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-size: cover;
+    background-position: center;
+    transition: background-image 1s ease-in-out;
+    /* Smooth fade effect */
+    z-index: 0;
 }

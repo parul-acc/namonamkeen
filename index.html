@@ -59,6 +59,9 @@
                             <hr>
                             <button onclick="openProfileModal()"><i class="fas fa-user-edit"></i> Edit Profile</button>
                             <button onclick="showOrderHistory()"><i class="fas fa-history"></i> Order History</button>
+
+                            <button onclick="openWalletHistory()"><i class="fas fa-wallet"></i> Wallet History</button>
+
                             <button onclick="logout()" style="color:red;"><i class="fas fa-sign-out-alt"></i>
                                 Logout</button>
                         </div>
@@ -139,6 +142,13 @@
             <div class="search-container">
                 <i class="fas fa-search"></i>
                 <input type="search" id="menu-search" placeholder="Search for Sev, Mixture..." enterkeyhint="search">
+                <select id="sort-select" onchange="sortMenu(this.value)"
+                    style="position: absolute; right: 5px; top: 50%; transform: translateY(-50%); border: none; background: transparent; color: var(--primary); font-weight: 600; font-size: 0.9rem; cursor: pointer; outline: none; padding: 5px;">
+                    <option value="default">Sort</option>
+                    <option value="price-low">Low Price</option>
+                    <option value="price-high">High Price</option>
+                    <option value="rating">Top Rated</option>
+                </select>
                 <div id="search-suggestions" class="search-suggestions"></div>
             </div>
             <div class="category-slider">
@@ -342,6 +352,26 @@
             <button onclick="saveProfile()" class="btn-primary" style="width:100%; margin-top:20px; padding:12px;">Save
                 Changes</button>
         </div>
+        <hr style="margin: 20px 0; border: 0; border-top: 1px dashed #ddd;">
+
+        <div style="background:#f0f9ff; padding:15px; border-radius:8px; border:1px solid #bae6fd;">
+            <h3 style="margin:0 0 10px 0; color:#0288d1;">Refer & Earn ₹50</h3>
+
+            <p style="font-size:0.9rem; color:#555; margin-bottom:5px;">Your Referral Code:</p>
+            <div style="display:flex; gap:10px; margin-bottom:15px;">
+                <input type="text" id="my-ref-code" readonly value="LOADING..."
+                    style="flex:1; background:white; border:1px dashed #0288d1; padding:10px; text-align:center; font-weight:bold; letter-spacing:1px; color:#0288d1;">
+                <button class="btn-primary" onclick="copyRefCode()" style="padding:0 15px;"><i
+                        class="far fa-copy"></i></button>
+            </div>
+
+            <p style="font-size:0.9rem; color:#555; margin-bottom:5px;">Have a code? Redeem now:</p>
+            <div style="display:flex; gap:10px;">
+                <input type="text" id="enter-ref-code" placeholder="Enter Code" class="form-control"
+                    style="text-transform:uppercase;">
+                <button class="btn-primary" onclick="redeemReferral()" style="background:#27ae60;">Redeem</button>
+            </div>
+        </div>
     </div>
 
     <div id="history-modal" class="cart-overlay">
@@ -474,8 +504,29 @@
                 </div>
                 <textarea id="review-comment" rows="3" placeholder="How was the taste? (Optional)" class="form-control"
                     style="margin-top: 15px;"></textarea>
+                <div style="margin-top:10px; text-align:left;">
+                    <label style="font-size:0.85rem; font-weight:600; display:block; margin-bottom:5px;">Add a Photo
+                        (Optional)</label>
+                    <input type="file" id="review-img-upload" accept="image/*" class="form-control"
+                        style="padding:5px;">
+                    <small style="color:#999;">Max size 500KB</small>
+                </div>
                 <button id="btn-submit-review" class="btn-primary full-width" onclick="submitReview()"
                     style="margin-top: 15px; width: 100%;">Submit Review</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="wallet-modal" class="modal-overlay">
+        <div class="modal-content mobile-modal">
+            <div class="modal-header"
+                style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                <h3 style="margin:0; display:flex; align-items:center; gap:10px;"><i class="fas fa-history"
+                        style="color:var(--primary);"></i> Wallet History</h3>
+                <button class="close-modal" onclick="closeModal('wallet-modal')">&times;</button>
+            </div>
+            <div id="wallet-history-list" style="max-height:400px; overflow-y:auto;">
+                <p style="text-align:center; color:#666;">Loading transactions...</p>
             </div>
         </div>
     </div>

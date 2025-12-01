@@ -53,6 +53,8 @@
             <li><a onclick="switchView('reviews')" id="nav-reviews"><i class="fas fa-star"></i> Reviews</a></li>
             <li><a onclick="switchView('abandoned')" id="nav-abandoned"><i class="fas fa-shopping-cart"></i>
                     Abandoned</a></li>
+            <li><a onclick="switchView('blogs')" id="nav-blogs"><i class="fas fa-pen-nib"></i> Blog CMS</a></li>
+            <li><a onclick="switchView('finance')" id="nav-finance"><i class="fas fa-rupee-sign"></i> Finance</a></li>
             <li><a onclick="switchView('settings')" id="nav-settings"><i class="fas fa-cog"></i> Settings</a></li>
         </ul>
         <div class="sidebar-footer">
@@ -273,8 +275,11 @@
                             <option value="Packed">Packed</option>
                             <option value="Delivered">Delivered</option>
                         </select>
-                        <button class="btn btn-primary" onclick="exportOrdersToCSV()"><i
+                        <button class="btn btn-primary" onclick="exportOrdersToCSV()" title="Export Visible"><i
                                 class="fas fa-download"></i></button>
+
+                        <button class="btn btn-outline" onclick="exportAllOrders()" title="Export ALL History"><i
+                                class="fas fa-file-csv"></i> All</button>
                     </div>
                 </div>
 
@@ -462,23 +467,18 @@
 
                 <div class="card">
                     <div class="card-header">
-                        <h3>Homepage Banner</h3>
+                        <h3>Banner Carousel</h3>
+                        <button class="btn btn-primary btn-sm" onclick="addBannerInput()">+ Add Slide</button>
                     </div>
-                    <div style="padding: 20px;">
+                    <div id="banner-container" style="padding: 20px;">
+                    </div>
+                    <div style="padding: 0 20px 20px;">
                         <label class="form-label">Hero Title</label>
-                        <input type="text" id="layout-title" class="form-control"
-                            placeholder="e.g. Crunchy. Spicy. Authentic.">
-
+                        <input type="text" id="layout-title" class="form-control">
                         <label class="form-label">Hero Subtitle</label>
-                        <input type="text" id="layout-subtitle" class="form-control"
-                            placeholder="e.g. The Royal Taste of Indore">
-
-                        <label class="form-label">Background Image URL</label>
-                        <input type="text" id="layout-bg" class="form-control" placeholder="https://...">
-                        <small style="color:#666;">Tip: Use a wide image (1920x600px)</small>
-
+                        <input type="text" id="layout-subtitle" class="form-control">
                         <button class="btn btn-primary full-width" onclick="saveLayoutConfig()"
-                            style="margin-top: 20px;">Update Storefront</button>
+                            style="margin-top: 20px;">Save Layout</button>
                     </div>
                 </div>
 
@@ -504,7 +504,7 @@
 
             </div>
         </div>
-        
+
 
         <footer class="admin-footer">
             © 2025 Namo Namkeen Admin Panel. Designed by Parul Gangwal.
@@ -571,6 +571,61 @@
             </div>
         </div>
     </div>
+
+    <div id="view-blogs" class="view-section">
+        <div class="card">
+            <div class="card-header">
+                <h3>Manage Blog Posts</h3>
+                <button class="btn btn-primary" onclick="openBlogEditor()">+ New Post</button>
+            </div>
+            <div id="blog-list" style="padding:20px;">Loading...</div>
+        </div>
+    </div>
+
+    <div id="blog-editor-modal" class="modal">
+        <div class="modal-content" style="width:700px;">
+            <div class="modal-header">
+                <h3>Edit Post</h3><button class="close-btn" onclick="closeModal('blog-editor-modal')">&times;</button>
+            </div>
+            <input type="hidden" id="blog-id">
+            <input id="blog-title" class="form-control" placeholder="Post Title" style="margin-bottom:10px;">
+            <input id="blog-image" class="form-control" placeholder="Cover Image URL" style="margin-bottom:10px;">
+            <textarea id="blog-content" class="form-control" rows="10"
+                placeholder="HTML Content (Use <p>, <b>, etc.)"></textarea>
+            <button class="btn btn-primary full-width" onclick="saveBlogPost()"
+                style="margin-top:15px;">Publish</button>
+        </div>
+    </div>
+
+    <div id="view-finance" class="view-section">
+    <div class="stats-grid">
+        <div class="stat-card border-green"><h3>Total Revenue</h3><h1 id="fin-revenue">₹0</h1></div>
+        <div class="stat-card border-red"><h3>Total Expenses</h3><h1 id="fin-expense">₹0</h1></div>
+        <div class="stat-card border-purple"><h3>Net Profit</h3><h1 id="fin-profit">₹0</h1></div>
+    </div>
+    
+    <div class="card">
+        <div class="card-header">
+            <h3>Expense Log</h3>
+            <button class="btn btn-primary" onclick="openExpenseModal()">+ Add Expense</button>
+        </div>
+        <div class="table-responsive">
+            <table><thead><tr><th>Date</th><th>Desc</th><th>Category</th><th>Amount</th></tr></thead><tbody id="expense-body"></tbody></table>
+        </div>
+    </div>
+</div>
+
+<div id="expense-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header"><h3>Log Expense</h3><button class="close-btn" onclick="closeModal('expense-modal')">&times;</button></div>
+        <input id="exp-desc" class="form-control" placeholder="Description (e.g. Packaging)" style="margin-bottom:10px;">
+        <select id="exp-cat" class="form-control" style="margin-bottom:10px;">
+            <option>Raw Material</option><option>Packaging</option><option>Delivery/Fuel</option><option>Salary</option><option>Other</option>
+        </select>
+        <input type="number" id="exp-amt" class="form-control" placeholder="Amount (₹)">
+        <button class="btn btn-primary full-width" onclick="saveExpense()" style="margin-top:15px;">Save</button>
+    </div>
+</div>
 
     <script src="admin.js"></script>
 </body>
