@@ -589,7 +589,9 @@ function updateCartUI() {
     const con = document.getElementById('cart-items');
     if (!con) return;
     con.innerHTML = '';
+   // FIX 1: Initialize variables at the top
     let subtotal = 0, count = 0;
+    let finalDeliveryCost = 50;
 
     // Elements
     const clearBtn = document.getElementById('clear-cart-btn');
@@ -802,13 +804,24 @@ function toggleCart() {
 }
 
 // --- UNIFIED CHECKOUT HANDLER ---
+// --- UNIFIED CHECKOUT HANDLER ---
 function handleCheckout() {
     // 1. Check Connectivity
     if (!navigator.onLine) {
         showToast("No Internet Connection", "error");
         return;
     }
-    // 1. Get Elements safely
+
+    // --- NEW: Force Login for Guests ---
+    // If the user is not logged in, stop here and ask them to login.
+    if (!currentUser) {
+        showToast("Please login to place an order", "neutral");
+        openLoginChoiceModal(); // Opens the "Welcome Back" modal
+        return; 
+    }
+    // -----------------------------------
+
+    // 2. Get Elements safely
     const phoneInput = document.getElementById('cust-phone');
     const addressInput = document.getElementById('cust-address');
 
@@ -821,16 +834,16 @@ function handleCheckout() {
     const phone = phoneInput.value.trim();
     const address = addressInput.value.trim();
 
-    // 2. Validate
+    // 3. Validate
     if (cart.length === 0) return showToast("Your cart is empty!", "error");
     if (!/^[0-9]{10}$/.test(phone)) return showToast("Please enter a valid 10-digit mobile number.", "error");
     if (address.length < 5) return showToast("Please enter a complete delivery address.", "error");
 
-    // 3. PROCEED DIRECTLY (Do not force login)
-    // We will handle "Guest" status inside the payment functions
+    // 4. PROCEED 
     vibrate(50);
     initiateRazorpayPayment();
 }
+
 // 2. Called when payment is confirmed (UPI) or immediately (COD)
 async function finalizeOrder(paymentMode) {
     toggleBtnLoading('btn-main-checkout', true);
@@ -1449,7 +1462,7 @@ async function initiateRazorpayPayment() {
 
     // Basic Validation
     if (!/^[0-9]{10}$/.test(phone)) return showToast("Please enter a valid 10-digit mobile number.", "error");
-    if (address.length < 5) return showToast("Please enter a complete address.", "error");
+    if (address.length < 3) return showToast("Please enter a complete address.", "error");
 
     // Check Payment Method
     const methodElem = document.querySelector('input[name="paymentMethod"]:checked');

@@ -27,6 +27,7 @@ let previousOrderCount = 0;
 const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
 
 let adminCart = [];
+let ordersUnsubscribe = null;
 let dashboardUnsubscribe = null;
 
 let salesChartInstance, productChartInstance, paymentChartInstance;
@@ -489,28 +490,48 @@ function filterInventory() {
 
 // --- ORDERS ---
 function loadOrders() {
-    db.collection("orders").orderBy("timestamp", "desc").limit(20).onSnapshot(snap => {
+    // 1. Unsubscribe from previous listener if it exists
+    if (ordersUnsubscribe) {
+        ordersUnsubscribe();
+    }
+
+    const query = db.collection("orders").orderBy("timestamp", "desc").limit(20);
+
+    // 2. Assign the new listener to the global variable
+    ordersUnsubscribe = query.onSnapshot(snap => {
         let pending = 0, packed = 0, delivered = 0;
 
+        // Sound & Notification Logic
         if (previousOrderCount > 0 && snap.size > previousOrderCount) {
             if (soundEnabled) {
                 orderSound.play().catch(e => console.log("Sound blocked:", e));
             }
             showToast("New Order Received!", "success");
-            vibrate(200); // Add vibration for mobile admins
+            vibrate(200);
         }
         previousOrderCount = snap.size;
 
         state.orders.data = [];
         snap.forEach(doc => {
-            const o = doc.data(); o.docId = doc.id;
-            if (o.status === 'Pending') pending++; else if (o.status === 'Packed') packed++; else if (o.status === 'Delivered') delivered++;
+            const o = doc.data();
+            o.docId = doc.id;
+
+            if (o.status === 'Pending') pending++;
+            else if (o.status === 'Packed') packed++;
+            else if (o.status === 'Delivered') delivered++;
+
             state.orders.data.push(o);
         });
 
-        document.getElementById('ord-pending').innerText = pending;
-        document.getElementById('ord-packed').innerText = packed;
-        document.getElementById('ord-delivered').innerText = delivered;
+        // Update Stats Counters
+        const pEl = document.getElementById('ord-pending');
+        const kEl = document.getElementById('ord-packed');
+        const dEl = document.getElementById('ord-delivered');
+
+        if (pEl) pEl.innerText = pending;
+        if (kEl) kEl.innerText = packed;
+        if (dEl) dEl.innerText = delivered;
+
         state.orders.filteredData = null;
         renderTable('orders');
     });
@@ -523,10 +544,10 @@ function renderOrderRows(tbody, items) {
         const statusClass = `status-${o.status.toLowerCase()}`;
         const itemCount = o.items.length;
         const isHighValue = o.total > 350 ? 'high-value-row' : '';
-        
+
         // FIX: Use data attributes to store messy strings (addresses with quotes/newlines)
         // instead of passing them directly into the onclick function which breaks syntax.
-        const safeAddress = escapeHtml(o.userAddress); 
+        const safeAddress = escapeHtml(o.userAddress);
 
         const cancelBtn = (o.status === 'Pending' || o.status === 'Packed') ?
             `<button class="icon-btn btn-danger" onclick="adminCancelOrder('${o.docId}')" title="Cancel Order"><i class="fas fa-ban"></i></button>` : '';
@@ -1515,6 +1536,62 @@ function viewCustomer(uid) {
             console.error(err);
             content.innerHTML = '<p style="color:red; text-align:center;">Failed to load customer details.</p>';
         });
+}
+
+// --- ADD THIS TO THE BOTTOM OF admin.js ---
+
+function renderPosProducts() {
+    const grid = document.getElementById('pos-grid');
+    if (!grid) return;
+
+    grid.innerHTML = '';
+    const query = document.getElementById('pos-search').value.toLowerCase().trim();
+
+    // Use the inventory data already loaded in the 'state' object
+    const products = state.inventory.data || [];
+
+    const filtered = products.filter(p => {
+        const name = (p.name || '').toLowerCase();
+        const id = String(p.id).toLowerCase();
+        return name.includes(query) || id.includes(query);
+    });
+
+    if (filtered.length === 0) {
+        grid.innerHTML = '<p style="color:#999; text-align:center; width:100%;">No products found</p>';
+        return;
+    }
+
+    filtered.forEach(p => {
+        // Determine Price & Weight (Default to first variant or base price)
+        let price = p.price;
+        let weight = 'Std';
+
+        if (p.variants && p.variants.length > 0) {
+            // Find first in-stock variant or just the first one
+            const v = p.variants.find(v => v.inStock !== false) || p.variants[0];
+            price = v.price;
+            weight = v.weight;
+        }
+
+        const img = p.image || 'logo.jpg';
+        // Sanitize name for the onclick handler to prevent syntax errors
+        const safeName = p.name.replace(/'/g, "\\'");
+
+        grid.innerHTML += `
+            <div class="pos-card" onclick="addToAdminCart('${p.id}', '${safeName}', ${price}, '${weight}', '${img}')">
+                <div class="pos-card-img-wrap">
+                    <img src="${img}" onerror="this.src='logo.jpg'" loading="lazy">
+                </div>
+                <div class="pos-card-info">
+                    <h4>${p.name}</h4>
+                    <div class="pos-meta">
+                        <span class="pos-weight">${weight}</span>
+                        <span class="pos-price">₹${price}</span>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
 }
 
 registerAdminServiceWorker();
