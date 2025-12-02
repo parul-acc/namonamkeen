@@ -1314,16 +1314,17 @@ function escapeHtml(text) {
     return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
 }
 
-// Sanitize/normalize image or user-provided URLs to allow only safe schemes
-function sanitizeUrl(url) {
-    if (!url) return '';
-    try {
-        const u = String(url).trim();
-        if (u.startsWith('data:image/') || u.startsWith('http://') || u.startsWith('https://')) return u;
-        return 'logo.jpg';
-    } catch (e) {
-        return 'logo.jpg';
-    }
+function openExpenseModal() {
+    // 1. Clear previous input values
+    document.getElementById('exp-desc').value = '';
+    document.getElementById('exp-amt').value = '';
+
+    // 2. Reset category to first option
+    const catSelect = document.getElementById('exp-cat');
+    if (catSelect) catSelect.selectedIndex = 0;
+
+    // 3. Show the modal
+    document.getElementById('expense-modal').style.display = 'flex';
 }
 
 function registerAdminServiceWorker() {
@@ -1895,6 +1896,20 @@ function viewCustomer(uid) {
             console.error(err);
             content.innerHTML = '<p style="color:red; text-align:center;">Failed to load customer details.</p>';
         });
+}
+
+function sanitizeUrl(url) {
+    if (!url) return '';
+    try {
+        const u = String(url).trim();
+        // FIX: Added check for 'assets/' to allow local images
+        if (u.startsWith('data:image/') || u.startsWith('http://') || u.startsWith('https://') || u.startsWith('assets/')) {
+            return u;
+        }
+        return 'logo.jpg';
+    } catch (e) {
+        return 'logo.jpg';
+    }
 }
 
 // --- ADD THIS TO THE BOTTOM OF admin.js ---
