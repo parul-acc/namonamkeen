@@ -104,590 +104,549 @@
                 </div>
                 <div class="stat-card border-red">
                     <h3>Pending</h3>
-                    <h1 id="pending-count">0</h1>
-                </div>
-                <div class="stat-card border-purple">
-                    <h3>Avg Order</h3>
-                    <h1 id="avg-order">₹0</h1>
-                </div>
-            </div>
-
-            <div id="low-stock-alert"
-                style="display:none; background:#fff3cd; border:1px solid #ffeeba; color:#856404; padding:15px; border-radius:10px; margin-bottom:20px; align-items:center; gap:15px;">
-                <div style="font-size:1.5rem;"><i class="fas fa-exclamation-triangle"></i></div>
-                <div style="flex:1;">
-                    <h4 style="margin:0;">Low Stock Alert</h4>
-                    <p style="margin:5px 0 0; font-size:0.9rem;">The following items are running low or out of stock:
-                    </p>
-                    <div id="low-stock-list" style="display:flex; gap:10px; flex-wrap:wrap; margin-top:10px;"></div>
-                </div>
-            </div>
-
-            <div class="charts-grid">
-                <div class="chart-box"><canvas id="salesChart"></canvas></div>
-                <div class="chart-box"><canvas id="productChart"></canvas></div>
-                <div class="chart-box"><canvas id="paymentChart"></canvas></div>
-            </div>
-        </div>
-
-        <div id="view-pos" class="view-section">
-            <div class="pos-layout">
-
-                <div class="card pos-left">
-                    <div class="card-header">
-                        <h3>Select Products</h3>
-                        <input type="text" id="pos-search" class="search-input" placeholder="Search product..."
-                            onkeyup="debouncedPosSearch()">
-                    </div>
-                    <div class="pos-product-grid" id="pos-grid">
-                    </div>
-                </div>
-
-                <div class="card pos-right">
-                    <div class="card-header">
-                        <h3>Customer Details</h3>
-                    </div>
-                    <div style="padding: 15px;">
-                        <input type="text" id="pos-name" class="form-control" placeholder="Customer Name *">
-                        <input type="tel" id="pos-phone" class="form-control" placeholder="Mobile Number *">
-                        <div style="margin-bottom: 10px;">
-                            <input type="text" id="pos-addr-street" class="form-control"
-                                placeholder="Flat / Street / Area">
+                    <div class="card pos-left">
+                        <div class="card-header">
+                            <h3>Select Products</h3>
+                            <input type="text" id="pos-search" class="search-input" placeholder="Search product..."
+                                onkeyup="debouncedPosSearch()">
                         </div>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
-                            <input type="text" id="pos-addr-city" class="form-control" placeholder="City"
-                                value="Indore">
-                            <input type="number" id="pos-addr-pin" class="form-control" placeholder="Pincode">
+                        <div class="pos-product-grid" id="pos-grid">
                         </div>
+                    </div>
 
-                        <hr style="border:0; border-top:1px dashed #ddd; margin:15px 0;">
-
-                        <h4>Cart Items</h4>
-                        <div id="pos-cart-list" class="pos-cart-list">
+                    <div class="card pos-right">
+                        <div class="card-header">
+                            <h3>Customer Details</h3>
                         </div>
-
-                        <div class="pos-total-section">
-                            <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
-                                <span>Total:</span>
-                                <span id="pos-total-display" style="font-weight:bold; font-size:1.2rem;">₹0</span>
+                        <div style="padding: 15px;">
+                            <input type="text" id="pos-name" class="form-control" placeholder="Customer Name *">
+                            <input type="tel" id="pos-phone" class="form-control" placeholder="Mobile Number *">
+                            <div style="margin-bottom: 10px;">
+                                <input type="text" id="pos-addr-street" class="form-control"
+                                    placeholder="Flat / Street / Area">
+                            </div>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+                                <input type="text" id="pos-addr-city" class="form-control" placeholder="City"
+                                    value="Indore">
+                                <input type="number" id="pos-addr-pin" class="form-control" placeholder="Pincode">
                             </div>
 
-                            <label style="font-size:0.85rem; font-weight:600;">Order Status</label>
-                            <select id="pos-status" class="form-control">
-                                <option value="Delivered">Delivered (Handed over now)</option>
-                                <option value="Pending">Pending (For Delivery)</option>
-                                <option value="Packed">Packed</option>
+                            <hr style="border:0; border-top:1px dashed #ddd; margin:15px 0;">
+
+                            <h4>Cart Items</h4>
+                            <div id="pos-cart-list" class="pos-cart-list">
+                            </div>
+
+                            <div class="pos-total-section">
+                                <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+                                    <span>Total:</span>
+                                    <span id="pos-total-display" style="font-weight:bold; font-size:1.2rem;">₹0</span>
+                                </div>
+
+                                <label style="font-size:0.85rem; font-weight:600;">Order Status</label>
+                                <select id="pos-status" class="form-control">
+                                    <option value="Delivered">Delivered (Handed over now)</option>
+                                    <option value="Pending">Pending (For Delivery)</option>
+                                    <option value="Packed">Packed</option>
+                                </select>
+
+                                <button class="btn btn-primary full-width" onclick="submitPosOrder()"
+                                    style="width:100%; margin-top:10px;">
+                                    <i class="fas fa-check-circle"></i> Place Order
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="view-inventory" class="view-section">
+                <div class="stats-grid">
+                    <div class="stat-card border-blue">
+                        <h3>Total Items</h3>
+                        <h1 id="inv-total">0</h1>
+                    </div>
+                    <div class="stat-card border-green">
+                        <h3>In Stock</h3>
+                        <h1 id="inv-stock">0</h1>
+                    </div>
+                    <div class="stat-card border-red">
+                        <h3>Out of Stock</h3>
+                        <h1 id="inv-out">0</h1>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Product List</h3>
+                        <input type="text" id="inv-search" class="search-input" placeholder="Search inventory..."
+                            onkeyup="filterInventory()" style="max-width: 200px;">
+
+                        <div class="header-actions">
+                            <input type="file" id="csv-upload" style="display:none" accept=".csv"
+                                onchange="handleFileUpload(this)">
+                            <th>Variants</th>
+                            <th>Stock</th>
+                            <th>Actions</th>
+                            </tr>
+                            </thead>
+                            <tbody id="inventory-body"></tbody>
+                            </table>
+                        </div>
+                        <div class="pagination">
+                            <button class="page-btn" onclick="changePage('inventory', -1)">Prev</button>
+                            <span class="page-info" id="inventory-page-info">Page 1</span>
+                            <button class="page-btn" onclick="changePage('inventory', 1)">Next</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="view-orders" class="view-section">
+                    <div class="stats-grid">
+                        <div class="stat-card border-red">
+                            <h3>Pending</h3>
+                            <h1 id="ord-pending">0</h1>
+                        </div>
+                        <div class="stat-card border-blue">
+                            <h3>Packed</h3>
+                            <h1 id="ord-packed">0</h1>
+                        </div>
+                        <div class="stat-card border-green">
+                            <h3>Delivered</h3>
+                            <h1 id="ord-delivered">0</h1>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 style="margin:0;">Order Management</h3>
+
+                            <div id="bulk-toolbar" class="bulk-actions">
+                                <span id="selected-count">0 Selected</span>
+                                <button class="btn btn-primary btn-sm" onclick="bulkUpdateStatus('Packed')">Mark
+                                    Packed</button>
+                                <button class="btn btn-green btn-sm" onclick="bulkUpdateStatus('Delivered')">Mark
+                                    Delivered</button>
+                                <button class="btn btn-outline btn-sm" onclick="bulkPrintSlips()"
+                                    style="color:black;">Print
+                                    Slips</button>
+                            </div>
+
+                            <div class="filter-group">
+                                <div class="search-wrapper" style="position:relative; display:inline-block;">
+                                    <input type="text" id="order-search" class="search-input"
+                                        placeholder="Search ID, Name..." onkeyup="filterOrders()">
+                                    <span onclick="document.getElementById('order-search').value=''; filterOrders();"
+                                        style="position:absolute; right:10px; top:50%; transform:translateY(-50%); cursor:pointer; color:#999;">&times;</span>
+                                </div>
+                                <input type="date" id="date-start" class="date-input" onchange="filterOrders()">
+                                <input type="date" id="date-end" class="date-input" onchange="filterOrders()">
+                                <select id="order-filter" class="form-control" onchange="filterOrders()"
+                                    style="width:auto;">
+                                    <option value="All">All Status</option>
+                                    <option value="Pending">Pending</option>
+                                    <option value="Packed">Packed</option>
+                                    <option value="Delivered">Delivered</option>
+                                </select>
+                                <button class="btn btn-primary" onclick="exportOrdersToCSV()" title="Export Visible"><i
+                                        class="fas fa-download"></i></button>
+
+                                <button class="btn btn-outline" onclick="exportAllOrders()"
+                                    title="Export ALL History"><i class="fas fa-file-csv"></i> All</button>
+                            </div>
+                        </div>
+
+                        <div class="table-responsive">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th width="40"><input type="checkbox" onchange="toggleAllOrders(this)"></th>
+                                        <th>Date / ID</th>
+                                        <th>Customer</th>
+                                        <th>Items</th>
+                                        <th>Total</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="orders-body"></tbody>
+                            </table>
+                        </div>
+                        <div class="pagination">
+                            <button class="page-btn" onclick="changePage('orders', -1)">Prev</button>
+                            <span class="page-info" id="orders-page-info">Page 1</span>
+                            <button class="page-btn" onclick="changePage('orders', 1)">Next</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="view-customers" class="view-section">
+                    <div class="stats-grid">
+                        <div class="stat-card border-purple">
+                            <h3>Total Customers</h3>
+                            <h1 id="cust-total">0</h1>
+                        </div>
+                        <div class="stat-card border-green">
+                            <h3>Active Today</h3>
+                            <h1 id="cust-active">0</h1>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Database</h3>
+                            <div class="header-actions">
+                                <input type="text" id="custSearch" onkeyup="filterCustomers()" placeholder="Search..."
+                                    class="search-input">
+                                <button class="btn btn-green" onclick="exportCustomersToCSV()">Export</button>
+                            </div>
+                        </div>
+                        <div class="table-responsive">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Phone</th>
+                                        <th>Address</th>
+                                        <th>Active</th>
+                                        <th>Chat</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="customers-body"></tbody>
+                            </table>
+                        </div>
+                        <div class="pagination">
+                            <button class="page-btn" onclick="changePage('customers', -1)">Prev</button>
+                            <span class="page-info" id="customers-page-info">Page 1</span>
+                            <button class="page-btn" onclick="changePage('customers', 1)">Next</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="view-coupons" class="view-section">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Add New Coupon</h3>
+                        </div>
+                        <div class="coupon-form-grid">
+                            <input type="text" id="cpn-code" class="form-control" placeholder="Code (e.g. WINTER15)"
+                                style="text-transform:uppercase;">
+                            <select id="cpn-type" class="form-control">
+                                <option value="percent">Percentage (%)</option>
+                                <option value="flat">Flat Amount (₹)</option>
                             </select>
-
-                            <button class="btn btn-primary full-width" onclick="submitPosOrder()"
-                                style="width:100%; margin-top:10px;">
-                                <i class="fas fa-check-circle"></i> Place Order
-                            </button>
+                            <input id="cpn-min" placeholder="Min Order ₹">
+                            <input type="number" id="cpn-value" class="form-control" placeholder="Value (e.g. 15)">
+                            <input type="date" id="cpn-expiry" class="form-control">
+                        </div>
+                        <button class="btn btn-primary" onclick="saveCoupon()">Create Coupon</button>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Active Coupons</h3>
+                        </div>
+                        <div class="table-responsive">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Code</th>
+                                        <th>Discount</th>
+                                        <th>Expiry</th>
+                                        <th>Status</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="coupons-body"></tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
-            </div>
-        </div>
 
-        <div id="view-inventory" class="view-section">
-            <div class="stats-grid">
-                <div class="stat-card border-blue">
-                    <h3>Total Items</h3>
-                    <h1 id="inv-total">0</h1>
-                </div>
-                <div class="stat-card border-green">
-                    <h3>In Stock</h3>
-                    <h1 id="inv-stock">0</h1>
-                </div>
-                <div class="stat-card border-red">
-                    <h3>Out of Stock</h3>
-                    <h1 id="inv-out">0</h1>
-                </div>
-            </div>
-            <div class="card">
-                <div class="card-header">
-                    <h3>Product List</h3>
-                    <input type="text" id="inv-search" class="search-input" placeholder="Search inventory..."
-                        onkeyup="filterInventory()" style="max-width: 200px;">
-
-                    <div class="header-actions">
-                        <input type="file" id="csv-upload" style="display:none" accept=".csv"
-                            onchange="handleFileUpload(this)">
-                        <button class="btn btn-outline" onclick="document.getElementById('csv-upload').click()"
-                            title="Upload CSV"><i class="fas fa-file-upload"></i> Upload</button>
-
-                        <button class="btn btn-blue" onclick="importFromSheet()"
-                            title="Import from Google Sheet">Sheet</button>
-                        <button class="btn btn-primary" onclick="openProductModal()">+ Add</button>
-                    </div>
-                </div>
-                <div class="card-header">
-                    <h3>🔔 Stock Requests</h3>
-                    <button class="btn btn-outline btn-sm" onclick="loadStockAlerts()">Refresh</button>
-                </div>
-                <div id="stock-alerts-list" style="padding: 15px; max-height: 200px; overflow-y: auto;">
-                    <p style="color:#666;">No pending requests.</p>
-                </div>
-                <div class="table-responsive">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Image</th>
-                                <th>Name</th>
-                                <th>Variants</th>
-                                <th>Stock</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="inventory-body"></tbody>
-                    </table>
-                </div>
-                <div class="pagination">
-                    <button class="page-btn" onclick="changePage('inventory', -1)">Prev</button>
-                    <span class="page-info" id="inventory-page-info">Page 1</span>
-                    <button class="page-btn" onclick="changePage('inventory', 1)">Next</button>
-                </div>
-            </div>
-        </div>
-
-        <div id="view-orders" class="view-section">
-            <div class="stats-grid">
-                <div class="stat-card border-red">
-                    <h3>Pending</h3>
-                    <h1 id="ord-pending">0</h1>
-                </div>
-                <div class="stat-card border-blue">
-                    <h3>Packed</h3>
-                    <h1 id="ord-packed">0</h1>
-                </div>
-                <div class="stat-card border-green">
-                    <h3>Delivered</h3>
-                    <h1 id="ord-delivered">0</h1>
-                </div>
-            </div>
-
-            <div class="card">
-                <div class="card-header">
-                    <h3 style="margin:0;">Order Management</h3>
-
-                    <div id="bulk-toolbar" class="bulk-actions">
-                        <span id="selected-count">0 Selected</span>
-                        <button class="btn btn-primary btn-sm" onclick="bulkUpdateStatus('Packed')">Mark Packed</button>
-                        <button class="btn btn-green btn-sm" onclick="bulkUpdateStatus('Delivered')">Mark
-                            Delivered</button>
-                        <button class="btn btn-outline btn-sm" onclick="bulkPrintSlips()" style="color:black;">Print
-                            Slips</button>
-                    </div>
-
-                    <div class="filter-group">
-                        <div class="search-wrapper" style="position:relative; display:inline-block;">
-                            <input type="text" id="order-search" class="search-input" placeholder="Search ID, Name..."
-                                onkeyup="filterOrders()">
-                            <span onclick="document.getElementById('order-search').value=''; filterOrders();"
-                                style="position:absolute; right:10px; top:50%; transform:translateY(-50%); cursor:pointer; color:#999;">&times;</span>
+                <div id="view-abandoned" class="view-section">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Abandoned Carts (> 1 Hour)</h3>
+                            <button class="btn btn-primary" onclick="loadAbandonedCarts()"><i class="fas fa-sync"></i>
+                                Refresh</button>
                         </div>
-                        <input type="date" id="date-start" class="date-input" onchange="filterOrders()">
-                        <input type="date" id="date-end" class="date-input" onchange="filterOrders()">
-                        <select id="order-filter" class="form-control" onchange="filterOrders()" style="width:auto;">
-                            <option value="All">All Status</option>
-                            <option value="Pending">Pending</option>
-                            <option value="Packed">Packed</option>
-                            <option value="Delivered">Delivered</option>
-                        </select>
-                        <button class="btn btn-primary" onclick="exportOrdersToCSV()" title="Export Visible"><i
-                                class="fas fa-download"></i></button>
-
-                        <button class="btn btn-outline" onclick="exportAllOrders()" title="Export ALL History"><i
-                                class="fas fa-file-csv"></i> All</button>
+                        <div class="table-responsive">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Customer</th>
+                                        <th>Phone</th>
+                                        <th>Items</th>
+                                        <th>Value</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="abandoned-body"></tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
 
-                <div class="table-responsive">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th width="40"><input type="checkbox" onchange="toggleAllOrders(this)"></th>
-                                <th>Date / ID</th>
-                                <th>Customer</th>
-                                <th>Items</th>
-                                <th>Total</th>
-                                <th>Status</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="orders-body"></tbody>
-                    </table>
-                </div>
-                <div class="pagination">
-                    <button class="page-btn" onclick="changePage('orders', -1)">Prev</button>
-                    <span class="page-info" id="orders-page-info">Page 1</span>
-                    <button class="page-btn" onclick="changePage('orders', 1)">Next</button>
-                </div>
-            </div>
-        </div>
-
-        <div id="view-customers" class="view-section">
-            <div class="stats-grid">
-                <div class="stat-card border-purple">
-                    <h3>Total Customers</h3>
-                    <h1 id="cust-total">0</h1>
-                </div>
-                <div class="stat-card border-green">
-                    <h3>Active Today</h3>
-                    <h1 id="cust-active">0</h1>
-                </div>
-            </div>
-            <div class="card">
-                <div class="card-header">
-                    <h3>Database</h3>
-                    <div class="header-actions">
-                        <input type="text" id="custSearch" onkeyup="filterCustomers()" placeholder="Search..."
-                            class="search-input">
-                        <button class="btn btn-green" onclick="exportCustomersToCSV()">Export</button>
+                <div id="view-reviews" class="view-section">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Customer Reviews</h3>
+                        </div>
+                        <div class="table-responsive">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Product</th>
+                                        <th>Customer</th>
+                                        <th>Rating</th>
+                                        <th>Comment</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="reviews-body"></tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
-                <div class="table-responsive">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Name</th>
-                                <th>Phone</th>
-                                <th>Address</th>
-                                <th>Active</th>
-                                <th>Chat</th>
-                            </tr>
-                        </thead>
-                        <tbody id="customers-body"></tbody>
-                    </table>
-                </div>
-                <div class="pagination">
-                    <button class="page-btn" onclick="changePage('customers', -1)">Prev</button>
-                    <span class="page-info" id="customers-page-info">Page 1</span>
-                    <button class="page-btn" onclick="changePage('customers', 1)">Next</button>
-                </div>
-            </div>
-        </div>
 
-        <div id="view-coupons" class="view-section">
-            <div class="card">
-                <div class="card-header">
-                    <h3>Add New Coupon</h3>
+                <div id="view-settings" class="view-section">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
+
+                        <div class="card">
+                            <div class="card-header">
+                                <h3>Store Configuration</h3>
+                            </div>
+                            <div style="padding: 20px;">
+                                <label class="form-label">Admin WhatsApp Number</label>
+                                <input type="text" id="conf-phone" class="form-control" placeholder="919826698822">
+
+                                <label class="form-label">UPI ID (for QR Codes)</label>
+                                <input type="text" id="conf-upi" class="form-control" placeholder="yourname@bank">
+
+                                <div style="display: flex; gap: 15px; margin-top: 10px;">
+                                    <div style="flex:1">
+                                        <label class="form-label">Delivery Charge (₹)</label>
+                                        <input type="number" id="conf-del-charge" class="form-control" placeholder="0">
+                                    </div>
+                                    <div style="flex:1">
+                                        <label class="form-label">Min Order Value (₹)</label>
+                                        <input type="number" id="conf-min-order" class="form-control" placeholder="0">
+                                    </div>
+                                    <div style="flex:1">
+                                        <label class="form-label">Free Ship Above (₹)</label>
+                                        <input type="number" id="conf-free-ship" class="form-control" placeholder="500">
+                                    </div>
+                                </div>
+
+                                <div style="margin-top: 15px;">
+                                    <label class="form-label">FCM Web Push (VAPID) Key</label>
+                                    <input type="text" id="conf-vapid" class="form-control"
+                                        placeholder="Paste your key here...">
+                                </div>
+
+                                <button class="btn btn-primary full-width" onclick="saveStoreConfig()"
+                                    style="margin-top: 20px;">Save Configuration</button>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header">
+                                <h3>Banner Carousel</h3>
+                                <button class="btn btn-primary btn-sm" onclick="addBannerInput()">+ Add Slide</button>
+                            </div>
+                            <div id="banner-container" style="padding: 20px;">
+                            </div>
+                            <div style="padding: 0 20px 20px;">
+                                <label class="form-label">Hero Title</label>
+                                <input type="text" id="layout-title" class="form-control">
+                                <label class="form-label">Hero Subtitle</label>
+                                <input type="text" id="layout-subtitle" class="form-control">
+                                <button class="btn btn-primary full-width" onclick="saveLayoutConfig()"
+                                    style="margin-top: 20px;">Save Layout</button>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header">
+                                <h3>Announcement Bar</h3>
+                            </div>
+                            <div style="padding: 20px;">
+                                <label class="form-label">Message Text</label>
+                                <input type="text" id="setting-announce" class="form-control"
+                                    placeholder="e.g. Shop Closed Today">
+
+                                <label class="form-label">Visibility</label>
+                                <select id="setting-announce-active" class="form-control">
+                                    <option value="true">Show</option>
+                                    <option value="false">Hide</option>
+                                </select>
+
+                                <button class="btn btn-primary full-width" onclick="saveSettings()"
+                                    style="margin-top: 20px;">Update Announcement</button>
+                            </div>
+                        </div>
+
+                    </div>
                 </div>
-                <div class="coupon-form-grid">
-                    <input type="text" id="cpn-code" class="form-control" placeholder="Code (e.g. WINTER15)"
-                        style="text-transform:uppercase;">
-                    <select id="cpn-type" class="form-control">
-                        <option value="percent">Percentage (%)</option>
-                        <option value="flat">Flat Amount (₹)</option>
+
+
+                <footer class="admin-footer">
+                    © 2025 Namo Namkeen Admin Panel. Designed by Parul Gangwal.
+                </footer>
+            </div>
+
+            <div id="product-modal" class="modal">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3>Edit Product</h3>
+                        <button onclick="closeModal('product-modal')" class="close-btn">&times;</button>
+                    </div>
+                    <input type="hidden" id="p-id">
+                    <input id="p-name" class="form-control" placeholder="Name (English)">
+                    <input id="p-nameHi" class="form-control" placeholder="Name (Hindi)">
+                    <select id="p-category" class="form-control">
+                        <option value="spicy">Spicy Namkeen</option>
+                        <option value="sweet">Sweet / Mix</option>
+                        <option value="premium">Premium Selection</option>
                     </select>
-                    <input id="cpn-min" placeholder="Min Order ₹">
-                    <input type="number" id="cpn-value" class="form-control" placeholder="Value (e.g. 15)">
-                    <input type="date" id="cpn-expiry" class="form-control">
-                </div>
-                <button class="btn btn-primary" onclick="saveCoupon()">Create Coupon</button>
-            </div>
-            <div class="card">
-                <div class="card-header">
-                    <h3>Active Coupons</h3>
-                </div>
-                <div class="table-responsive">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Code</th>
-                                <th>Discount</th>
-                                <th>Expiry</th>
-                                <th>Status</th>
-                                <th>Action</th>
-                            </tr>
-                        </thead>
-                        <tbody id="coupons-body"></tbody>
-                    </table>
+                    <input id="p-image" class="form-control" placeholder="Image URL (assets/...)">
+
+                    <div class="variant-section">
+                        <label style="font-weight:600; display:flex; justify-content:space-between;">
+                            Variants <a onclick="addVariantRow()" class="add-variant-link">+ Add Size</a>
+                        </label>
+                        <div id="variant-container"></div>
+                    </div>
+
+                    <div class="checkbox-group">
+                        <label><input type="checkbox" id="p-stock"> In Stock</label>
+                        <label><input type="checkbox" id="p-bestseller"> Bestseller</label>
+                    </div>
+                    <button class="btn btn-primary full-width" onclick="saveProduct()">Save Product</button>
                 </div>
             </div>
-        </div>
 
-        <div id="view-abandoned" class="view-section">
-            <div class="card">
-                <div class="card-header">
-                    <h3>Abandoned Carts (> 1 Hour)</h3>
-                    <button class="btn btn-primary" onclick="loadAbandonedCarts()"><i class="fas fa-sync"></i>
-                        Refresh</button>
-                </div>
-                <div class="table-responsive">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Customer</th>
-                                <th>Phone</th>
-                                <th>Items</th>
-                                <th>Value</th>
-                                <th>Action</th>
-                            </tr>
-                        </thead>
-                        <tbody id="abandoned-body"></tbody>
-                    </table>
+            <div id="logs-modal" class="modal">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3>Inventory Logs</h3><button class="close-btn"
+                            onclick="closeModal('logs-modal')">&times;</button>
+                    </div>
+                    <div id="logs-body" style="max-height:400px; overflow-y:auto;"></div>
                 </div>
             </div>
-        </div>
 
-        <div id="view-reviews" class="view-section">
-            <div class="card">
-                <div class="card-header">
-                    <h3>Customer Reviews</h3>
-                </div>
-                <div class="table-responsive">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Date</th>
-                                <th>Product</th>
-                                <th>Customer</th>
-                                <th>Rating</th>
-                                <th>Comment</th>
-                                <th>Action</th>
-                            </tr>
-                        </thead>
-                        <tbody id="reviews-body"></tbody>
-                    </table>
+            <div id="order-modal" class="modal">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3>Order Details</h3>
+                        <button onclick="closeModal('order-modal')" class="close-btn">&times;</button>
+                    </div>
+                    <div id="order-detail-content"></div>
                 </div>
             </div>
-        </div>
 
-        <div id="view-settings" class="view-section">
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
+            <div id="customer-modal" class="modal">
+                <div class="modal-content" style="max-width: 700px;">
+                    <div class="modal-header">
+                        <h3>Customer Profile</h3>
+                        <button class="close-btn" onclick="closeModal('customer-modal')">&times;</button>
+                    </div>
+                    <div id="cust-profile-content">
+                    </div>
+                </div>
+            </div>
 
+            <div id="view-blogs" class="view-section">
                 <div class="card">
                     <div class="card-header">
-                        <h3>Store Configuration</h3>
+                        <h3>Manage Blog Posts</h3>
+                        <button class="btn btn-primary" onclick="openBlogEditor()">+ New Post</button>
                     </div>
-                    <div style="padding: 20px;">
-                        <label class="form-label">Admin WhatsApp Number</label>
-                        <input type="text" id="conf-phone" class="form-control" placeholder="919826698822">
+                    <div id="blog-list" style="padding:20px;">Loading...</div>
+                </div>
+            </div>
 
-                        <label class="form-label">UPI ID (for QR Codes)</label>
-                        <input type="text" id="conf-upi" class="form-control" placeholder="yourname@bank">
+            <div id="blog-editor-modal" class="modal">
+                <div class="modal-content" style="width:700px;">
+                    <div class="modal-header">
+                        <h3>Edit Post</h3><button class="close-btn"
+                            onclick="closeModal('blog-editor-modal')">&times;</button>
+                    </div>
+                    <input type="hidden" id="blog-id">
+                    <input id="blog-title" class="form-control" placeholder="Post Title" style="margin-bottom:10px;">
+                    <div style="margin-bottom:10px;">
+                        <label class="form-label">Cover Image</label>
+                        <input type="file" id="blog-image-file" class="form-control" accept="image/*">
+                        <input type="hidden" id="blog-image-base64"> <small style="color:#666;">Leave empty to keep
+                            existing
+                            image</small>
+                    </div>
+                    <textarea id="blog-content" class="form-control" rows="10"
+                        placeholder="HTML Content (Use <p>, <b>, etc.)"></textarea>
+                    <button class="btn btn-primary full-width" onclick="saveBlogPost()"
+                        style="margin-top:15px;">Publish</button>
+                </div>
+            </div>
 
-                        <div style="display: flex; gap: 15px; margin-top: 10px;">
-                            <div style="flex:1">
-                                <label class="form-label">Delivery Charge (₹)</label>
-                                <input type="number" id="conf-del-charge" class="form-control" placeholder="0">
-                            </div>
-                            <div style="flex:1">
-                                <label class="form-label">Min Order Value (₹)</label>
-                                <input type="number" id="conf-min-order" class="form-control" placeholder="0">
-                            </div>
-                            <div style="flex:1">
-                                <label class="form-label">Free Ship Above (₹)</label>
-                                <input type="number" id="conf-free-ship" class="form-control" placeholder="500">
-                            </div>
-                        </div>
-
-                        <div style="margin-top: 15px;">
-                            <label class="form-label">FCM Web Push (VAPID) Key</label>
-                            <input type="text" id="conf-vapid" class="form-control"
-                                placeholder="Paste your key here...">
-                        </div>
-
-                        <button class="btn btn-primary full-width" onclick="saveStoreConfig()"
-                            style="margin-top: 20px;">Save Configuration</button>
+            <div id="view-finance" class="view-section">
+                <div class="stats-grid">
+                    <div class="stat-card border-green">
+                        <h3>Total Revenue</h3>
+                        <h1 id="fin-revenue">₹0</h1>
+                    </div>
+                    <div class="stat-card border-red">
+                        <h3>Total Expenses</h3>
+                        <h1 id="fin-expense">₹0</h1>
+                    </div>
+                    <div class="stat-card border-purple">
+                        <h3>Net Profit</h3>
+                        <h1 id="fin-profit">₹0</h1>
                     </div>
                 </div>
 
                 <div class="card">
                     <div class="card-header">
-                        <h3>Banner Carousel</h3>
-                        <button class="btn btn-primary btn-sm" onclick="addBannerInput()">+ Add Slide</button>
+                        <h3>Expense Log</h3>
+                        <button class="btn btn-primary" onclick="openExpenseModal()">+ Add Expense</button>
                     </div>
-                    <div id="banner-container" style="padding: 20px;">
-                    </div>
-                    <div style="padding: 0 20px 20px;">
-                        <label class="form-label">Hero Title</label>
-                        <input type="text" id="layout-title" class="form-control">
-                        <label class="form-label">Hero Subtitle</label>
-                        <input type="text" id="layout-subtitle" class="form-control">
-                        <button class="btn btn-primary full-width" onclick="saveLayoutConfig()"
-                            style="margin-top: 20px;">Save Layout</button>
-                    </div>
-                </div>
-
-                <div class="card">
-                    <div class="card-header">
-                        <h3>Announcement Bar</h3>
-                    </div>
-                    <div style="padding: 20px;">
-                        <label class="form-label">Message Text</label>
-                        <input type="text" id="setting-announce" class="form-control"
-                            placeholder="e.g. Shop Closed Today">
-
-                        <label class="form-label">Visibility</label>
-                        <select id="setting-announce-active" class="form-control">
-                            <option value="true">Show</option>
-                            <option value="false">Hide</option>
-                        </select>
-
-                        <button class="btn btn-primary full-width" onclick="saveSettings()"
-                            style="margin-top: 20px;">Update Announcement</button>
+                    <div class="table-responsive">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Desc</th>
+                                    <th>Category</th>
+                                    <th>Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody id="expense-body"></tbody>
+                        </table>
                     </div>
                 </div>
-
-            </div>
-        </div>
-
-
-        <footer class="admin-footer">
-            © 2025 Namo Namkeen Admin Panel. Designed by Parul Gangwal.
-        </footer>
-    </div>
-
-    <div id="product-modal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Edit Product</h3>
-                <button onclick="closeModal('product-modal')" class="close-btn">&times;</button>
-            </div>
-            <input type="hidden" id="p-id">
-            <input id="p-name" class="form-control" placeholder="Name (English)">
-            <input id="p-nameHi" class="form-control" placeholder="Name (Hindi)">
-            <select id="p-category" class="form-control">
-                <option value="spicy">Spicy Namkeen</option>
-                <option value="sweet">Sweet / Mix</option>
-                <option value="premium">Premium Selection</option>
-            </select>
-            <input id="p-image" class="form-control" placeholder="Image URL (assets/...)">
-
-            <div class="variant-section">
-                <label style="font-weight:600; display:flex; justify-content:space-between;">
-                    Variants <a onclick="addVariantRow()" class="add-variant-link">+ Add Size</a>
-                </label>
-                <div id="variant-container"></div>
             </div>
 
-            <div class="checkbox-group">
-                <label><input type="checkbox" id="p-stock"> In Stock</label>
-                <label><input type="checkbox" id="p-bestseller"> Bestseller</label>
+            <div id="expense-modal" class="modal">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3>Log Expense</h3><button class="close-btn"
+                            onclick="closeModal('expense-modal')">&times;</button>
+                    </div>
+                    <input id="exp-desc" class="form-control" placeholder="Description (e.g. Packaging)"
+                        style="margin-bottom:10px;">
+                    <select id="exp-cat" class="form-control" style="margin-bottom:10px;">
+                        <option>Raw Material</option>
+                        <option>Packaging</option>
+                        <option>Delivery/Fuel</option>
+                        <option>Salary</option>
+                        <option>Other</option>
+                    </select>
+                    <input type="number" id="exp-amt" class="form-control" placeholder="Amount (₹)">
+                    <button class="btn btn-primary full-width" onclick="saveExpense()"
+                        style="margin-top:15px;">Save</button>
+                </div>
             </div>
-            <button class="btn btn-primary full-width" onclick="saveProduct()">Save Product</button>
-        </div>
-    </div>
 
-    <div id="logs-modal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Inventory Logs</h3><button class="close-btn" onclick="closeModal('logs-modal')">&times;</button>
-            </div>
-            <div id="logs-body" style="max-height:400px; overflow-y:auto;"></div>
-        </div>
-    </div>
-
-    <div id="order-modal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Order Details</h3>
-                <button onclick="closeModal('order-modal')" class="close-btn">&times;</button>
-            </div>
-            <div id="order-detail-content"></div>
-        </div>
-    </div>
-
-    <div id="customer-modal" class="modal">
-        <div class="modal-content" style="max-width: 700px;">
-            <div class="modal-header">
-                <h3>Customer Profile</h3>
-                <button class="close-btn" onclick="closeModal('customer-modal')">&times;</button>
-            </div>
-            <div id="cust-profile-content">
-            </div>
-        </div>
-    </div>
-
-    <div id="view-blogs" class="view-section">
-        <div class="card">
-            <div class="card-header">
-                <h3>Manage Blog Posts</h3>
-                <button class="btn btn-primary" onclick="openBlogEditor()">+ New Post</button>
-            </div>
-            <div id="blog-list" style="padding:20px;">Loading...</div>
-        </div>
-    </div>
-
-    <div id="blog-editor-modal" class="modal">
-        <div class="modal-content" style="width:700px;">
-            <div class="modal-header">
-                <h3>Edit Post</h3><button class="close-btn" onclick="closeModal('blog-editor-modal')">&times;</button>
-            </div>
-            <input type="hidden" id="blog-id">
-            <input id="blog-title" class="form-control" placeholder="Post Title" style="margin-bottom:10px;">
-            <div style="margin-bottom:10px;">
-                <label class="form-label">Cover Image</label>
-                <input type="file" id="blog-image-file" class="form-control" accept="image/*">
-                <input type="hidden" id="blog-image-base64"> <small style="color:#666;">Leave empty to keep existing
-                    image</small>
-            </div>
-            <textarea id="blog-content" class="form-control" rows="10"
-                placeholder="HTML Content (Use <p>, <b>, etc.)"></textarea>
-            <button class="btn btn-primary full-width" onclick="saveBlogPost()"
-                style="margin-top:15px;">Publish</button>
-        </div>
-    </div>
-
-    <div id="view-finance" class="view-section">
-        <div class="stats-grid">
-            <div class="stat-card border-green">
-                <h3>Total Revenue</h3>
-                <h1 id="fin-revenue">₹0</h1>
-            </div>
-            <div class="stat-card border-red">
-                <h3>Total Expenses</h3>
-                <h1 id="fin-expense">₹0</h1>
-            </div>
-            <div class="stat-card border-purple">
-                <h3>Net Profit</h3>
-                <h1 id="fin-profit">₹0</h1>
-            </div>
-        </div>
-
-        <div class="card">
-            <div class="card-header">
-                <h3>Expense Log</h3>
-                <button class="btn btn-primary" onclick="openExpenseModal()">+ Add Expense</button>
-            </div>
-            <div class="table-responsive">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Date</th>
-                            <th>Desc</th>
-                            <th>Category</th>
-                            <th>Amount</th>
-                        </tr>
-                    </thead>
-                    <tbody id="expense-body"></tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-
-    <div id="expense-modal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Log Expense</h3><button class="close-btn" onclick="closeModal('expense-modal')">&times;</button>
-            </div>
-            <input id="exp-desc" class="form-control" placeholder="Description (e.g. Packaging)"
-                style="margin-bottom:10px;">
-            <select id="exp-cat" class="form-control" style="margin-bottom:10px;">
-                <option>Raw Material</option>
-                <option>Packaging</option>
-                <option>Delivery/Fuel</option>
-                <option>Salary</option>
-                <option>Other</option>
-            </select>
-            <input type="number" id="exp-amt" class="form-control" placeholder="Amount (₹)">
-            <button class="btn btn-primary full-width" onclick="saveExpense()" style="margin-top:15px;">Save</button>
-        </div>
-    </div>
-
-    <script src="admin.js"></script>
+            <script src="admin.js"></script>
+            <script src="js/inventory-alerts.js"></script>
 </body>
 
 </html>

@@ -300,7 +300,6 @@ exports.verifyWhatsAppOTP = functions.https.onCall(async (data, context) => {
         }
 
         if (otpData.otp !== otp) throw new functions.https.HttpsError('invalid-argument', 'Invalid OTP');
-
         const customToken = await admin.auth().createCustomToken(phoneNumber);
         await otpDoc.ref.delete();
 
@@ -310,3 +309,218 @@ exports.verifyWhatsAppOTP = functions.https.onCall(async (data, context) => {
         throw new functions.https.HttpsError('internal', error.message);
     }
 });
+
+// =====================================================
+// INVENTORY MANAGEMENT FUNCTIONS
+// =====================================================
+
+// --- FUNCTION 5: Monitor Low Stock (Triggered on Inventory Update) ---
+exports.monitorLowStock = functions.firestore
+    .document('inventory/{productId}')
+    .onUpdate(async (change, context) => {
+        const newData = change.after.data();
+        const oldData = change.before.data();
+
+        // Only proceed if stock actually changed
+        if (newData.stock === oldData.stock) return null;
+
+        const productId = context.params.productId;
+        const lowThreshold = newData.lowStockThreshold || 5; // Default 5 units
+        const restockThreshold = newData.restockThreshold || 3; // Critical level
+
+        console.log(`Stock changed for ${newData.name}: ${oldData.stock} → ${newData.stock}`);
+
+        // Check if stock fell below threshold
+        if (newData.stock <= lowThreshold && oldData.stock > lowThreshold) {
+            console.log(`⚠️ Low stock alert triggered for ${newData.name}`);
+
+            // Create alert document
+            await admin.firestore().collection('restockAlerts').add({
+                productId: productId,
+                productName: newData.name,
+                currentStock: newData.stock,
+                threshold: lowThreshold,
+                alertType: newData.stock <= restockThreshold ? 'criticalStock' : 'lowStock',
+                emailSent: true,
+                sentAt: admin.firestore.FieldValue.serverTimestamp(),
+                acknowledged: false,
+                createdAt: admin.firestore.FieldValue.serverTimestamp()
+            });
+
+            // Send email alert
+            await sendLowStockEmail(newData, productId);
+        }
+
+        // Log stock change to history
+        await logStockChange({
+            productId: productId,
+            productName: newData.name,
+            previousStock: oldData.stock,
+            newStock: newData.stock,
+            quantity: newData.stock - oldData.stock,
+            changeType: newData.stock < oldData.stock ? 'sale' : 'restock',
+            reason: 'Stock updated in admin',
+            performedBy: 'admin'
+        });
+
+        return null;
+    });
+
+// --- HELPER: Send Low Stock Email ---
+async function sendLowStockEmail(product, productId) {
+    const isCritical = product.stock <= (product.restockThreshold || 3);
+
+    const emailHtml = `
+        <div style="font-family: 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #eee; border-radius: 10px; overflow: hidden;">
+            <div style="background: ${isCritical ? '#e74c3c' : '#f39c12'}; padding: 25px; text-align: center; color: white;">
+                <h1 style="margin: 0; font-size: 24px;">${isCritical ? '🚨 CRITICAL STOCK ALERT' : '⚡ Low Stock Alert'}</h1>
+                <p style="margin: 8px 0 0; opacity: 0.95; font-size: 14px;">Immediate attention required</p>
+            </div>
+            
+            <div style="padding: 30px; background: white;">
+                <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                    <h2 style="margin: 0 0 15px 0; color: #333; font-size: 20px;">${product.name}</h2>
+                    
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <tr>
+                            <td style="padding: 10px 0; color: #666; font-size: 14px;">Current Stock:</td>
+                            <td style="padding: 10px 0; text-align: right; font-weight: bold; font-size: 18px; color: ${isCritical ? '#e74c3c' : '#f39c12'};">
+                                ${product.stock} ${product.unit || 'kg'}
+                            </td>
+                        </tr>
+                        <tr style="border-top: 1px solid #eee;">
+                            <td style="padding: 10px 0; color: #666; font-size: 14px;">Alert Threshold:</td>
+                            <td style="padding: 10px 0; text-align: right; font-weight: 600; color: #555;">
+                                ${product.lowStockThreshold || 5} ${product.unit || 'kg'}
+                            </td>
+                        </tr>
+                        <tr style="border-top: 1px solid #eee;">
+                            <td style="padding: 10px 0; color: #666; font-size: 14px;">Status:</td>
+                            <td style="padding: 10px 0; text-align: right;">
+                                <span style="background: ${isCritical ? '#ffebee' : '#fff8e1'}; color: ${isCritical ? '#e74c3c' : '#f39c12'}; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 700; text-transform: uppercase;">
+                                    ${isCritical ? 'Critical - Restock Urgently' : 'Low Stock'}
+                                </span>
+                            </td>
+                        </tr>
+                        ${product.supplier ? `
+                        <tr style="border-top: 1px solid #eee;">
+                            <td style="padding: 10px 0; color: #666; font-size: 14px;">Supplier:</td>
+                            <td style="padding: 10px 0; text-align: right; font-weight: 600; color: #555;">${product.supplier}</td>
+                        </tr>` : ''}
+                        ${product.leadTime ? `
+                        <tr style="border-top: 1px solid #eee;">
+                            <td style="padding: 10px 0; color: #666; font-size: 14px;">Lead Time:</td>
+                            <td style="padding: 10px 0; text-align: right; font-weight: 600; color: #555;">${product.leadTime} days</td>
+                        </tr>` : ''}
+                    </table>
+                </div>
+                
+                ${isCritical ? `
+                <div style="background: #ffebee; border-left: 4px solid #e74c3c; padding: 15px; margin-bottom: 20px; border-radius: 4px;">
+                    <strong style="color: #c62828; font-size: 14px;">⚠️ Critical Action Required:</strong>
+                    <p style="margin: 8px 0 0; color: #666; font-size: 13px; line-height: 1.5;">
+                        Stock has reached critical levels. Immediate restocking is recommended to avoid stockout situation.
+                    </p>
+                </div>` : ''}
+                
+                <div style="text-align: center; margin-top: 25px;">
+                    <a href="https://namo-namkeen.web.app/admin.html#inventory" 
+                       style="display: inline-block; padding: 14px 30px; background: #3498db; color: white; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 14px; box-shadow: 0 2px 5px rgba(52, 152, 219, 0.3);">
+                        📦 View Inventory Dashboard
+                    </a>
+                </div>
+            </div>
+            
+            <div style="background: #f8f9fa; padding: 20px; text-align: center; border-top: 1px solid #eee;">
+                <p style="margin: 0; color: #999; font-size: 12px;">
+                    This is an automated alert from Namo Namkeen Inventory System<br>
+                    <span style="color: #666;">Generated on ${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}</span>
+                </p>
+            </div>
+        </div>
+    `;
+
+    try {
+        await transporter.sendMail({
+            from: `"Namo Inventory Bot 🤖" <${emailSender.value()}>`,
+            to: emailAdmin.value(),
+            subject: `${isCritical ? '🚨 CRITICAL' : '⚡'} Low Stock: ${product.name} (${product.stock} ${product.unit || 'kg'} remaining)`,
+            html: emailHtml
+        });
+        console.log(`✅ Low stock email sent for ${product.name}`);
+    } catch (error) {
+        console.error('❌ Failed to send low stock email:', error);
+    }
+}
+
+// --- HELPER: Log Stock Changes to History ---
+async function logStockChange(data) {
+    try {
+        await admin.firestore().collection('stockHistory').add({
+            ...data,
+            timestamp: admin.firestore.FieldValue.serverTimestamp()
+        });
+        console.log(`📝 Stock history logged: ${data.productName} (${data.quantity > 0 ? '+' : ''}${data.quantity})`);
+    } catch (error) {
+        console.error('Failed to log stock history:', error);
+    }
+}
+
+// --- FUNCTION 6: Track Stock Impact on Orders ---
+exports.trackOrderStockImpact = functions.firestore
+    .document('orders/{orderId}')
+    .onCreate(async (snap, context) => {
+        const order = snap.data();
+        const orderId = context.params.orderId;
+
+        console.log(`📦 Tracking stock impact for Order #${orderId}`);
+
+        const batch = admin.firestore().batch();
+        const stockUpdates = [];
+
+        for (const item of order.items) {
+            // Skip hamper items or items without productId
+            if (!item.productId || item.isHamper) continue;
+
+            const productRef = admin.firestore().collection('inventory').doc(item.productId);
+            const productSnap = await productRef.get();
+
+            if (productSnap.exists) {
+                const currentStock = productSnap.data().stock || 0;
+                const newStock = Math.max(0, currentStock - item.qty); // Prevent negative stock
+
+                // Update stock
+                batch.update(productRef, {
+                    stock: newStock,
+                    lastSoldAt: admin.firestore.FieldValue.serverTimestamp()
+                });
+
+                // Prepare history log
+                stockUpdates.push({
+                    productId: item.productId,
+                    productName: item.name,
+                    changeType: 'sale',
+                    previousStock: currentStock,
+                    newStock: newStock,
+                    quantity: -item.qty,
+                    reason: `Order #${orderId}`,
+                    performedBy: order.userId || order.userEmail || 'guest'
+                });
+
+                console.log(`  ✓ ${item.name}: ${currentStock} → ${newStock} (-${item.qty})`);
+            } else {
+                console.warn(`  ⚠️ Product not found in inventory: ${item.productId}`);
+            }
+        }
+
+        // Commit stock updates
+        await batch.commit();
+
+        // Log to stock history (separate from batch for reliability)
+        for (const update of stockUpdates) {
+            await logStockChange(update);
+        }
+
+        console.log(`✅ Stock tracking complete for Order #${orderId} (${stockUpdates.length} items updated)`);
+        return null;
+    });
