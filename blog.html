@@ -16,7 +16,7 @@
 
 <body>
 
- <nav class="navbar">
+    <nav class="navbar">
         <div class="nav-container">
             <a href="index.html" class="logo">
                 <img src="logo.jpg" alt="Namo Namkeen" class="logo-img">
@@ -207,15 +207,52 @@
             <button class="close-modal" onclick="closeModal('login-choice-modal')">&times;</button>
             <h3 style="margin-bottom: 5px; font-size: 1.5rem;">Welcome Back</h3>
             <p style="color:#666; margin-bottom: 25px; font-size: 0.9rem;">Choose how you want to login</p>
+
+            <button onclick="openWhatsAppLogin()" class="btn-whatsapp-login">
+                <i class="fab fa-whatsapp"></i> Login with WhatsApp
+            </button>
+
             <button class="login-option-btn" onclick="handleLoginChoice('google')">
-                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="20"> Continue with
-                Google
+                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="20"
+                    style="margin-right: 5px;">
+                Continue with Google
             </button>
-            <button class="login-option-btn" onclick="handleLoginChoice('mobile')">
-                <i class="fas fa-mobile-alt" style="color: var(--primary); font-size: 1.2rem;"></i> Login via Mobile OTP
-            </button>
-            <p style="font-size: 0.75rem; color: #999; margin-top: 15px;">By continuing, you agree to our Terms &
-                Privacy Policy.</p>
+
+            <p style="font-size: 0.75rem; color: #999; margin-top: 15px;">
+                By continuing, you agree to our Terms & Privacy Policy.
+            </p>
+        </div>
+    </div>
+
+    <!-- WhatsApp Login Modal -->
+    <div id="whatsapp-login-modal" class="modal">
+        <div class="modal-content" style="max-width: 400px;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h3><i class="fab fa-whatsapp" style="color: #25D366;"></i> WhatsApp Login</h3>
+                <button onclick="closeWhatsAppLogin()"
+                    style="background: none; border: none; font-size: 1.5rem; cursor: pointer;">&times;</button>
+            </div>
+
+            <div id="whatsapp-phone-section">
+                <input type="tel" id="whatsapp-phone" placeholder="Enter mobile number" maxlength="10"
+                    style="width: 100%; padding: 12px; margin: 15px 0; border: 1px solid #ddd; border-radius: 8px;">
+                <button onclick="sendWhatsAppOTP()" class="btn btn-primary" style="width: 100%;">
+                    Send OTP
+                </button>
+            </div>
+
+            <div id="whatsapp-otp-section" style="display: none; margin-top: 20px;">
+                <p style="color: #666; font-size: 0.9rem;">Enter the 6-digit code sent to your WhatsApp</p>
+                <input type="text" id="whatsapp-otp-input" placeholder="Enter OTP" maxlength="6"
+                    style="width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; text-align: center; font-size: 1.2rem; letter-spacing: 5px;">
+                <button onclick="verifyWhatsAppOTP()" class="btn btn-primary" style="width: 100%;">
+                    Verify OTP
+                </button>
+                <button onclick="sendWhatsAppOTP()" class="btn"
+                    style="width: 100%; margin-top: 10px; background: #f0f0f0; color: #333;">
+                    Resend OTP
+                </button>
+            </div>
         </div>
     </div>
 

@@ -14,10 +14,11 @@ if (typeof firebase !== 'undefined' && !firebase.apps.length) {
 const db = firebase.firestore();
 db.enablePersistence()
     .catch((err) => {
+        const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
         if (err.code == 'failed-precondition') {
-            console.log('Persistence failed: Multiple tabs open');
+            if (isDev) console.log('Persistence failed: Multiple tabs open');
         } else if (err.code == 'unimplemented') {
-            console.log('Persistence not supported by browser');
+            if (isDev) console.log('Persistence not supported by browser');
         }
     });
 const auth = firebase.auth();
@@ -77,7 +78,8 @@ if (window.location.pathname.endsWith('admin-local.html')) {
     });
 } else {
     auth.onAuthStateChanged(user => {
-        console.log("Auth State Changed:", user ? user.email : "No User");
+        const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        if (isDev) console.log("Auth State Changed:", user ? user.email : "No User");
         if (user && ADMIN_EMAILS.includes(user.email)) {
             document.getElementById('login-overlay').style.display = 'none';
             document.getElementById('admin-user-info').innerText = user.displayName;
@@ -103,7 +105,8 @@ function logout() {
 }
 
 function initDashboard() {
-    console.log("Initializing Dashboard...");
+    const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    if (isDev) console.log("Initializing Dashboard...");
     // Listener for Blog Image Upload
     document.addEventListener('change', function (e) {
         if (e.target && e.target.id === 'blog-image-file') {
@@ -148,7 +151,9 @@ function renderTable(type) {
 
     const tbody = document.getElementById(`${type}-body`);
     if (!tbody) {
-        console.error(`Table body for ${type} not found in HTML`);
+        const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        if (isDev) console.error(`Table body for ${type} not found in HTML`);
+        showToast("Error loading table. Please refresh.", "error");
         return;
     }
     tbody.innerHTML = '';
@@ -252,7 +257,8 @@ async function deleteReview(reviewId, productId, rating) {
 
         showToast("Review Deleted", "success");
     } catch (e) {
-        console.error(e);
+        const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        if (isDev) console.error(e);
         showToast("Error deleting review: " + e.message, "error");
     }
 }
@@ -288,7 +294,8 @@ function loadCustomers() {
 
         renderTable('customers');
     }).catch(err => {
-        console.error("Error loading customers:", err);
+        const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        if (isDev) console.error("Error loading customers:", err);
         showToast("Failed to load customers.", "error");
     });
 }
@@ -646,7 +653,8 @@ function loadOrders() {
         // Sound & Notification Logic
         if (previousOrderCount > 0 && snap.size > previousOrderCount) {
             if (soundEnabled) {
-                orderSound.play().catch(e => console.log("Sound blocked:", e));
+                const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+                orderSound.play().catch(e => { if (isDev) console.log("Sound blocked:", e); });
             }
             showToast("New Order Received!", "success");
             vibrate(200);

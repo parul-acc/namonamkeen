@@ -3872,3 +3872,47 @@ textarea:focus,
         max-height: 20vh;
     }
 }
+
+/* --- WhatsApp Login Button Styling --- */
+.btn-whatsapp-login {
+    width: 100%;
+    padding: 14px;
+    margin-bottom: 15px;
+    border: none;
+    /* Official WhatsApp Green Gradient */
+    background: linear-gradient(135deg, #25D366 0%, #128C7E 100%);
+    color: white;
+    border-radius: 10px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    font-size: 1rem;
+    box-shadow: 0 4px 12px rgba(37, 211, 102, 0.25);
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-whatsapp-login:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(37, 211, 102, 0.4);
+}
+
+.btn-whatsapp-login:active {
+    transform: scale(0.98);
+}
+
+.btn-whatsapp-login i {
+    font-size: 1.4rem;
+    /* Make icon slightly larger */
+}
+
+/* Optional: Update Google button to match height perfectly */
+.login-option-btn {
+    padding: 14px;
+    /* Ensure equal height */
+    border-radius: 10px;
+}
