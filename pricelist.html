@@ -172,14 +172,20 @@
             <button class="close-modal" onclick="closeModal('login-choice-modal')">&times;</button>
             <h3 style="margin-bottom: 5px; font-size: 1.5rem;">Welcome Back</h3>
             <p style="color:#666; margin-bottom: 25px; font-size: 0.9rem;">Choose how you want to login</p>
-            <button class="login-option-btn" onclick="handleLoginChoice('google')"><img
-                    src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="20"> Continue with
-                Google</button>
-            <button onclick="openWhatsAppLogin()" class="btn-whatsapp">
+
+            <button onclick="openWhatsAppLogin()" class="btn-whatsapp-login">
                 <i class="fab fa-whatsapp"></i> Login with WhatsApp
             </button>
-            <p style="font-size: 0.75rem; color: #999; margin-top: 15px;">By continuing, you agree to our Terms &
-                Privacy Policy.</p>
+
+            <button class="login-option-btn" onclick="handleLoginChoice('google')">
+                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="20"
+                    style="margin-right: 5px;">
+                Continue with Google
+            </button>
+
+            <p style="font-size: 0.75rem; color: #999; margin-top: 15px;">
+                By continuing, you agree to our Terms & Privacy Policy.
+            </p>
         </div>
     </div>
 
