@@ -68,71 +68,84 @@ let unsubscribeListeners = {
     config: null
 };
 
-// --- NEW HELPER: Clean up all Firestore listeners ---
-function cleanupListeners() {
-    if (unsubscribeListeners.coupons) unsubscribeListeners.coupons();
-    if (unsubscribeListeners.config) unsubscribeListeners.config();
-}
-
-// --- 3. INITIALIZATION ---
+// --- 3. INITIALIZATION (Consolidated) ---
 document.addEventListener('DOMContentLoaded', () => {
+    // 1. Load Data & State
     loadCartLocal();
     fetchData();
     loadStorefront();
-    // FIX: Call the robust function instead of using inline logic
+
+    // 2. Setup Services
     registerServiceWorker();
     setupRecaptcha();
 
+    // 3. Initialize UI Components
+    // Small delay to ensure radio buttons are rendered before we try to check them
+    setTimeout(togglePaymentUI, 500);
+
+    // 4. Authentication Listener
     auth.onAuthStateChanged(user => {
         currentUser = user;
         updateUserUI(!!user);
+
         if (user) {
-            fetchUserProfile(user.uid); // NEW: Fetch extra details on login
+            // Fetch profile and auto-fill checkout if data exists
+            fetchUserProfile(user.uid);
         } else {
             userProfile = null;
         }
     });
 
+    // 5. Network Status Listeners
     window.addEventListener('offline', () => {
         showToast("You are offline. Check your internet.", "error");
-        document.body.style.filter = "grayscale(1)"; // Visual cue
+        document.body.style.filter = "grayscale(1)";
     });
 
     window.addEventListener('online', () => {
         showToast("You are back online!", "success");
         document.body.style.filter = "none";
-        fetchData(); // Refresh data to ensure it's current
+        fetchData(); // Refresh data
     });
 
-    // --- AUTO-FORMAT PHONE INPUT ---
-    // Automatically removes spaces, dashes, and +91 when user types/pastes
+    // 6. Phone Input Formatting (UX)
     const phoneField = document.getElementById('cust-phone');
     if (phoneField) {
         phoneField.addEventListener('input', function (e) {
-            // Remove everything that is NOT a number
             let clean = this.value.replace(/[^0-9]/g, '');
-
-            // If they pasted a number starting with 91 (12 digits), strip the 91
             if (clean.length > 10 && clean.startsWith('91')) {
                 clean = clean.substring(2);
             }
-
-            // Limit to 10 digits
             if (clean.length > 10) clean = clean.slice(0, 10);
-
             this.value = clean;
         });
 
-        // SECURITY: Add blur validation
         phoneField.addEventListener('blur', function () {
             const phone = this.value.trim();
             if (phone.length !== 0 && phone.length !== 10) {
                 showToast("Phone must be exactly 10 digits", "error");
-                this.focus();
             }
         });
     }
+
+    // 7. Exit Intent Logic (merged here for safety)
+    if (!sessionStorage.getItem('namoExitShown')) {
+        // Desktop
+        document.addEventListener('mouseleave', (e) => {
+            if (e.clientY < 0) triggerExitPopup();
+        });
+        // Mobile (Timer based)
+        if (window.innerWidth < 768) {
+            setTimeout(() => triggerExitPopup(), 60000);
+        }
+    }
 });
+
+// --- NEW HELPER: Clean up all Firestore listeners ---
+function cleanupListeners() {
+    if (unsubscribeListeners.coupons) unsubscribeListeners.coupons();
+    if (unsubscribeListeners.config) unsubscribeListeners.config();
+}
 
 // --- NEW HELPER: Fetch User Profile from Firestore ---
 function fetchUserProfile(uid) {
@@ -495,13 +508,32 @@ function updateCardPrice(id, index) {
     }
 }
 
-function addToCartFromGrid(id) {
-    const p = products.find(x => x.id === id);
-    const select = document.getElementById(`variant-select-${id}`);
-    let v = { weight: 'Standard', price: p.price };
-    if (select) v = p.variants[select.value];
-    else if (p.variants && p.variants.length > 0) v = p.variants[0];
-    addToCart(p, v);
+function addToCart(p, v, qtyToAdd = 1) {
+    // FIX: Remove spaces/special chars from ID to prevent onclick errors
+    const safeWeight = v.weight.replace(/[^a-zA-Z0-9]/g, '');
+    const cartId = `${p.id}-${safeWeight}`;
+
+    const ex = cart.find(i => i.cartId === cartId);
+
+    if (ex) {
+        ex.qty += qtyToAdd;
+        showToast(`Updated ${p.name} (+${qtyToAdd})`, "success");
+    } else {
+        cart.push({
+            cartId: cartId, // Safe ID
+            productId: p.id,
+            name: p.name,
+            image: p.image,
+            weight: v.weight,
+            price: v.price,
+            qty: qtyToAdd // Ensures we respect the passed quantity (usually 1)
+        });
+        showToast(`${p.name} added!`, "success");
+    }
+
+    updateCartUI();
+    saveCartLocal();
+    vibrate(50);
 }
 
 // --- 6. HAMPER LOGIC ---
@@ -631,7 +663,7 @@ function openProductDetail(id) {
     const p = products.find(x => x.id === id);
     if (!p) return;
 
-    // Reset Qty on open
+    // FIX: Force reset to 1 every time modal opens
     currentModalQty = 1;
 
     // Update SEO Schema if function exists
@@ -3525,5 +3557,56 @@ function handleEnter(e, btnId) {
     if (e.key === 'Enter') {
         const btn = document.getElementById(btnId);
         if (!btn.disabled) btn.click();
+    }
+}
+
+// Add this to script.js
+
+function addToCartFromGrid(id) {
+    // 1. Find the product object
+    const p = products.find(x => x.id === id);
+    if (!p) return;
+
+    // 2. Check if there is a variant selector for this card
+    const select = document.getElementById(`variant-select-${id}`);
+
+    let v = null;
+
+    if (select) {
+        // If selector exists, use the selected index
+        v = p.variants[select.value];
+    } else if (p.variants && p.variants.length > 0) {
+        // If no selector (e.g. compact view), default to first in-stock variant
+        v = p.variants.find(varItem => varItem.inStock !== false) || p.variants[0];
+    } else {
+        // Fallback for simple products without variants
+        v = { weight: 'Standard', price: p.price };
+    }
+
+    // 3. Add to cart (Force quantity 1)
+    addToCart(p, v, 1);
+}
+
+// Add this to script.js
+
+function togglePaymentUI() {
+    // 1. Find the currently checked radio button
+    const methodElem = document.querySelector('input[name="paymentMethod"]:checked');
+    if (!methodElem) return;
+
+    const method = methodElem.value;
+    const btn = document.getElementById('btn-main-checkout');
+
+    // 2. Update Button Text & Style
+    if (btn) {
+        if (method === 'UPI') {
+            // Online Payment Style
+            btn.innerHTML = 'Pay Securely <i class="fas fa-lock"></i>';
+            btn.style.background = 'linear-gradient(45deg, #25D366, #128C7E)'; // WhatsApp Greenish Gradient
+        } else {
+            // COD Style
+            btn.innerHTML = 'Place Order <i class="fas fa-check"></i>';
+            btn.style.background = 'var(--primary)'; // Standard Orange
+        }
     }
 }

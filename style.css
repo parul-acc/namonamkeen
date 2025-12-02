@@ -4314,3 +4314,77 @@ textarea:focus,
         padding-bottom: 70px;
     }
 }
+
+/* --- COMPACT RADIO PAYMENT STYLES --- */
+.compact-radio-group {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.compact-radio {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    padding: 10px;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+    background: white;
+}
+
+.compact-radio:hover {
+    border-color: var(--primary);
+    background: #fff8e1;
+}
+
+/* Hide default radio input */
+.compact-radio input {
+    display: none;
+}
+
+/* Custom Radio Circle */
+.radio-design {
+    width: 18px;
+    height: 18px;
+    border: 2px solid #ccc;
+    border-radius: 50%;
+    margin-right: 12px;
+    position: relative;
+    flex-shrink: 0;
+}
+
+.radio-design::after {
+    content: '';
+    width: 10px;
+    height: 10px;
+    background: var(--primary);
+    border-radius: 50%;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0);
+    transition: transform 0.2s;
+}
+
+/* Selected State */
+.compact-radio input:checked+.radio-design {
+    border-color: var(--primary);
+}
+
+.compact-radio input:checked+.radio-design::after {
+    transform: translate(-50%, -50%) scale(1);
+}
+
+.compact-radio input:checked~.radio-text {
+    font-weight: 600;
+    color: var(--text-dark);
+}
+
+.radio-text {
+    font-size: 0.95rem;
+    color: #555;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
