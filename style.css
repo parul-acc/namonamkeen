@@ -3916,3 +3916,23 @@ textarea:focus,
     /* Ensure equal height */
     border-radius: 10px;
 }
+
+/* Add to style.css */
+.btn-secondary-outline {
+    width: 100%;
+    margin-top: 10px;
+    background: transparent;
+    border: 1px solid #ddd;
+    color: #666;
+    padding: 12px;
+    border-radius: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-secondary-outline:hover {
+    background: #f9f9f9;
+    border-color: #ccc;
+    color: #333;
+}

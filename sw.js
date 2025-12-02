@@ -26,7 +26,7 @@ messaging.onBackgroundMessage(function (payload) {
   self.registration.showNotification(notificationTitle, notificationOptions);
 });
 
-const CACHE_NAME = 'namo-v13';
+const CACHE_NAME = 'namo-v14';
 const urlsToCache = [
   '/',
   '/index.html',

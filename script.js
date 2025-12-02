@@ -3292,6 +3292,8 @@ function openWhatsAppLogin() {
     document.getElementById('whatsapp-login-modal').style.display = 'flex';
 }
 
+// --- UPDATED WHATSAPP FUNCTIONS ---
+
 async function sendWhatsAppOTP() {
     const phoneInput = document.getElementById('whatsapp-phone');
     const phone = phoneInput.value.trim();
@@ -3300,17 +3302,30 @@ async function sendWhatsAppOTP() {
         return showToast("Enter valid 10-digit mobile number", "error");
     }
 
+    // 1. Show Loader
+    toggleGlobalLoading(true);
+
     try {
         const sendOTP = firebase.functions().httpsCallable('sendWhatsAppOTP');
         await sendOTP({ phoneNumber: phone });
 
+        // 2. Hide Loader & Show OTP Section
+        toggleGlobalLoading(false);
         showToast("OTP sent to your WhatsApp!", "success");
-        document.getElementById('whatsapp-otp-section').style.display = 'block';
+
+        document.getElementById('whatsapp-phone-section').style.display = 'none'; // Hide phone input
+        document.getElementById('whatsapp-otp-section').style.display = 'block'; // Show OTP input
+
+        // Auto-focus OTP field
+        setTimeout(() => document.getElementById('whatsapp-otp-input').focus(), 500);
 
     } catch (error) {
+        toggleGlobalLoading(false);
+        console.error(error);
         showToast("Failed to send OTP: " + error.message, "error");
     }
 }
+
 async function verifyWhatsAppOTP() {
     const phone = document.getElementById('whatsapp-phone').value.trim();
     const otp = document.getElementById('whatsapp-otp-input').value.trim();
@@ -3319,6 +3334,9 @@ async function verifyWhatsAppOTP() {
         return showToast("Enter 6-digit OTP", "error");
     }
 
+    // 1. Show Loader
+    toggleGlobalLoading(true);
+
     try {
         const verifyOTP = firebase.functions().httpsCallable('verifyWhatsAppOTP');
         const result = await verifyOTP({ phoneNumber: phone, otp: otp });
@@ -3326,17 +3344,24 @@ async function verifyWhatsAppOTP() {
         // Sign in with custom token
         await firebase.auth().signInWithCustomToken(result.data.token);
 
-        showToast("Login successful! 🎉", "success");
+        // 2. Hide Loader & Close Modal
+        toggleGlobalLoading(false);
         closeWhatsAppLogin();
 
+        showToast("Login successful! 🎉", "success");
+
     } catch (error) {
+        toggleGlobalLoading(false);
+        console.error(error);
         showToast("Invalid OTP: " + error.message, "error");
     }
 }
 
+// Helper to reset the modal when closed
 function closeWhatsAppLogin() {
     document.getElementById('whatsapp-login-modal').style.display = 'none';
-    document.getElementById('whatsapp-phone').value = '';
-    document.getElementById('whatsapp-otp-input').value = '';
+    // Reset view for next time
+    document.getElementById('whatsapp-phone-section').style.display = 'block';
     document.getElementById('whatsapp-otp-section').style.display = 'none';
+    document.getElementById('whatsapp-otp-input').value = '';
 }
