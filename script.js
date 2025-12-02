@@ -987,9 +987,11 @@ function updateCartUI() {
                     <div style="font-size:0.85rem; color:#666;">${i.weight}</div>
                     <div style="font-weight:bold; color:var(--primary);">₹${i.price}</div>
                     <div class="item-controls">
-                        <button class="qty-btn" onclick="changeQty('${i.cartId}', -1)">-</button>
-                        <span style="margin:0 10px; font-weight:600;">${i.qty}</span>
-                        <button class="qty-btn" onclick="changeQty('${i.cartId}', 1)">+</button>
+                       <div class="qty-stepper">
+  <button onclick="changeQty('id', -1)">-</button>
+  <span>2</span>
+  <button onclick="changeQty('id', 1)">+</button>
+</div>
                     </div>
                 </div>
                 <button onclick="removeFromCart('${i.cartId}')" style="background:none; border:none; color:#999; cursor:pointer;"><i class="fas fa-trash"></i></button>
@@ -1047,6 +1049,15 @@ function updateCartUI() {
     const countEl = document.getElementById('cart-count');
     if (countEl) countEl.innerText = count;
 
+    // --- ADD THIS BLOCK ---
+    const bottomCount = document.getElementById('bottom-cart-count');
+    if (bottomCount) {
+        bottomCount.innerText = count;
+        // Optional: Pop animation when count changes
+        bottomCount.style.transform = "scale(1.2)";
+        setTimeout(() => bottomCount.style.transform = "scale(1)", 200);
+    }
+
     // 5. Share Cart Button
     const footer = document.querySelector('.cart-footer');
     const oldShare = document.getElementById('share-cart-btn');
@@ -1060,6 +1071,16 @@ function updateCartUI() {
         shareBtn.onclick = shareCartOnWhatsApp;
         footer.insertBefore(shareBtn, checkoutBtn);
     }
+}
+
+// --- BOTTOM NAV HELPER ---
+function setActiveNav(element) {
+    // 1. Remove active class from all items
+    document.querySelectorAll('.bottom-nav .nav-item').forEach(el => {
+        el.classList.remove('active');
+    });
+    // 2. Add to clicked item
+    element.classList.add('active');
 }
 
 function previewProfilePic(input) {
@@ -1144,9 +1165,9 @@ function toggleCart() {
     sidebar.classList.toggle('active');
     overlay.classList.toggle('active');
 
-    // Auto-fill when opening
+    // Make sure this line exists:
     if (sidebar.classList.contains('active')) {
-        autoFillCheckout();
+        autoFillCheckout(); // <--- Trigger the UI check
     }
 }
 
@@ -3284,122 +3305,225 @@ function requestUserNotifications() {
     });
 }
 
-function openWhatsAppLogin() {
-    // 1. Close the choice modal first
-    closeModal('login-choice-modal');
-
-    // 2. Open the WhatsApp modal
-    document.getElementById('whatsapp-login-modal').style.display = 'flex';
-}
-
-// --- UPDATED WHATSAPP FUNCTIONS ---
-
-async function sendWhatsAppOTP() {
-    const phoneInput = document.getElementById('whatsapp-phone');
-    const phone = phoneInput.value.trim();
-
-    if (phone.length !== 10) {
-        return showToast("Enter valid 10-digit mobile number", "error");
-    }
-
-    // 1. Show Loader
-    toggleGlobalLoading(true);
-
-    try {
-        const sendOTP = firebase.functions().httpsCallable('sendWhatsAppOTP');
-        await sendOTP({ phoneNumber: phone });
-
-        // 2. Hide Loader & Show OTP Section
-        toggleGlobalLoading(false);
-        showToast("OTP sent to your WhatsApp!", "success");
-
-        document.getElementById('whatsapp-phone-section').style.display = 'none'; // Hide phone input
-        document.getElementById('whatsapp-otp-section').style.display = 'block'; // Show OTP input
-
-        // Auto-focus OTP field
-        setTimeout(() => document.getElementById('whatsapp-otp-input').focus(), 500);
-
-    } catch (error) {
-        toggleGlobalLoading(false);
-        console.error(error);
-        showToast("Failed to send OTP: " + error.message, "error");
-    }
-}
-
-async function verifyWhatsAppOTP() {
-    const phone = document.getElementById('whatsapp-phone').value.trim();
-    const otp = document.getElementById('whatsapp-otp-input').value.trim();
-
-    if (otp.length !== 6) {
-        return showToast("Enter 6-digit OTP", "error");
-    }
-
-    // 1. Show Loader
-    toggleGlobalLoading(true);
-
-    try {
-        const verifyOTP = firebase.functions().httpsCallable('verifyWhatsAppOTP');
-        const result = await verifyOTP({ phoneNumber: phone, otp: otp });
-
-        // Sign in with custom token
-        await firebase.auth().signInWithCustomToken(result.data.token);
-
-        // 2. Hide Loader & Close Modal
-        toggleGlobalLoading(false);
-        closeWhatsAppLogin();
-
-        showToast("Login successful! 🎉", "success");
-
-    } catch (error) {
-        toggleGlobalLoading(false);
-        console.error(error);
-        showToast("Invalid OTP: " + error.message, "error");
-    }
-}
-
-// Helper to reset the modal when closed
-function closeWhatsAppLogin() {
-    document.getElementById('whatsapp-login-modal').style.display = 'none';
-    // Reset view for next time
-    document.getElementById('whatsapp-phone-section').style.display = 'block';
-    document.getElementById('whatsapp-otp-section').style.display = 'none';
-    document.getElementById('whatsapp-otp-input').value = '';
-}
-
 function autoFillCheckout() {
-    if (!userProfile) return;
+    const inputSection = document.getElementById('customer-details-inputs');
+    const summarySection = document.getElementById('customer-details-summary');
 
-    // 1. Name (Profile > Auth > Keep Existing)
+    // 1. Reset to default (Show Inputs) if no profile
+    if (!userProfile) {
+        inputSection.classList.remove('hidden-inputs');
+        if (summarySection) summarySection.style.display = 'none';
+        return;
+    }
+
+    // 2. Populate Hidden Inputs (Crucial for Order Submission logic)
     const nameInput = document.getElementById('cust-name');
-    if (nameInput) {
-        if (userProfile.name) nameInput.value = userProfile.name;
-        else if (currentUser && currentUser.displayName && !nameInput.value) nameInput.value = currentUser.displayName;
-    }
-
-    // 2. Email (Profile > Auth > Keep Existing)
     const emailInput = document.getElementById('cust-email');
-    if (emailInput) {
-        if (userProfile.email) emailInput.value = userProfile.email;
-        else if (currentUser && currentUser.email && !emailInput.value) emailInput.value = currentUser.email;
-    }
-
-    // 3. Phone (Profile > Keep Existing)
     const phoneInput = document.getElementById('cust-phone');
-    if (phoneInput && userProfile.phone) {
-        let clean = userProfile.phone.replace('+91', '').replace(/\D/g, '');
-        phoneInput.value = clean;
-    }
-
-    // 4. Address (Structured > Flat > Keep Existing)
     const streetInput = document.getElementById('cust-addr-street');
     const cityInput = document.getElementById('cust-addr-city');
     const pinInput = document.getElementById('cust-addr-pin');
 
+    if (nameInput) nameInput.value = userProfile.name || (currentUser.displayName || "");
+    if (emailInput) emailInput.value = userProfile.email || (currentUser.email || "");
+    if (phoneInput && userProfile.phone) phoneInput.value = userProfile.phone.replace('+91', '').replace(/\D/g, '');
+
+    // Address Population
     if (streetInput && userProfile.addressDetails) {
         streetInput.value = userProfile.addressDetails.street || '';
         if (cityInput) cityInput.value = userProfile.addressDetails.city || 'Indore';
         if (pinInput) pinInput.value = userProfile.addressDetails.pin || '';
     } else if (streetInput && userProfile.address) {
         streetInput.value = userProfile.address; // Fallback
+    }
+
+    // 3. CHECK: Do we have enough data to show Summary?
+    const hasName = nameInput.value.trim().length > 0;
+    const hasPhone = phoneInput.value.trim().length === 10;
+    const hasAddress = streetInput.value.trim().length > 0;
+
+    if (hasName && hasPhone && hasAddress) {
+        // HIDE Inputs, SHOW Summary
+        inputSection.classList.add('hidden-inputs');
+        summarySection.style.display = 'block';
+
+        // Update Text Content
+        document.getElementById('summary-name').innerHTML = `<i class="fas fa-check-circle" style="color:#27ae60;"></i> ${nameInput.value}`;
+
+        // Format phone nicely
+        document.getElementById('summary-phone').innerHTML = `<i class="fas fa-phone-alt" style="font-size:0.8rem; color:#888; margin-right:5px;"></i> +91 ${phoneInput.value}`;
+
+        const city = cityInput.value || 'Indore';
+        const pin = pinInput.value || '';
+        // Format address nicely
+        document.getElementById('summary-address').innerHTML = `
+            <div style="margin-top:5px; display:flex; gap:8px;">
+                <i class="fas fa-map-marker-alt" style="font-size:0.9rem; color:#888; margin-top:3px;"></i>
+                <span>${streetInput.value}<br>${city} - ${pin}</span>
+            </div>
+        `;
+    } else {
+        // Missing data? Show form to let them finish it
+        inputSection.classList.remove('hidden-inputs');
+        summarySection.style.display = 'none';
+    }
+}
+
+// --- NEW FUNCTION: Switch back to Edit Mode ---
+function editCheckoutDetails() {
+    document.getElementById('customer-details-inputs').classList.remove('hidden-inputs');
+    document.getElementById('customer-details-summary').style.display = 'none';
+}
+
+let waResendTimer = null;
+let waCountdown = 30;
+
+// 1. Open Modal
+function openWhatsAppLogin() {
+    closeModal('login-choice-modal');
+    document.getElementById('whatsapp-login-modal').style.display = 'flex';
+    resetWhatsAppLogin(); // Always start fresh
+}
+
+function closeWhatsAppLogin() {
+    document.getElementById('whatsapp-login-modal').style.display = 'none';
+    clearInterval(waResendTimer);
+}
+
+// 2. Switch Views (Phone <-> OTP)
+function resetWhatsAppLogin() {
+    document.getElementById('whatsapp-phone-section').style.display = 'block';
+    document.getElementById('whatsapp-otp-section').style.display = 'none';
+    document.getElementById('whatsapp-phone').value = '';
+    document.getElementById('whatsapp-otp-input').value = '';
+    validateWaPhone(); // Reset button state
+    clearInterval(waResendTimer);
+}
+
+// 3. Input Validation (UX)
+function validateWaPhone() {
+    const phone = document.getElementById('whatsapp-phone').value.trim();
+    const btn = document.getElementById('btn-send-otp-wa');
+    // Enable button only if 10 digits
+    if (phone.length === 10) {
+        btn.disabled = false;
+        btn.style.opacity = '1';
+    } else {
+        btn.disabled = true;
+        btn.style.opacity = '0.6';
+    }
+}
+
+function validateWaOtp() {
+    const otp = document.getElementById('whatsapp-otp-input').value.trim();
+    const btn = document.getElementById('btn-verify-wa');
+    // Enable button only if 6 digits
+    if (otp.length === 6) {
+        btn.disabled = false;
+        btn.style.opacity = '1';
+    } else {
+        btn.disabled = true;
+        btn.style.opacity = '0.6';
+    }
+}
+
+// 4. Send OTP
+async function sendWhatsAppOTP() {
+    const phoneInput = document.getElementById('whatsapp-phone');
+    const phone = phoneInput.value.trim();
+
+    if (phone.length !== 10) return showToast("Enter valid 10-digit number", "error");
+
+    toggleBtnLoading('btn-send-otp-wa', true); // Show loading spinner
+
+    try {
+        const sendOTP = firebase.functions().httpsCallable('sendWhatsAppOTP');
+        await sendOTP({ phoneNumber: phone });
+
+        // UI Updates
+        document.getElementById('whatsapp-phone-section').style.display = 'none';
+        document.getElementById('whatsapp-otp-section').style.display = 'block';
+        document.getElementById('wa-display-num').innerText = '+91 ' + phone;
+
+        // Start Timer
+        startResendTimer();
+
+        // Focus OTP Input
+        setTimeout(() => document.getElementById('whatsapp-otp-input').focus(), 500);
+        showToast("OTP sent on WhatsApp!", "success");
+
+    } catch (error) {
+        console.error(error);
+        showToast("Failed to send OTP. Try again.", "error");
+    } finally {
+        toggleBtnLoading('btn-send-otp-wa', false);
+    }
+}
+
+// 5. Verify OTP
+async function verifyWhatsAppOTP() {
+    const phone = document.getElementById('whatsapp-phone').value.trim();
+    const otp = document.getElementById('whatsapp-otp-input').value.trim();
+
+    if (otp.length !== 6) return showToast("Enter complete 6-digit OTP", "error");
+
+    toggleBtnLoading('btn-verify-wa', true); // Show loading spinner
+
+    try {
+        const verifyOTP = firebase.functions().httpsCallable('verifyWhatsAppOTP');
+        const result = await verifyOTP({ phoneNumber: phone, otp: otp });
+
+        // Firebase Auth Login
+        await firebase.auth().signInWithCustomToken(result.data.token);
+
+        showToast("Login Successful! 🎉", "success");
+        closeWhatsAppLogin();
+
+        // Optional: Reload page or update UI if needed
+        // location.reload(); 
+
+    } catch (error) {
+        console.error(error);
+        showToast("Invalid OTP. Please check.", "error");
+        document.getElementById('whatsapp-otp-input').value = ''; // Clear input on error
+        validateWaOtp(); // Disable button again
+    } finally {
+        toggleBtnLoading('btn-verify-wa', false);
+    }
+}
+
+// 6. Resend Logic with Timer
+function startResendTimer() {
+    const timerText = document.getElementById('wa-timer-text');
+    const timerNum = document.getElementById('wa-timer');
+    const resendBtn = document.getElementById('btn-resend-wa');
+
+    timerText.style.display = 'inline';
+    resendBtn.style.display = 'none';
+    waCountdown = 30; // 30 Seconds
+    timerNum.innerText = waCountdown;
+
+    clearInterval(waResendTimer);
+    waResendTimer = setInterval(() => {
+        waCountdown--;
+        timerNum.innerText = waCountdown;
+
+        if (waCountdown <= 0) {
+            clearInterval(waResendTimer);
+            timerText.style.display = 'none';
+            resendBtn.style.display = 'block'; // Show Resend Button
+        }
+    }, 1000);
+}
+
+function resendWhatsAppOTP() {
+    sendWhatsAppOTP(); // Call the same function
+}
+
+// Helper for "Enter" key
+function handleEnter(e, btnId) {
+    if (e.key === 'Enter') {
+        const btn = document.getElementById(btnId);
+        if (!btn.disabled) btn.click();
     }
 }

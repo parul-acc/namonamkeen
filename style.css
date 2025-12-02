@@ -294,6 +294,12 @@ h4 {
 
 /* FIX: Hide inner close button on mobile since Hamburger acts as X */
 @media (max-width: 768px) {
+
+    .category-slider {
+        justify-content: flex-start;
+        padding-left: 15px;
+    }
+
     .mobile-nav-header button {
         display: none !important;
     }
@@ -301,6 +307,573 @@ h4 {
     /* Add top padding to compensate for missing header space if needed */
     .mobile-nav {
         padding-top: 60px;
+    }
+
+    .hamburger {
+        display: block;
+        position: fixed;
+        /* Breaks out of Navbar stacking context */
+        top: 22px;
+        /* Aligns with your Logo */
+        right: 20px;
+        /* Aligns with edge */
+    }
+
+    /* Adjust Navbar actions so they don't overlap the fixed hamburger */
+    .nav-actions {
+        margin-right: 0;
+    }
+
+    .nav-menu {
+        display: none;
+    }
+
+    .hamburger {
+        display: block;
+    }
+
+    .hero {
+        min-height: 40vh;
+        /* Reduced from 70vh */
+    }
+
+    .hero h1 {
+        font-size: 1.8rem;
+        /* Smaller title */
+    }
+
+    /* 1. Grid Layout: Force 2 Columns */
+    .product-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        /* 2 Columns equal width */
+        gap: 12px;
+        /* Smaller gap between cards */
+        padding: 0 5px;
+        /* Slight edge padding */
+    }
+
+    /* 2. Product Card Compact Styling */
+    .product-card {
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        /* Lighter shadow for mobile */
+    }
+
+    .product-img {
+        height: 130px;
+        /* Smaller image height */
+    }
+
+    .product-info {
+        padding: 10px;
+        /* Reduce internal padding */
+    }
+
+    .product-info h3 {
+        font-size: 0.9rem;
+        /* Smaller title font */
+        margin-bottom: 4px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        /* Truncate long names with ... */
+    }
+
+    /* Hide long descriptions on mobile to save space */
+    .product-desc {
+        display: none;
+    }
+
+    /* Compact Star Rating */
+    .star-display {
+        font-size: 0.7rem;
+        margin-bottom: 8px;
+    }
+
+    /* 3. Controls (Dropdown & Button) */
+    .variant-select {
+        padding: 4px 8px;
+        font-size: 0.8rem;
+        height: 32px;
+        margin-bottom: 8px;
+        background-position: right 8px center;
+        /* Adjust arrow position */
+    }
+
+    .price-row {
+        flex-direction: row;
+        /* Keep side-by-side */
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .price {
+        font-size: 1rem;
+    }
+
+    .add-btn {
+        padding: 6px 12px;
+        font-size: 0.8rem;
+        border-radius: 6px;
+    }
+
+    /* Adjust Ribbon Size */
+    .ribbon {
+        font-size: 0.6rem;
+        padding: 2px 8px;
+        top: 8px;
+        right: 8px;
+    }
+
+    .video-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .video-wrapper {
+        height: 200px;
+    }
+
+    .hamper-grid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+    }
+
+    .hamper-option img {
+        width: 40px;
+        height: 40px;
+    }
+
+    .hamper-option h4 {
+        font-size: 0.65rem;
+    }
+
+    .section-pad {
+        padding: 30px 0;
+    }
+
+    .filter-btn {
+        padding: 6px 15px;
+        font-size: 0.9rem;
+    }
+
+    .pm-grid {
+        flex-direction: column;
+        gap: 20px;
+    }
+
+    .pm-img {
+        max-height: 220px;
+    }
+
+    .pm-title {
+        font-size: 1.5rem;
+    }
+
+    /* 1. Reduce Image Height */
+    .pm-img {
+        max-height: 140px;
+        /* Much smaller to fit everything */
+        width: auto;
+        margin: 0 auto;
+        display: block;
+    }
+
+    .pm-image-container {
+        padding: 10px;
+        background: transparent;
+        /* Remove heavy background */
+        height: auto;
+    }
+
+    /* 2. Tighten Text & Spacing */
+    .pm-title {
+        font-size: 1.3rem;
+        margin-bottom: 5px;
+        text-align: center;
+    }
+
+    .pm-category {
+        text-align: center;
+        margin-bottom: 0;
+    }
+
+    .pm-desc {
+        font-size: 0.85rem;
+        margin-bottom: 10px;
+        text-align: center;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        /* Limit description to 2 lines */
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    /* 3. Compact Meta Box (Ingredients) */
+    .pm-meta-box {
+        padding: 8px;
+        margin-bottom: 10px;
+        font-size: 0.8rem;
+    }
+
+    /* 4. THE MAGIC: Single Row Controls */
+    .pm-controls {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        padding-top: 10px;
+        border-top: 1px solid #eee;
+        background: white;
+
+        /* Sticky bottom ensures it's always reachable */
+        position: sticky;
+        bottom: 0;
+    }
+
+    /* Price Item */
+    .pm-price-row {
+        margin-bottom: 0;
+        white-space: nowrap;
+    }
+
+    .pm-price {
+        font-size: 1.2rem;
+    }
+
+    /* Variant Dropdown Item */
+    .pm-variant-wrapper {
+        margin-bottom: 0;
+        flex: 1;
+        /* Takes available space */
+        min-width: 80px;
+    }
+
+    .pm-select {
+        padding: 5px 8px;
+        height: 40px;
+        /* Standard touch height */
+        font-size: 0.85rem;
+    }
+
+    /* Add Button Item */
+    .pm-btn {
+        width: auto;
+        flex: 1.2;
+        /* Button slightly larger */
+        height: 40px;
+        padding: 0 10px;
+        font-size: 0.9rem;
+        white-space: nowrap;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 5px;
+    }
+
+    /* 1. Fix Large Headers on Story/Blog/FAQ */
+    .section-pad h1 {
+        font-size: 2.2rem !important;
+        /* Reduces from 3rem */
+        line-height: 1.2;
+    }
+
+    /* 2. Blog Grid: Force Single Column */
+    .blog-grid {
+        grid-template-columns: 1fr !important;
+        /* Stacks cards vertically */
+        gap: 20px;
+        padding: 0 10px;
+    }
+
+    /* 3. Story Page Adjustments */
+    .story-content {
+        padding: 0 10px;
+    }
+
+    .story-content p {
+        font-size: 1rem !important;
+        /* Readable body text */
+        text-align: left;
+        /* Easier to read on mobile than justify */
+    }
+
+    /* Adjust the big "I" Drop Cap */
+    .story-content span[style*="font-size: 3rem"] {
+        font-size: 2.5rem !important;
+        padding-right: 8px !important;
+    }
+
+    /* Quote Box in Story */
+    .story-content div[style*="background: #fff8e1"] {
+        padding: 20px !important;
+        margin: 20px 0 !important;
+    }
+
+    /* 4. FAQ Section */
+    .faq-question {
+        padding: 15px;
+        /* Less padding */
+        font-size: 0.95rem;
+        /* Prevent text cutoff */
+    }
+
+    .faq-answer {
+        font-size: 0.9rem;
+    }
+
+    /* 5. Modals (Blog Reader & Others) */
+    .modal-content {
+        width: 95% !important;
+        /* Take full width */
+        max-height: 85vh;
+        /* Max height 85% of screen */
+        overflow-y: auto;
+        /* Enable scrolling inside modal */
+        padding: 20px !important;
+    }
+
+    /* 6. Price List Table - FIXED MOBILE LAYOUT */
+    .table-responsive {
+        display: block;
+        width: 100%;
+        overflow-x: hidden;
+        /* Safety scroll if screen is extremely small */
+    }
+
+    .price-table {
+        width: 100%;
+        table-layout: fixed;
+        /* Let browser calculate optimal width */
+        border-collapse: collapse;
+    }
+
+    /* 7. Column Styling */
+    .price-table th {
+        white-space: nowrap;
+        /* CRITICAL: Prevents vertical stacking */
+        font-size: 0.75rem;
+        /* Compact header font */
+        padding: 10px 5px;
+        /* Comfortable padding */
+        background-color: #f8f9fa;
+        color: #555;
+        font-weight: 700;
+        text-transform: uppercase;
+        vertical-align: middle;
+    }
+
+    .price-table td {
+        padding: 8px 5px;
+        font-size: 0.85rem;
+        vertical-align: middle;
+        border-bottom: 1px solid #eee;
+    }
+
+    /* Column Specifics */
+
+    /* Image Column: Fixed small width */
+    .price-table th:nth-child(1),
+    .price-table td:nth-child(1) {
+        width: 50px;
+        min-width: 50px;
+        text-align: center;
+    }
+
+    /* Product Name: Takes all remaining space & wraps text */
+    .price-table th:nth-child(2),
+    .price-table td:nth-child(2) {
+        width: auto;
+        white-space: normal;
+        /* Allow long names to wrap nicely */
+        font-weight: 600;
+    }
+
+    /* Pack Size: Prevent wrapping */
+    .price-table th:nth-child(3),
+    .price-table td:nth-child(3) {
+        white-space: nowrap;
+        text-align: center;
+        width: 15%;
+    }
+
+    /* Price: Prevent wrapping */
+    .price-table th:nth-child(4),
+    .price-table td:nth-child(4) {
+        white-space: nowrap;
+        text-align: middle;
+        width: 15%;
+        color: var(--primary);
+        font-weight: 700;
+    }
+
+    /* Thumbnail Fix */
+    .t-thumb {
+        display: block !important;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        object-fit: cover;
+        margin: 0 auto;
+    }
+
+    .bottom-nav {
+        display: flex;
+        justify-content: space-around;
+        align-items: center;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        background: white;
+        box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+        padding: 10px 0;
+        z-index: 4000;
+        /* Below Modals (6000) but above content */
+        border-top: 1px solid #eee;
+    }
+
+    .nav-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-decoration: none;
+        color: #999;
+        font-size: 0.7rem;
+        flex: 1;
+    }
+
+    .nav-item i {
+        font-size: 1.2rem;
+        margin-bottom: 3px;
+    }
+
+    .nav-item.active {
+        color: var(--primary);
+        font-weight: 600;
+    }
+
+    /* Floating Cart Badge */
+    .icon-wrapper {
+        position: relative;
+    }
+
+    .badge {
+        position: absolute;
+        top: -5px;
+        right: -8px;
+        background: var(--primary);
+        color: white;
+        font-size: 0.6rem;
+        padding: 2px 5px;
+        border-radius: 50%;
+    }
+
+    /* Hide standard floating buttons to avoid clutter */
+    .float-wa,
+    #scrollTopBtn {
+        bottom: 70px !important;
+        /* Move up above nav bar */
+    }
+
+    .bottom-nav {
+        display: flex;
+        justify-content: space-around;
+        align-items: center;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 60px;
+        /* Fixed height */
+        background: #ffffff;
+        box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08);
+        /* Soft shadow upwards */
+        z-index: 4999;
+        /* Below Cart Sidebar (5001) & Modals (6000) */
+        border-top: 1px solid #f0f0f0;
+        padding-bottom: env(safe-area-inset-bottom);
+        /* iOS Safe Area support */
+    }
+
+    /* 2. Nav Items */
+    .nav-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-decoration: none;
+        color: #999;
+        font-size: 0.7rem;
+        flex: 1;
+        height: 100%;
+        transition: color 0.2s;
+        cursor: pointer;
+        position: relative;
+    }
+
+    .nav-item i {
+        font-size: 1.3rem;
+        margin-bottom: 4px;
+        transition: transform 0.2s;
+    }
+
+    /* Active State */
+    .nav-item.active {
+        color: var(--primary);
+        font-weight: 600;
+    }
+
+    .nav-item.active i {
+        transform: translateY(-2px);
+    }
+
+    /* 3. Cart Badge Styling */
+    .icon-wrapper {
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .badge {
+        position: absolute;
+        top: -8px;
+        right: -10px;
+        background: var(--primary);
+        color: white;
+        font-size: 0.65rem;
+        font-weight: bold;
+        min-width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 2px solid white;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    }
+
+    /* 4. Fix Overlaps */
+    /* Push WhatsApp button & ScrollTop UP so they don't hide behind nav */
+    .float-wa {
+        bottom: 80px !important;
+    }
+
+    #scrollTopBtn {
+        bottom: 150px !important;
+    }
+
+    /* Add padding to body so last item isn't covered */
+    body {
+        padding-bottom: 70px;
+    }
+
+}
+
+@media (max-width: 400px) {
+    .t-thumb {
+        display: none;
     }
 }
 
@@ -389,23 +962,6 @@ h4 {
     /* Orange Color */
 }
 
-/* Ensure it appears properly on mobile */
-@media (max-width: 768px) {
-    .hamburger {
-        display: block;
-        position: fixed;
-        /* Breaks out of Navbar stacking context */
-        top: 22px;
-        /* Aligns with your Logo */
-        right: 20px;
-        /* Aligns with edge */
-    }
-
-    /* Adjust Navbar actions so they don't overlap the fixed hamburger */
-    .nav-actions {
-        margin-right: 0;
-    }
-}
 
 /* --- 4. HERO SECTION --- */
 .hero {
@@ -1573,135 +2129,6 @@ h4 {
     gap: 20px;
 }
 
-@media (max-width: 768px) {
-    .nav-menu {
-        display: none;
-    }
-
-    .hamburger {
-        display: block;
-    }
-
-    .hero h1 {
-        font-size: 2.2rem;
-        margin-bottom: 10px;
-    }
-
-    /* 1. Grid Layout: Force 2 Columns */
-    .product-grid {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        /* 2 Columns equal width */
-        gap: 12px;
-        /* Smaller gap between cards */
-        padding: 0 5px;
-        /* Slight edge padding */
-    }
-
-    /* 2. Product Card Compact Styling */
-    .product-card {
-        border-radius: 12px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-        /* Lighter shadow for mobile */
-    }
-
-    .product-img {
-        height: 130px;
-        /* Smaller image height */
-    }
-
-    .product-info {
-        padding: 10px;
-        /* Reduce internal padding */
-    }
-
-    .product-info h3 {
-        font-size: 0.9rem;
-        /* Smaller title font */
-        margin-bottom: 4px;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        /* Truncate long names with ... */
-    }
-
-    /* Hide long descriptions on mobile to save space */
-    .product-desc {
-        display: none;
-    }
-
-    /* Compact Star Rating */
-    .star-display {
-        font-size: 0.7rem;
-        margin-bottom: 8px;
-    }
-
-    /* 3. Controls (Dropdown & Button) */
-    .variant-select {
-        padding: 4px 8px;
-        font-size: 0.8rem;
-        height: 32px;
-        margin-bottom: 8px;
-        background-position: right 8px center;
-        /* Adjust arrow position */
-    }
-
-    .price-row {
-        flex-direction: row;
-        /* Keep side-by-side */
-        align-items: center;
-        justify-content: space-between;
-    }
-
-    .price {
-        font-size: 1rem;
-    }
-
-    .add-btn {
-        padding: 6px 12px;
-        font-size: 0.8rem;
-        border-radius: 6px;
-    }
-
-    /* Adjust Ribbon Size */
-    .ribbon {
-        font-size: 0.6rem;
-        padding: 2px 8px;
-        top: 8px;
-        right: 8px;
-    }
-
-    .video-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .video-wrapper {
-        height: 200px;
-    }
-
-    .hamper-grid {
-        grid-template-columns: repeat(3, 1fr);
-        gap: 8px;
-    }
-
-    .hamper-option img {
-        width: 40px;
-        height: 40px;
-    }
-
-    .hamper-option h4 {
-        font-size: 0.65rem;
-    }
-
-    .section-pad {
-        padding: 30px 0;
-    }
-
-    .filter-btn {
-        padding: 6px 15px;
-        font-size: 0.9rem;
-    }
-}
 
 @media (max-width: 480px) {
 
@@ -2350,21 +2777,6 @@ textarea:focus,
     border-color: var(--primary);
 }
 
-/* Mobile Responsiveness */
-@media (max-width: 768px) {
-    .pm-grid {
-        flex-direction: column;
-        gap: 20px;
-    }
-
-    .pm-img {
-        max-height: 220px;
-    }
-
-    .pm-title {
-        font-size: 1.5rem;
-    }
-}
 
 /* --- MOBILE OPTIMIZATIONS FOR PRODUCT MODAL --- */
 
@@ -2380,109 +2792,6 @@ textarea:focus,
     font-size: 1rem;
 }
 
-@media (max-width: 768px) {
-
-    /* 1. Reduce Image Height */
-    .pm-img {
-        max-height: 140px;
-        /* Much smaller to fit everything */
-        width: auto;
-        margin: 0 auto;
-        display: block;
-    }
-
-    .pm-image-container {
-        padding: 10px;
-        background: transparent;
-        /* Remove heavy background */
-        height: auto;
-    }
-
-    /* 2. Tighten Text & Spacing */
-    .pm-title {
-        font-size: 1.3rem;
-        margin-bottom: 5px;
-        text-align: center;
-    }
-
-    .pm-category {
-        text-align: center;
-        margin-bottom: 0;
-    }
-
-    .pm-desc {
-        font-size: 0.85rem;
-        margin-bottom: 10px;
-        text-align: center;
-        display: -webkit-box;
-        -webkit-line-clamp: 2;
-        /* Limit description to 2 lines */
-        -webkit-box-orient: vertical;
-        overflow: hidden;
-    }
-
-    /* 3. Compact Meta Box (Ingredients) */
-    .pm-meta-box {
-        padding: 8px;
-        margin-bottom: 10px;
-        font-size: 0.8rem;
-    }
-
-    /* 4. THE MAGIC: Single Row Controls */
-    .pm-controls {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 8px;
-        padding-top: 10px;
-        border-top: 1px solid #eee;
-        background: white;
-
-        /* Sticky bottom ensures it's always reachable */
-        position: sticky;
-        bottom: 0;
-    }
-
-    /* Price Item */
-    .pm-price-row {
-        margin-bottom: 0;
-        white-space: nowrap;
-    }
-
-    .pm-price {
-        font-size: 1.2rem;
-    }
-
-    /* Variant Dropdown Item */
-    .pm-variant-wrapper {
-        margin-bottom: 0;
-        flex: 1;
-        /* Takes available space */
-        min-width: 80px;
-    }
-
-    .pm-select {
-        padding: 5px 8px;
-        height: 40px;
-        /* Standard touch height */
-        font-size: 0.85rem;
-    }
-
-    /* Add Button Item */
-    .pm-btn {
-        width: auto;
-        flex: 1.2;
-        /* Button slightly larger */
-        height: 40px;
-        padding: 0 10px;
-        font-size: 0.9rem;
-        white-space: nowrap;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 5px;
-    }
-}
 
 /* --- ORDER TIMELINE STYLES --- */
 .timeline-container {
@@ -3177,164 +3486,7 @@ textarea:focus,
     color: var(--primary);
 }
 
-/* --- MOBILE RESPONSIVENESS FOR NEW PAGES --- */
 
-@media (max-width: 768px) {
-
-    /* 1. Fix Large Headers on Story/Blog/FAQ */
-    .section-pad h1 {
-        font-size: 2.2rem !important;
-        /* Reduces from 3rem */
-        line-height: 1.2;
-    }
-
-    /* 2. Blog Grid: Force Single Column */
-    .blog-grid {
-        grid-template-columns: 1fr !important;
-        /* Stacks cards vertically */
-        gap: 20px;
-        padding: 0 10px;
-    }
-
-    /* 3. Story Page Adjustments */
-    .story-content {
-        padding: 0 10px;
-    }
-
-    .story-content p {
-        font-size: 1rem !important;
-        /* Readable body text */
-        text-align: left;
-        /* Easier to read on mobile than justify */
-    }
-
-    /* Adjust the big "I" Drop Cap */
-    .story-content span[style*="font-size: 3rem"] {
-        font-size: 2.5rem !important;
-        padding-right: 8px !important;
-    }
-
-    /* Quote Box in Story */
-    .story-content div[style*="background: #fff8e1"] {
-        padding: 20px !important;
-        margin: 20px 0 !important;
-    }
-
-    /* 4. FAQ Section */
-    .faq-question {
-        padding: 15px;
-        /* Less padding */
-        font-size: 0.95rem;
-        /* Prevent text cutoff */
-    }
-
-    .faq-answer {
-        font-size: 0.9rem;
-    }
-
-    /* 5. Modals (Blog Reader & Others) */
-    .modal-content {
-        width: 95% !important;
-        /* Take full width */
-        max-height: 85vh;
-        /* Max height 85% of screen */
-        overflow-y: auto;
-        /* Enable scrolling inside modal */
-        padding: 20px !important;
-    }
-
-    /* 6. Price List Table - Fit to Screen */
-    /* 6. Price List Table - FIXED MOBILE LAYOUT */
-    .table-responsive {
-        display: block;
-        width: 100%;
-        overflow-x: hidden;
-        /* Safety scroll if screen is extremely small */
-    }
-
-    .price-table {
-        width: 100%;
-        table-layout: fixed;
-        /* Let browser calculate optimal width */
-        border-collapse: collapse;
-    }
-
-    /* 7. Column Styling */
-    .price-table th {
-        white-space: nowrap;
-        /* CRITICAL: Prevents vertical stacking */
-        font-size: 0.75rem;
-        /* Compact header font */
-        padding: 10px 5px;
-        /* Comfortable padding */
-        background-color: #f8f9fa;
-        color: #555;
-        font-weight: 700;
-        text-transform: uppercase;
-        vertical-align: middle;
-    }
-
-    .price-table td {
-        padding: 8px 5px;
-        font-size: 0.85rem;
-        vertical-align: middle;
-        border-bottom: 1px solid #eee;
-    }
-
-    /* Column Specifics */
-
-    /* Image Column: Fixed small width */
-    .price-table th:nth-child(1),
-    .price-table td:nth-child(1) {
-        width: 50px;
-        min-width: 50px;
-        text-align: center;
-    }
-
-    /* Product Name: Takes all remaining space & wraps text */
-    .price-table th:nth-child(2),
-    .price-table td:nth-child(2) {
-        width: auto;
-        white-space: normal;
-        /* Allow long names to wrap nicely */
-        font-weight: 600;
-    }
-
-    /* Pack Size: Prevent wrapping */
-    .price-table th:nth-child(3),
-    .price-table td:nth-child(3) {
-        white-space: nowrap;
-        text-align: center;
-        width: 15%;
-    }
-
-    /* Price: Prevent wrapping */
-    .price-table th:nth-child(4),
-    .price-table td:nth-child(4) {
-        white-space: nowrap;
-        text-align: middle;
-        width: 15%;
-        color: var(--primary);
-        font-weight: 700;
-    }
-
-    /* Thumbnail Fix */
-    .t-thumb {
-        display: block !important;
-        width: 40px;
-        height: 40px;
-        border-radius: 50%;
-        object-fit: cover;
-        margin: 0 auto;
-    }
-
-    /* Hide thumbnails in Price List on very small screens to save space */
-    @media (max-width: 400px) {
-        .t-thumb {
-            display: none;
-        }
-    }
-}
 
 /* --- PRICE LIST PAGE STYLES --- */
 .pricelist-body {
@@ -3610,14 +3762,6 @@ textarea:focus,
     font-size: 0.85rem;
     font-weight: 600;
     color: var(--text-dark);
-}
-
-/* Align left on mobile for scrolling */
-@media (max-width: 768px) {
-    .category-slider {
-        justify-content: flex-start;
-        padding-left: 15px;
-    }
 }
 
 /* --- FIX: Mobile Keyboard Modal Behavior --- */
@@ -3935,4 +4079,238 @@ textarea:focus,
     background: #f9f9f9;
     border-color: #ccc;
     color: #333;
+}
+
+/* --- WhatsApp Modal Specifics --- */
+.full-width {
+    width: 100%;
+}
+
+/* Disabled State for Buttons */
+.btn-primary:disabled {
+    background-color: #ccc !important;
+    cursor: not-allowed;
+    transform: none !important;
+    box-shadow: none !important;
+}
+
+/* Chrome removes spinners from number input */
+#whatsapp-otp-input::-webkit-outer-spin-button,
+#whatsapp-otp-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+#whatsapp-otp-input {
+    -moz-appearance: textfield;
+    /* Firefox */
+}
+
+/* --- CHECKOUT SUMMARY CARD (Mobile Optimized) --- */
+.checkout-summary-card {
+    background: #f8f9fa;
+    /* Slightly distinct background */
+    border: 1px solid #e0e0e0;
+    border-radius: 12px;
+    padding: 15px;
+    margin-bottom: 20px;
+    position: relative;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.03);
+    overflow: hidden;
+    /* Keeps child elements inside rounded corners */
+}
+
+.checkout-summary-card h4 {
+    margin: 0 0 8px 0;
+    font-size: 1rem;
+    color: var(--text-dark);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    /* CRITICAL FOR MOBILE: Reserve space for the 'Change' button */
+    padding-right: 70px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    /* Dots if name is too long */
+}
+
+.checkout-summary-card p {
+    margin: 0;
+    color: #555;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    /* Handle long addresses on small screens */
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+.summary-change-btn {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    background: white;
+    /* Button background makes it pop */
+    border: 1px solid #e0e0e0;
+    color: var(--primary);
+    font-weight: 700;
+    font-size: 0.75rem;
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 6px 12px;
+    border-radius: 20px;
+    transition: all 0.2s;
+    /* Ensure it sits on top */
+    z-index: 2;
+}
+
+.summary-change-btn:hover {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+}
+
+.summary-change-btn:active {
+    transform: scale(0.95);
+}
+
+/* Hide inputs when summary is active */
+.hidden-inputs {
+    display: none !important;
+}
+
+/* Compact Card Mode */
+.product-card.compact {
+    flex-direction: row;
+    align-items: center;
+    padding: 10px;
+    height: auto;
+}
+
+.product-card.compact .product-img {
+    width: 70px;
+    height: 70px;
+    margin-right: 15px;
+    border-radius: 8px;
+}
+
+.product-card.compact .product-desc,
+.product-card.compact .ribbon {
+    display: none;
+    /* Hide clutter */
+}
+
+.category-slider {
+    position: sticky;
+    top: 60px;
+    /* Below Navbar */
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(5px);
+    z-index: 990;
+    padding: 10px 0;
+    box-shadow: 0 4px 10px -5px rgba(0, 0, 0, 0.1);
+}
+
+/* --- BOTTOM NAVIGATION BAR (Mobile Only) --- */
+.bottom-nav {
+    display: none;
+    /* Hidden on Desktop */
+}
+
+@media (max-width: 768px) {
+
+    /* 1. Show Nav Bar */
+    .bottom-nav {
+        display: flex;
+        justify-content: space-around;
+        align-items: center;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 60px;
+        /* Fixed height */
+        background: #ffffff;
+        box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08);
+        /* Soft shadow upwards */
+        z-index: 4999;
+        /* Below Cart Sidebar (5001) & Modals (6000) */
+        border-top: 1px solid #f0f0f0;
+        padding-bottom: env(safe-area-inset-bottom);
+        /* iOS Safe Area support */
+    }
+
+    /* 2. Nav Items */
+    .nav-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-decoration: none;
+        color: #999;
+        font-size: 0.7rem;
+        flex: 1;
+        height: 100%;
+        transition: color 0.2s;
+        cursor: pointer;
+        position: relative;
+    }
+
+    .nav-item i {
+        font-size: 1.3rem;
+        margin-bottom: 4px;
+        transition: transform 0.2s;
+    }
+
+    /* Active State */
+    .nav-item.active {
+        color: var(--primary);
+        font-weight: 600;
+    }
+
+    .nav-item.active i {
+        transform: translateY(-2px);
+    }
+
+    /* 3. Cart Badge Styling */
+    .icon-wrapper {
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .badge {
+        position: absolute;
+        top: -8px;
+        right: -10px;
+        background: var(--primary);
+        color: white;
+        font-size: 0.65rem;
+        font-weight: bold;
+        min-width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 2px solid white;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    }
+
+    /* 4. Fix Overlaps */
+    /* Push WhatsApp button & ScrollTop UP so they don't hide behind nav */
+    .float-wa {
+        bottom: 80px !important;
+    }
+
+    #scrollTopBtn {
+        bottom: 150px !important;
+    }
+
+    /* Add padding to body so last item isn't covered */
+    body {
+        padding-bottom: 70px;
+    }
 }

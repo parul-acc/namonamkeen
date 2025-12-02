@@ -231,33 +231,60 @@
 
     <!-- WhatsApp Login Modal -->
     <div id="whatsapp-login-modal" class="modal-overlay">
-        <div class="modal-content" style="max-width: 400px;">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <h3><i class="fab fa-whatsapp" style="color: #25D366;"></i> WhatsApp Login</h3>
-                <button onclick="closeWhatsAppLogin()"
-                    style="background: none; border: none; font-size: 1.5rem; cursor: pointer;">&times;</button>
+        <div class="modal-content mobile-modal" style="max-width: 360px; text-align: center;">
+
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3 style="margin:0; display:flex; align-items:center; gap:8px;">
+                    <i class="fab fa-whatsapp" style="color: #25D366; font-size: 1.5rem;"></i>
+                    WhatsApp Login
+                </h3>
+                <button class="close-modal" onclick="closeWhatsAppLogin()" style="position: static;">&times;</button>
             </div>
 
             <div id="whatsapp-phone-section">
-                <input type="tel" id="whatsapp-phone" placeholder="Enter mobile number" maxlength="10"
-                    style="width: 100%; padding: 12px; margin: 15px 0; border: 1px solid #ddd; border-radius: 8px;">
-                <button onclick="sendWhatsAppOTP()" class="btn btn-primary" style="width: 100%;">
-                    Send OTP
+                <p style="color: #666; font-size: 0.9rem; margin-bottom: 15px; text-align: left;">
+                    Enter your mobile number to receive a verification code.
+                </p>
+
+                <div class="phone-input-group" style="margin-bottom: 20px;">
+                    <span>+91</span>
+                    <input type="tel" id="whatsapp-phone" placeholder="98765 43210" maxlength="10"
+                        oninput="validateWaPhone()" onkeydown="handleEnter(event, 'btn-send-otp-wa')">
+                </div>
+
+                <button id="btn-send-otp-wa" onclick="sendWhatsAppOTP()" class="btn-primary full-width" disabled
+                    style="opacity: 0.6;">
+                    Get OTP <i class="fas fa-arrow-right"></i>
                 </button>
             </div>
 
-            <div id="whatsapp-otp-section" style="display: none; margin-top: 20px;">
-                <p style="color: #666; font-size: 0.9rem;">Enter the 6-digit code sent to your WhatsApp</p>
-                <input type="text" id="whatsapp-otp-input" placeholder="Enter OTP" maxlength="6"
-                    style="width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; text-align: center; font-size: 1.2rem; letter-spacing: 5px;">
-                <button onclick="verifyWhatsAppOTP()" class="btn btn-primary" style="width: 100%;">
-                    Verify OTP
+            <div id="whatsapp-otp-section" style="display: none;">
+                <div
+                    style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; font-size: 0.9rem;">
+                    <span style="color: #666;">Sent to <strong id="wa-display-num">+91 XXXXX</strong></span>
+                    <button onclick="resetWhatsAppLogin()"
+                        style="background: none; border: none; color: var(--primary); text-decoration: underline; cursor: pointer; font-size: 0.85rem;">Change</button>
+                </div>
+
+                <input type="number" id="whatsapp-otp-input" placeholder="• • • • • •" maxlength="6"
+                    oninput="validateWaOtp()" onkeydown="handleEnter(event, 'btn-verify-wa')"
+                    style="width: 100%; padding: 15px; text-align: center; letter-spacing: 8px; font-size: 1.5rem; border: 2px solid #eee; border-radius: 10px; margin-bottom: 20px; font-weight: bold; color: var(--primary);">
+
+                <button id="btn-verify-wa" onclick="verifyWhatsAppOTP()" class="btn-primary full-width" disabled
+                    style="opacity: 0.6; margin-bottom: 15px;">
+                    Verify & Login
                 </button>
-                <button onclick="sendWhatsAppOTP()" class="btn"
-                    style="width: 100%; margin-top: 10px; background: #f0f0f0; color: #333;">
-                    Resend OTP
-                </button>
+
+                <div style="font-size: 0.85rem; color: #888;">
+                    <span id="wa-timer-text">Resend code in <span id="wa-timer"
+                            style="font-weight: bold; color: #333;">30</span>s</span>
+                    <button id="btn-resend-wa" onclick="resendWhatsAppOTP()"
+                        style="display: none; background: none; border: none; color: #555; font-weight: 600; cursor: pointer; text-decoration: underline; margin: 0 auto;">
+                        Resend OTP
+                    </button>
+                </div>
             </div>
+
         </div>
     </div>
 
