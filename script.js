@@ -57,7 +57,9 @@ let shopConfig = {
     upiId: "8103276050@ybl", // Default fallback if DB fails
     adminPhone: "919826698822",
     deliveryCharge: 50, // Set default to 50
-    freeShippingThreshold: 250 // Set default threshold
+    freeShippingThreshold: 250, // Add comma here
+    hamperPrice: 250,            // ADD THIS LINE
+    hamperMaxItemPrice: 105      // ADD THIS LINE
 };
 
 // --- STATE: Store unsubscribe functions to prevent memory leaks ---
@@ -3330,4 +3332,11 @@ async function verifyWhatsAppOTP() {
     } catch (error) {
         showToast("Invalid OTP: " + error.message, "error");
     }
+}
+
+function closeWhatsAppLogin() {
+    document.getElementById('whatsapp-login-modal').style.display = 'none';
+    document.getElementById('whatsapp-phone').value = '';
+    document.getElementById('whatsapp-otp-input').value = '';
+    document.getElementById('whatsapp-otp-section').style.display = 'none';
 }

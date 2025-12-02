@@ -65,7 +65,6 @@ document.addEventListener('DOMContentLoaded', () => {
 messaging.onMessage((payload) => {
     const { title, body } = payload.notification;
     showToast(`${title}: ${body}`, "success");
-    const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
     audio.play();
 });
 
@@ -215,7 +214,7 @@ function loadReviews() {
             const isPending = r.status === 'pending';
             const actionBtn = isPending
                 ? `<button class="btn btn-success btn-sm" onclick="approveReview('${doc.id}')">Approve</button>`
-                : `<button class="icon-btn btn-danger" onclick="deleteReview(...)"><i class="fas fa-trash"></i></button>`;
+                : `<button class="icon-btn btn-danger" onclick="deleteReview('${doc.id}', '${r.productId}', ${r.rating})"><i class="fas fa-trash"></i></button>`;
 
             tbody.innerHTML += `
             <tr>

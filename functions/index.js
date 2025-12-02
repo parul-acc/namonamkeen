@@ -6,11 +6,20 @@ const { defineString } = require("firebase-functions/params");
 
 admin.initializeApp();
 
-// --- CONFIGURATION (Firebase Functions v7 Environment Parameters) ---
-// Define environment parameters - set these in functions/.env file
+// --- CONFIGURATION (Environment Parameters) ---
 const emailSender = defineString("EMAIL_SENDER", { default: "namonamkeens@gmail.com" });
-const emailPassword = defineString("EMAIL_PASSWORD"); // Required - must be set  
+const emailPassword = defineString("EMAIL_PASSWORD");
 const emailAdmin = defineString("EMAIL_ADMIN", { default: "parul19.accenture@gmail.com, namonamkeens@gmail.com" });
+
+// Twilio Params
+const twilioSid = defineString("TWILIO_ACCOUNT_SID");
+const twilioToken = defineString("TWILIO_AUTH_TOKEN");
+const twilioNumber = defineString("TWILIO_WHATSAPP_NUMBER");
+
+// Razorpay Params (Use defineString here too for consistency)
+// You must add RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET to your .env file as well
+// If you prefer keeping process.env for Razorpay for now, that's fine, 
+// but defineString is recommended for v2 functions.
 
 const transporter = nodemailer.createTransport({
     service: "gmail",
@@ -27,7 +36,6 @@ exports.sendOrderConfirmation = functions.firestore
         const order = snap.data();
         const orderId = context.params.orderId;
 
-        // 1. Generate Items Table
         let itemsHtml = "";
         if (order.items && Array.isArray(order.items)) {
             order.items.forEach((item) => {
@@ -41,7 +49,6 @@ exports.sendOrderConfirmation = functions.firestore
             });
         }
 
-        // 2. Email Body
         const emailHtml = `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #eee; border-radius: 10px;">
                 <div style="background-color: #e85d04; padding: 20px; text-align: center; color: white;">
@@ -102,12 +109,12 @@ exports.sendOrderConfirmation = functions.firestore
 
 // --- FUNCTION 2: Create Secure Payment Order ---
 exports.createPaymentOrder = functions.https.onCall(async (data, context) => {
-    // 1. Security Check
     if (!context.auth) {
         throw new functions.https.HttpsError("unauthenticated", "User must be logged in.");
     }
 
-    // 2. Initialize Razorpay (Inside function to load env vars)
+    // Using process.env here since you likely haven't defined these strings yet
+    // Ensure RAZORPAY_KEY_ID is in your .env file
     const razorpay = new Razorpay({
         key_id: process.env.RAZORPAY_KEY_ID,
         key_secret: process.env.RAZORPAY_KEY_SECRET,
@@ -115,11 +122,8 @@ exports.createPaymentOrder = functions.https.onCall(async (data, context) => {
 
     const cart = data.cart;
     const discountInfo = data.discount;
-
-    // 3. Recalculate Total on Server (Prevents Tampering)
     const subtotal = cart.reduce((sum, i) => sum + (i.price * i.qty), 0);
 
-    // Discount Logic
     let discountAmount = 0;
     if (discountInfo && discountInfo.value > 0) {
         if (discountInfo.type === 'percent') {
@@ -128,18 +132,15 @@ exports.createPaymentOrder = functions.https.onCall(async (data, context) => {
             discountAmount = discountInfo.value;
         }
     }
-    // Prevent negative total if discount > subtotal
     if (discountAmount > subtotal) discountAmount = subtotal;
 
-    // --- FIX: Delivery Logic ---
     const freeShipLimit = 250;
-    const deliveryFee = 50; // <--- UPDATED to 50
+    const deliveryFee = 50;
     const shipping = (subtotal >= freeShipLimit) ? 0 : deliveryFee;
 
     const finalTotal = subtotal - discountAmount + shipping;
     const amountPaise = Math.round(finalTotal * 100);
 
-    // 4. Create Order
     try {
         const order = await razorpay.orders.create({
             amount: amountPaise,
@@ -159,63 +160,85 @@ exports.createPaymentOrder = functions.https.onCall(async (data, context) => {
     }
 });
 
-// Twillo
-
+// --- FUNCTION 3: Send WhatsApp OTP (UPDATED) ---
 exports.sendWhatsAppOTP = functions.https.onCall(async (data, context) => {
     const { phoneNumber } = data;
 
     // Generate 6-digit OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
-    // Send via Twilio WhatsApp
-    const twilioClient = require('twilio')(
-        process.env.TWILIO_ACCOUNT_SID,
-        process.env.TWILIO_AUTH_TOKEN
-    );
+    try {
+        // Initialize with params
+        const client = require('twilio')(twilioSid.value(), twilioToken.value());
 
-    await twilioClient.messages.create({
-        from: `whatsapp:${process.env.TWILIO_WHATSAPP_NUMBER}`,
-        to: `whatsapp:+91${phoneNumber}`,
-        body: `Your Namo Namkeen verification code is: ${otp}\n\nValid for 5 minutes.`
-    });
+        // Ensure "whatsapp:" prefix is added here, NOT in the .env variable
+        const fromNumber = `whatsapp:${twilioNumber.value()}`;
+        const toNumber = `whatsapp:+91${phoneNumber}`;
 
-    // Store OTP in Firestore with expiry
-    await admin.firestore().collection('otps').doc(phoneNumber).set({
-        otp: otp,
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
-        expiresAt: new Date(Date.now() + 5 * 60 * 1000)
-    });
+        console.log(`Sending OTP to ${toNumber} from ${fromNumber}`); // Debug log
 
-    return { success: true };
+        await client.messages.create({
+            from: fromNumber,
+            to: toNumber,
+            body: `Your Namo Namkeen verification code is: ${otp}\n\nValid for 5 minutes.`
+        });
+
+        // Store OTP
+        await admin.firestore().collection('otps').doc(phoneNumber).set({
+            otp: otp,
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            expiresAt: new Date(Date.now() + 5 * 60 * 1000)
+        });
+
+        return { success: true };
+
+    } catch (error) {
+        console.error("Twilio Error:", error);
+        throw new functions.https.HttpsError('internal', 'Failed to send OTP: ' + error.message);
+    }
 });
 
 exports.verifyWhatsAppOTP = functions.https.onCall(async (data, context) => {
     const { phoneNumber, otp } = data;
 
-    const otpDoc = await admin.firestore().collection('otps').doc(phoneNumber).get();
+    try {
+        const otpDoc = await admin.firestore().collection('otps').doc(phoneNumber).get();
 
-    if (!otpDoc.exists) {
-        throw new functions.https.HttpsError('not-found', 'OTP not found');
-    }
+        if (!otpDoc.exists) {
+            throw new functions.https.HttpsError('not-found', 'OTP not found');
+        }
 
-    const otpData = otpDoc.data();
+        const otpData = otpDoc.data();
 
-    // Check expiry
-    if (new Date() > otpData.expiresAt.toDate()) {
+        // Check expiry
+        if (new Date() > otpData.expiresAt.toDate()) {
+            await otpDoc.ref.delete();
+            throw new functions.https.HttpsError('deadline-exceeded', 'OTP expired');
+        }
+
+        // Verify OTP
+        if (otpData.otp !== otp) {
+            throw new functions.https.HttpsError('invalid-argument', 'Invalid OTP');
+        }
+
+        // Create custom token for Firebase Auth
+        // This is the line that usually fails without IAM permissions
+        const customToken = await admin.auth().createCustomToken(phoneNumber);
+
+        // Clean up OTP
         await otpDoc.ref.delete();
-        throw new functions.https.HttpsError('deadline-exceeded', 'OTP expired');
+
+        return { token: customToken, phoneNumber };
+
+    } catch (error) {
+        console.error("Verify OTP Error:", error);
+
+        // If it's already an HttpsError, re-throw it
+        if (error.code && error.details) {
+            throw error;
+        }
+
+        // Otherwise, throw an internal error with the message
+        throw new functions.https.HttpsError('internal', 'Verification failed: ' + error.message);
     }
-
-    // Verify OTP
-    if (otpData.otp !== otp) {
-        throw new functions.https.HttpsError('invalid-argument', 'Invalid OTP');
-    }
-
-    // Create custom token for Firebase Auth
-    const customToken = await admin.auth().createCustomToken(phoneNumber);
-
-    // Clean up OTP
-    await otpDoc.ref.delete();
-
-    return { token: customToken, phoneNumber };
 });
