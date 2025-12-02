@@ -3283,8 +3283,13 @@ function requestUserNotifications() {
 }
 
 function openWhatsAppLogin() {
+    // 1. Close the choice modal first
+    closeModal('login-choice-modal');
+
+    // 2. Open the WhatsApp modal
     document.getElementById('whatsapp-login-modal').style.display = 'flex';
 }
+
 async function sendWhatsAppOTP() {
     const phoneInput = document.getElementById('whatsapp-phone');
     const phone = phoneInput.value.trim();
