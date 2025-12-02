@@ -162,7 +162,6 @@ function fetchUserProfile(uid) {
             autoFillCheckout();
 
             // Auto-fill Checkout Fields
-            // Auto-fill Checkout Fields
             const nameInput = document.getElementById('cust-name'); // <--- NEW
             const phoneInput = document.getElementById('cust-phone');
             const emailInput = document.getElementById('cust-email'); // <--- NEW
@@ -192,13 +191,10 @@ function fetchUserProfile(uid) {
             }
 
             const data = doc.data();
-            // Merge Logic: Cloud cart takes precedence or merge? 
-            // Simple approach: If local is empty, pull cloud. If both exist, merge.
             if (data.cart && data.cart.length > 0) {
                 if (cart.length === 0) {
                     cart = data.cart;
                 } else {
-                    // Merge logic (avoid duplicates)
                     data.cart.forEach(cloudItem => {
                         const localItem = cart.find(c => c.cartId === cloudItem.cartId);
                         if (!localItem) cart.push(cloudItem);
@@ -209,7 +205,6 @@ function fetchUserProfile(uid) {
             }
         }
     });
-    // initReferral is already called inside the if block when needed
 }
 
 // --- HELPER: Sanitize user/product data to prevent XSS ---
@@ -509,7 +504,6 @@ function updateCardPrice(id, index) {
 }
 
 function addToCart(p, v, qtyToAdd = 1) {
-    // FIX: Remove spaces/special chars from ID to prevent onclick errors
     const safeWeight = v.weight.replace(/[^a-zA-Z0-9]/g, '');
     const cartId = `${p.id}-${safeWeight}`;
 
@@ -660,11 +654,15 @@ function findResult(keyword) {
 
 // --- 8. PRODUCT MODAL (Redesigned like Image 2) ---
 function openProductDetail(id) {
+
     const p = products.find(x => x.id === id);
     if (!p) return;
 
-    // FIX: Force reset to 1 every time modal opens
     currentModalQty = 1;
+
+    pushModalState();
+    toggleBodyScroll(true); // <--- LOCK
+    document.getElementById('product-modal').style.display = 'flex';
 
     // Update SEO Schema if function exists
     if (typeof updateSchema === 'function') updateSchema(p);
@@ -1197,9 +1195,13 @@ function toggleCart() {
     sidebar.classList.toggle('active');
     overlay.classList.toggle('active');
 
-    // Make sure this line exists:
+    // --- ADD THIS LOGIC ---
     if (sidebar.classList.contains('active')) {
-        autoFillCheckout(); // <--- Trigger the UI check
+        autoFillCheckout();
+        pushModalState();
+        toggleBodyScroll(true); // <--- LOCK
+    } else {
+        toggleBodyScroll(false); // <--- UNLOCK
     }
 }
 
@@ -1835,9 +1837,11 @@ function ensureModalExists(modalId) {
 }
 
 function openProfileModal() {
-    // If modal is missing from HTML, inject it (use your ensureModalExists function if you have it)
     const modal = document.getElementById('profile-modal');
-    if (!modal) return console.error("Profile modal not found in HTML");
+    if (!modal) return;
+
+    toggleBodyScroll(true); // <--- LOCK
+    pushModalState();
 
     modal.style.display = 'flex';
     if (document.getElementById('profile-menu')) document.getElementById('profile-menu').classList.remove('active');
@@ -2889,7 +2893,7 @@ async function saveNewAddress() {
     const addrObj = getAddressFromInputs('cust');
 
     if (!addrObj) return showToast("Please complete address first", "error");
-    if (addrObj.street.length < 5) return showToast("Street address too short", "error");
+    if (addrObj.street.length < 3) return showToast("Street address too short", "error");
 
     const label = prompt("Give this address a name (e.g., Home, Office):", "Home");
     if (!label) return;
@@ -3412,9 +3416,15 @@ let waCountdown = 30;
 
 // 1. Open Modal
 function openWhatsAppLogin() {
+    pushModalState();
     closeModal('login-choice-modal');
     document.getElementById('whatsapp-login-modal').style.display = 'flex';
     resetWhatsAppLogin(); // Always start fresh
+}
+
+function toggleBodyScroll(lock) {
+    if (lock) document.body.classList.add('no-scroll');
+    else document.body.classList.remove('no-scroll');
 }
 
 function closeWhatsAppLogin() {
@@ -3609,4 +3619,25 @@ function togglePaymentUI() {
             btn.style.background = 'var(--primary)'; // Standard Orange
         }
     }
+}
+
+// --- BACK BUTTON HANDLING ---
+window.addEventListener('popstate', (event) => {
+    // Check if any modal is open
+    const openModal = document.querySelector('.modal-overlay[style*="display: flex"]');
+    const sidebar = document.getElementById('cart-sidebar');
+
+    if (openModal) {
+        // Close the open modal
+        openModal.style.display = 'none';
+        // Prevent default back behavior if needed (though popstate implies it happened)
+    } else if (sidebar && sidebar.classList.contains('active')) {
+        // Close sidebar
+        toggleCart();
+    }
+});
+
+// Update your open functions to push a state
+function pushModalState() {
+    window.history.pushState({ modal: true }, "");
 }
