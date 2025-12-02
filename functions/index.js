@@ -49,59 +49,56 @@ exports.sendOrderConfirmation = functions.firestore
         console.log(`Processing notifications for Order ${orderId}`);
 
         // 2. PREPARE DATA
-        const customerName = order.userName || "Customer";
-        const totalAmount = order.total;
-        const userPhone = order.userPhone ? order.userPhone.replace(/\D/g, '') : ''; // Digits only
-        const userEmail = order.userEmail;
-        const address = order.userAddress || "No address provided";
-        const paymentInfo = `${order.paymentMethod} (${order.paymentStatus})`;
+        const userEmail = order.userEmail || "";
+        const userPhone = order.userPhone || "";
+        const customerName = order.customerName || "Customer";
+        const totalAmount = order.totalAmount || 0;
+        const address = order.deliveryAddress || "N/A";
+        const paymentInfo = order.paymentMethod === "COD" ? "Cash on Delivery" : `Online (${order.razorpayPaymentId || "N/A"})`;
 
-        // Generate Item Rows for Email
         let itemsHtml = "";
-        if (order.items && Array.isArray(order.items)) {
-            order.items.forEach((item) => {
-                itemsHtml += `
-                    <tr>
-                        <td style="padding: 8px; border-bottom: 1px solid #eee;">${item.name} <span style="color:#777; font-size:0.9em;">(${item.weight})</span></td>
-                        <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: center;">${item.qty}</td>
-                        <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">₹${item.price * item.qty}</td>
-                    </tr>`;
-            });
-        }
+        order.items.forEach(item => {
+            itemsHtml += `
+                <tr>
+                    <td style="padding: 8px; border-bottom: 1px solid #eee;">${item.name}</td>
+                    <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: center;">${item.qty}</td>
+                </tr>
+            `;
+        });
 
-        // 3. DEFINE EMAIL TEMPLATES
+        // 3. EMAIL TEMPLATES
 
-        // --- A. CUSTOMER EMAIL TEMPLATE ---
+        // --- A. CUSTOMER EMAIL TEMPLATE (Clean & Friendly) ---
         const customerEmailHtml = `
-            <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #eee; border-radius: 8px; overflow: hidden;">
-                <div style="background-color: #e85d04; padding: 30px; text-align: center; color: white;">
-                    <h1 style="margin: 0; font-size: 24px;">Order Confirmed!</h1>
-                    <p style="margin: 10px 0 0; opacity: 0.9;">Thanks for choosing Namo Namkeen</p>
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #eee; border-radius: 10px; overflow: hidden;">
+                <div style="background: linear-gradient(135deg, #e85d04 0%, #dc2f02 100%); padding: 30px; text-align: center; color: white;">
+                    <h1 style="margin: 0; font-size: 28px;">🎉 Order Confirmed!</h1>
+                    <p style="margin: 10px 0 0; font-size: 16px; opacity: 0.9;">Thank you for choosing Namo Namkeen</p>
                 </div>
-                <div style="padding: 30px;">
-                    <p>Hi <strong>${customerName}</strong>,</p>
-                    <p>We've received your order <strong>#${orderId}</strong>. We're getting your snacks ready!</p>
+                <div style="padding: 30px; background: white;">
+                    <p style="font-size: 16px; color: #333;">Hi <strong>${customerName}</strong>,</p>
+                    <p style="color: #666; line-height: 1.6;">Your order has been confirmed and is being prepared with care. We'll notify you once it's on the way!</p>
                     
-                    <table style="width: 100%; border-collapse: collapse; margin: 25px 0;">
-                        <thead>
-                            <tr style="background: #f9f9f9; color: #555;">
-                                <th style="padding: 10px; text-align: left;">Item</th>
-                                <th style="padding: 10px; text-align: center;">Qty</th>
-                                <th style="padding: 10px; text-align: right;">Total</th>
-                            </tr>
-                        </thead>
-                        <tbody>${itemsHtml}</tbody>
-                        <tfoot>
-                            <tr>
-                                <td colspan="2" style="padding: 15px 10px; text-align: right; border-top: 2px solid #eee;"><strong>Grand Total:</strong></td>
-                                <td style="padding: 15px 10px; text-align: right; border-top: 2px solid #eee; color: #e85d04; font-size: 18px; font-weight: bold;">₹${totalAmount}</td>
-                            </tr>
-                        </tfoot>
+                    <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                        <h3 style="margin: 0 0 15px 0; color: #e85d04; font-size: 18px;">Order Summary</h3>
+                        <p style="margin: 5px 0; color: #555;"><strong>Order ID:</strong> #${orderId}</p>
+                        <p style="margin: 5px 0; color: #555;"><strong>Total Amount:</strong> ₹${totalAmount}</p>
+                        <p style="margin: 5px 0; color: #555;"><strong>Payment:</strong> ${paymentInfo}</p>
+                    </div>
+
+                    <h4 style="color: #333; margin: 25px 0 10px;">Items Ordered:</h4>
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <tr style="background: #e85d04; color: white;">
+                            <th style="padding: 10px; text-align: left;">Item</th>
+                            <th style="padding: 10px; text-align: center;">Quantity</th>
+                        </tr>
+                        ${itemsHtml}
                     </table>
 
-                    <div style="background: #fff8e1; padding: 15px; border-radius: 5px; margin-top: 20px;">
-                        <strong>Delivery Address:</strong><br>
-                        ${address}
+                    <div style="margin-top: 25px; padding: 15px; background: #fff3cd; border-left: 4px solid #ffc107; border-radius: 4px;">
+                        <p style="margin: 0; color: #856404; font-size: 14px;">
+                            <strong>📍 Delivery Address:</strong><br>${address}
+                        </p>
                     </div>
                 </div>
                 <div style="background-color: #f8f9fa; padding: 20px; text-align: center; font-size: 12px; color: #999;">
@@ -300,6 +297,7 @@ exports.verifyWhatsAppOTP = functions.https.onCall(async (data, context) => {
         }
 
         if (otpData.otp !== otp) throw new functions.https.HttpsError('invalid-argument', 'Invalid OTP');
+
         const customToken = await admin.auth().createCustomToken(phoneNumber);
         await otpDoc.ref.delete();
 
@@ -416,7 +414,7 @@ async function sendLowStockEmail(product, productId) {
                 </div>
                 
                 ${isCritical ? `
-                <div style="background: #ffebee; border-left: 4px solid #e74c3c; padding: 15px; margin-bottom: 20px; border-radius: 4px;">
+               <div style="background: #ffebee; border-left: 4px solid #e74c3c; padding: 15px; margin-bottom: 20px; border-radius: 4px;">
                     <strong style="color: #c62828; font-size: 14px;">⚠️ Critical Action Required:</strong>
                     <p style="margin: 8px 0 0; color: #666; font-size: 13px; line-height: 1.5;">
                         Stock has reached critical levels. Immediate restocking is recommended to avoid stockout situation.
@@ -522,5 +520,250 @@ exports.trackOrderStockImpact = functions.firestore
         }
 
         console.log(`✅ Stock tracking complete for Order #${orderId} (${stockUpdates.length} items updated)`);
+        return null;
+    });
+
+// =====================================================
+// ANALYTICS FUNCTIONS
+// =====================================================
+
+// --- FUNCTION 7: Update Customer Analytics (Triggered on Order) ---
+exports.updateCustomerAnalytics = functions.firestore
+    .document('orders/{orderId}')
+    .onCreate(async (snap, context) => {
+        const order = snap.data();
+        const orderId = context.params.orderId;
+
+        // Use phone as customer ID (most reliable identifier)
+        const customerId = order.userPhone || order.userId;
+
+        if (!customerId) {
+            console.log(`No customer ID for order ${orderId}, skipping analytics`);
+            return null;
+        }
+
+        console.log(`📊 Updating customer analytics for ${customerId}`);
+
+        const customerRef = admin.firestore().collection('customerAnalytics').doc(customerId);
+        const customerSnap = await customerRef.get();
+
+        if (!customerSnap.exists) {
+            // Create new customer analytics record
+            await customerRef.set({
+                userId: customerId,
+                phone: order.userPhone,
+                email: order.userEmail || null,
+                name: order.customerName || null,
+                totalOrders: 1,
+                totalSpent: order.totalAmount,
+                averageOrderValue: order.totalAmount,
+                firstOrderDate: order.timestamp,
+                lastOrderDate: order.timestamp,
+                daysSinceLastOrder: 0,
+                segment: 'New',
+                favoriteCategories: extractCategories(order.items),
+                topProducts: extractTopProducts(order.items),
+                createdAt: admin.firestore.FieldValue.serverTimestamp(),
+                updatedAt: admin.firestore.FieldValue.serverTimestamp()
+            });
+            console.log(`✅ Created new customer analytics for ${customerId}`);
+        } else {
+            // Update existing customer analytics
+            const data = customerSnap.data();
+            const newTotalOrders = data.totalOrders + 1;
+            const newTotalSpent = data.totalSpent + order.totalAmount;
+            const newAvgOrderValue = newTotalSpent / newTotalOrders;
+
+            // Calculate days since last order
+            const daysSinceLast = data.lastOrderDate
+                ? Math.floor((order.timestamp.toMillis() - data.lastOrderDate.toMillis()) / (1000 * 60 * 60 * 24))
+                : 0;
+
+            // Update favorite categories and top products
+            const updatedCategories = mergeCategories(data.favoriteCategories || [], extractCategories(order.items));
+            const updatedProducts = mergeProducts(data.topProducts || [], extractTopProducts(order.items));
+
+            await customerRef.update({
+                totalOrders: newTotalOrders,
+                totalSpent: newTotalSpent,
+                averageOrderValue: newAvgOrderValue,
+                lastOrderDate: order.timestamp,
+                daysSinceLastOrder: 0,
+                segment: calculateCustomerSegment(newTotalOrders, newTotalSpent, data.firstOrderDate, order.timestamp),
+                favoriteCategories: updatedCategories.slice(0, 5),
+                topProducts: updatedProducts.slice(0, 5),
+                updatedAt: admin.firestore.FieldValue.serverTimestamp()
+            });
+            console.log(`✅ Updated customer analytics for ${customerId} (${newTotalOrders} orders, ₹${newTotalSpent})`);
+        }
+
+        return null;
+    });
+
+// Helper: Extract categories from order items
+function extractCategories(items) {
+    const categories = items
+        .map(item => item.category)
+        .filter(cat => cat);
+    return [...new Set(categories)];
+}
+
+// Helper: Extract top products from order
+function extractTopProducts(items) {
+    return items
+        .map(item => item.name)
+        .filter(name => name)
+        .slice(0, 3);
+}
+
+// Helper: Merge categories with existing
+function mergeCategories(existing, newCats) {
+    const merged = [...existing, ...newCats];
+    const counts = {};
+    merged.forEach(cat => counts[cat] = (counts[cat] || 0) + 1);
+    return Object.keys(counts).sort((a, b) => counts[b] - counts[a]);
+}
+
+// Helper: Merge products with existing
+function mergeProducts(existing, newProds) {
+    const merged = [...existing, ...newProds];
+    const counts = {};
+    merged.forEach(prod => counts[prod] = (counts[prod] || 0) + 1);
+    return Object.keys(counts).sort((a, b) => counts[b] - counts[a]);
+}
+
+// Helper: Calculate customer segment based on RFM
+function calculateCustomerSegment(totalOrders, totalSpent, firstOrderDate, lastOrderDate) {
+    const avgOrderValue = totalSpent / totalOrders;
+    const daysSinceFirst = (lastOrderDate.toMillis() - firstOrderDate.toMillis()) / (1000 * 60 * 60 * 24);
+
+    // VIP: High value customers (>10 orders OR >₹10,000 spent)
+    if (totalOrders > 10 || totalSpent > 10000) {
+        return 'VIP';
+    }
+
+    // Frequent: 5+ orders in last 90 days
+    if (totalOrders >= 5 && daysSinceFirst <= 90) {
+        return 'Frequent';
+    }
+
+    // Regular: 2-4 orders
+    if (totalOrders >= 2 && totalOrders <= 4) {
+        return 'Regular';
+    }
+
+    // New: First order
+    if (totalOrders === 1) {
+        return 'New';
+    }
+
+    // At Risk: Haven't ordered in 60+ days
+    const daysSinceLast = (Date.now() - lastOrderDate.toMillis()) / (1000 * 60 * 60 * 24);
+    if (daysSinceLast > 60) {
+        return 'AtRisk';
+    }
+
+    return 'Regular';
+}
+
+// --- FUNCTION 8: Daily Product Analytics Computation ---
+exports.dailyProductAnalytics = functions.pubsub
+    .schedule('every day 02:00')
+    .timeZone('Asia/Kolkata')
+    .onRun(async (context) => {
+        console.log('🔄 Running daily product analytics computation...');
+
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+        const sixtyDaysAgo = new Date();
+        sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
+
+        // Fetch orders from last 30 days
+        const recentOrdersSnapshot = await admin.firestore().collection('orders')
+            .where('timestamp', '>=', thirtyDaysAgo)
+            .get();
+
+        // Fetch orders from 30-60 days ago for growth comparison
+        const previousOrdersSnapshot = await admin.firestore().collection('orders')
+            .where('timestamp', '>=', sixtyDaysAgo)
+            .where('timestamp', '<', thirtyDaysAgo)
+            .get();
+
+        const productStats = {};
+        const previousProductStats = {};
+
+        // Process recent orders (last 30 days)
+        recentOrdersSnapshot.forEach(doc => {
+            const order = doc.data();
+            order.items.forEach(item => {
+                if (!item.productId) return;
+
+                if (!productStats[item.productId]) {
+                    productStats[item.productId] = {
+                        productId: item.productId,
+                        productName: item.name,
+                        totalRevenue: 0,
+                        totalUnitsSold: 0,
+                        orderCount: 0,
+                        prices: []
+                    };
+                }
+
+                productStats[item.productId].totalRevenue += (item.price * item.qty);
+                productStats[item.productId].totalUnitsSold += item.qty;
+                productStats[item.productId].orderCount += 1;
+                productStats[item.productId].prices.push(item.price);
+            });
+        });
+
+        // Process previous period orders (for growth calculation)
+        previousOrdersSnapshot.forEach(doc => {
+            const order = doc.data();
+            order.items.forEach(item => {
+                if (!item.productId) return;
+
+                if (!previousProductStats[item.productId]) {
+                    previousProductStats[item.productId] = { totalRevenue: 0 };
+                }
+
+                previousProductStats[item.productId].totalRevenue += (item.price * item.qty);
+            });
+        });
+
+        // Calculate analytics and save
+        const batch = admin.firestore().batch();
+        let processedCount = 0;
+
+        Object.values(productStats).forEach(stats => {
+            const docRef = admin.firestore().collection('productAnalytics').doc(stats.productId);
+
+            // Calculate average price
+            const averagePrice = stats.prices.reduce((a, b) => a + b, 0) / stats.prices.length;
+
+            // Calculate growth rate
+            const previousRevenue = previousProductStats[stats.productId]?.totalRevenue || 0;
+            const growthRate = previousRevenue > 0
+                ? ((stats.totalRevenue - previousRevenue) / previousRevenue) * 100
+                : 0;
+
+            batch.set(docRef, {
+                productId: stats.productId,
+                productName: stats.productName,
+                totalRevenue: stats.totalRevenue,
+                totalUnitsSold: stats.totalUnitsSold,
+                orderCount: stats.orderCount,
+                averagePrice: Math.round(averagePrice),
+                last30DaysRevenue: stats.totalRevenue,
+                growthRate: Math.round(growthRate * 10) / 10,  // Round to 1 decimal
+                updatedAt: admin.firestore.FieldValue.serverTimestamp()
+            }, { merge: true });
+
+            processedCount++;
+        });
+
+        await batch.commit();
+        console.log(`✅ Product analytics updated for ${processedCount} products`);
+
         return null;
     });
