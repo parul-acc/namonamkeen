@@ -36,8 +36,6 @@ let couponsUnsubscribe = null;
 let blogsUnsubscribe = null;
 let expensesUnsubscribe = null;
 
-const messaging = firebase.messaging();
-
 let salesChartInstance, productChartInstance, paymentChartInstance;
 const ITEMS_PER_PAGE = 10;
 let state = {
@@ -60,6 +58,23 @@ document.addEventListener('DOMContentLoaded', () => {
         header.appendChild(btn);
     }
 });
+
+// SAFE MESSAGING INIT
+let messaging = null;
+try {
+    if (firebase.messaging.isSupported()) {
+        messaging = firebase.messaging();
+        messaging.onMessage((payload) => {
+            console.log("Message received. ", payload);
+            const { title, body } = payload.notification;
+            showToast(`${title}: ${body}`, "success");
+            const audio = new Audio('assets/sounds/notification.mp3');
+            audio.play().catch(e => console.log("Audio play failed"));
+        });
+    }
+} catch (e) {
+    console.log("Messaging skipped (not supported):", e);
+}
 
 // Listener for foreground messages (while you are on the page)
 messaging.onMessage((payload) => {
@@ -90,7 +105,17 @@ if (window.location.pathname.endsWith('admin-local.html')) {
     });
 }
 
-function adminLogin() { auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()); }
+function adminLogin() {
+    console.log("Attempting login..."); // Add this to debug
+    auth.signInWithPopup(new firebase.auth.GoogleAuthProvider())
+        .then((result) => {
+            console.log("Login success:", result.user.email);
+        })
+        .catch((error) => {
+            console.error("Login failed:", error);
+            alert("Login failed: " + error.message);
+        });
+}
 function logout() {
     // Cleanup all listeners before logging out
     if (reviewsUnsubscribe) reviewsUnsubscribe();

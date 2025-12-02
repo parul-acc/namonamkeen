@@ -661,7 +661,6 @@ function openProductDetail(id) {
     currentModalQty = 1;
 
     pushModalState();
-    toggleBodyScroll(true); // <--- LOCK
     document.getElementById('product-modal').style.display = 'flex';
 
     // Update SEO Schema if function exists
@@ -1199,7 +1198,6 @@ function toggleCart() {
     if (sidebar.classList.contains('active')) {
         autoFillCheckout();
         pushModalState();
-        toggleBodyScroll(true); // <--- LOCK
     } else {
         toggleBodyScroll(false); // <--- UNLOCK
     }
@@ -1840,7 +1838,6 @@ function openProfileModal() {
     const modal = document.getElementById('profile-modal');
     if (!modal) return;
 
-    toggleBodyScroll(true); // <--- LOCK
     pushModalState();
 
     modal.style.display = 'flex';
