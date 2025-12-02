@@ -2,18 +2,22 @@ const functions = require("firebase-functions/v1");
 const admin = require("firebase-admin");
 const nodemailer = require("nodemailer");
 const Razorpay = require("razorpay");
+const { defineString } = require("firebase-functions/params");
 
 admin.initializeApp();
 
-// --- CONFIGURATION ---
-const SENDER_EMAIL = "namonamkeens@gmail.com"; 
-const SENDER_PASS = "mqkr qkbi ribx dgvr"; 
-const ADMIN_EMAIL = "parul19.accenture@gmail.com, namonamkeens@gmail.com"; // Copy to owner
-
+// --- CONFIGURATION (Firebase Functions v7 Environment Parameters) ---
+// Define environment parameters - set these in functions/.env file
+const emailSender = defineString("EMAIL_SENDER", { default: "namonamkeens@gmail.com" });
+const emailPassword = defineString("EMAIL_PASSWORD"); // Required - must be set  
+const emailAdmin = defineString("EMAIL_ADMIN", { default: "parul19.accenture@gmail.com, namonamkeens@gmail.com" });
 
 const transporter = nodemailer.createTransport({
     service: "gmail",
-    auth: { user: SENDER_EMAIL, pass: SENDER_PASS },
+    auth: {
+        user: emailSender.value(),
+        pass: emailPassword.value()
+    },
 });
 
 // --- FUNCTION 1: Send Invoice Email ---
@@ -80,9 +84,9 @@ exports.sendOrderConfirmation = functions.firestore
             </div>`;
 
         const mailOptions = {
-            from: `"Namo Namkeen" <${SENDER_EMAIL}>`,
-            to: (order.userEmail && order.userEmail.includes('@')) ? order.userEmail : ADMIN_EMAIL, 
-            bcc: ADMIN_EMAIL, 
+            from: `"Namo Namkeen" <${emailSender.value()}>`,
+            to: (order.userEmail && order.userEmail.includes('@')) ? order.userEmail : emailAdmin.value(),
+            bcc: emailAdmin.value(),
             subject: `Order Confirmed: #${orderId}`,
             html: emailHtml,
         };
@@ -111,10 +115,10 @@ exports.createPaymentOrder = functions.https.onCall(async (data, context) => {
 
     const cart = data.cart;
     const discountInfo = data.discount;
-    
+
     // 3. Recalculate Total on Server (Prevents Tampering)
     const subtotal = cart.reduce((sum, i) => sum + (i.price * i.qty), 0);
-    
+
     // Discount Logic
     let discountAmount = 0;
     if (discountInfo && discountInfo.value > 0) {
@@ -128,7 +132,7 @@ exports.createPaymentOrder = functions.https.onCall(async (data, context) => {
     if (discountAmount > subtotal) discountAmount = subtotal;
 
     // --- FIX: Delivery Logic ---
-    const freeShipLimit = 250; 
+    const freeShipLimit = 250;
     const deliveryFee = 50; // <--- UPDATED to 50
     const shipping = (subtotal >= freeShipLimit) ? 0 : deliveryFee;
 
@@ -155,10 +159,63 @@ exports.createPaymentOrder = functions.https.onCall(async (data, context) => {
     }
 });
 
-// --- FUNCTION 3: Log Sales (Optional) ---
-exports.logSalesData = functions.firestore
-    .document("orders/{orderId}")
-    .onCreate(async (snap, context) => {
-        // ... (Keep existing logSalesData logic if you added it) ...
-        return null;
+// Twillo
+
+exports.sendWhatsAppOTP = functions.https.onCall(async (data, context) => {
+    const { phoneNumber } = data;
+
+    // Generate 6-digit OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+    // Send via Twilio WhatsApp
+    const twilioClient = require('twilio')(
+        process.env.TWILIO_ACCOUNT_SID,
+        process.env.TWILIO_AUTH_TOKEN
+    );
+
+    await twilioClient.messages.create({
+        from: `whatsapp:${process.env.TWILIO_WHATSAPP_NUMBER}`,
+        to: `whatsapp:+91${phoneNumber}`,
+        body: `Your Namo Namkeen verification code is: ${otp}\n\nValid for 5 minutes.`
     });
+
+    // Store OTP in Firestore with expiry
+    await admin.firestore().collection('otps').doc(phoneNumber).set({
+        otp: otp,
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        expiresAt: new Date(Date.now() + 5 * 60 * 1000)
+    });
+
+    return { success: true };
+});
+
+exports.verifyWhatsAppOTP = functions.https.onCall(async (data, context) => {
+    const { phoneNumber, otp } = data;
+
+    const otpDoc = await admin.firestore().collection('otps').doc(phoneNumber).get();
+
+    if (!otpDoc.exists) {
+        throw new functions.https.HttpsError('not-found', 'OTP not found');
+    }
+
+    const otpData = otpDoc.data();
+
+    // Check expiry
+    if (new Date() > otpData.expiresAt.toDate()) {
+        await otpDoc.ref.delete();
+        throw new functions.https.HttpsError('deadline-exceeded', 'OTP expired');
+    }
+
+    // Verify OTP
+    if (otpData.otp !== otp) {
+        throw new functions.https.HttpsError('invalid-argument', 'Invalid OTP');
+    }
+
+    // Create custom token for Firebase Auth
+    const customToken = await admin.auth().createCustomToken(phoneNumber);
+
+    // Clean up OTP
+    await otpDoc.ref.delete();
+
+    return { token: customToken, phoneNumber };
+});

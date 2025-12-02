@@ -144,15 +144,15 @@ function fetchUserProfile(uid) {
             }
 
             // Auto-fill Checkout Fields
-           // Auto-fill Checkout Fields
-    const nameInput = document.getElementById('cust-name'); // <--- NEW
-    const phoneInput = document.getElementById('cust-phone');
+            // Auto-fill Checkout Fields
+            const nameInput = document.getElementById('cust-name'); // <--- NEW
+            const phoneInput = document.getElementById('cust-phone');
             const emailInput = document.getElementById('cust-email'); // <--- NEW
 
             if (nameInput) {
-        // Use Profile Name -> Auth Name -> Empty
-        nameInput.value = userProfile.name || (currentUser.displayName || "");
-    }
+                // Use Profile Name -> Auth Name -> Empty
+                nameInput.value = userProfile.name || (currentUser.displayName || "");
+            }
 
             if (phoneInput && !phoneInput.value && userProfile.phone) {
                 phoneInput.value = userProfile.phone.replace('+91', '');
@@ -191,7 +191,7 @@ function fetchUserProfile(uid) {
             }
         }
     });
-    initReferral(); // NEW: Check referral on login
+    // initReferral is already called inside the if block when needed
 }
 
 // --- HELPER: Sanitize user/product data to prevent XSS ---
@@ -535,13 +535,13 @@ function toggleHamperItem(p, el) {
         if (selectedHamperItems.length < 3) {
             const currentTotal = selectedHamperItems.reduce((sum, item) => sum + item.price, 0);
             if (currentTotal + p.price > shopConfig.hamperPrice) {
-                showToast("Total value too high! Try a cheaper item.", "success");
+                showToast("Total value too high! Try a cheaper item.", "error");
                 return;
             }
             selectedHamperItems.push(p);
             el.classList.add('selected');
         } else {
-            showToast("Select only 3 items!", "success");
+            showToast("Select only 3 items!", "error");
         }
     }
     updateHamperUI();
@@ -552,9 +552,10 @@ function updateHamperUI() {
     if (countElem) countElem.innerText = selectedHamperItems.length;
     const btn = document.getElementById('add-hamper-btn');
     if (btn) {
+        const hamperPrice = shopConfig.hamperPrice || 250;
         if (selectedHamperItems.length === 3) {
             btn.classList.remove('disabled');
-            btn.innerHTML = "Add Hamper to Cart - ₹250";
+            btn.innerHTML = `Add Hamper to Cart - ₹${hamperPrice}`;
             btn.style.background = "var(--primary)";
         } else {
             btn.classList.add('disabled');
@@ -747,14 +748,18 @@ function shareNative(title, url) {
             title: title,
             text: `Check out ${title} on Namo Namkeen!`,
             url: url
-        }).catch(console.error);
+        }).catch(err => {
+            // Only show error if user didn't cancel the share dialog
+            if (err.name !== 'AbortError') {
+                showToast("Could not share. Please try again.", "error");
+            }
+        });
     }
 }
 
 // 1. Add this function to script.js
 async function cancelOrder(docId) {
     if (!docId) return showToast("Error: Invalid Order ID", "error");
-    if (!await showConfirm("Are you sure you want to cancel this order?")) return;
 
     try {
         const orderRef = db.collection("orders").doc(docId);
@@ -769,6 +774,8 @@ async function cancelOrder(docId) {
         if (diffMins > 30) {
             return showToast("Cannot cancel after 30 mins. Please call us.", "error");
         }
+
+        // Ask confirmation only once, after time validation
         if (!await showConfirm("Are you sure you want to cancel this order?")) return;
 
         const batch = db.batch();
@@ -827,7 +834,10 @@ async function cancelOrder(docId) {
         showOrderHistory();
 
     } catch (e) {
-        console.error("Cancel Error:", e);
+        // Log only in development environment
+        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+            console.error("Cancel Error:", e);
+        }
         showToast("Could not cancel order.", "error");
     }
 }
@@ -1175,7 +1185,7 @@ async function finalizeOrder(paymentMode) {
     // 1. Get Basic Inputs
     const phoneInput = document.getElementById('cust-phone');
     const nameInput = document.getElementById('cust-name');
-    
+
     // 2. Get Email (Input > Auth > Empty)
     let email = "";
     const emailInput = document.getElementById('cust-email');
@@ -1204,7 +1214,7 @@ async function finalizeOrder(paymentMode) {
     // 5. User Details
     const phone = phoneInput ? phoneInput.value.trim() : '';
     let uid = currentUser ? currentUser.uid : `guest_${phone}`;
-    
+
     // Determine Name
     let uName = "Guest";
     if (nameInput && nameInput.value.trim()) {
@@ -1225,21 +1235,21 @@ async function finalizeOrder(paymentMode) {
             userName: uName,
             userPhone: phone,
             userEmail: email,
-            
+
             // Address Data
             userAddress: addrObj.full,       // Display String
             addressDetails: addrObj,         // Structured Object
-            
+
             deliveryNote: deliveryNote,
             items: cart,
-            
+
             // Financials
             subtotal: subtotal,
             shippingCost: shipping,
             discount: appliedDiscount,
             discountAmt: discountAmount,
             total: finalTotal,
-            
+
             // Payment Status
             paymentMethod: paymentMode,
             status: 'Pending',
@@ -1252,9 +1262,9 @@ async function finalizeOrder(paymentMode) {
         appliedDiscount = { type: 'none', value: 0, code: null };
         saveCartLocal();
         updateCartUI();
-        
+
         closeModal('payment-modal'); // Close the Scan modal
-        
+
         // Close sidebar
         document.getElementById('cart-sidebar').classList.remove('active');
         document.querySelector('.cart-overlay').classList.remove('active');
@@ -1307,7 +1317,7 @@ function googleLogin(isCheckoutFlow = false) {
         };
 
         if (enteredPhone) updateData.phone = enteredPhone;
-        
+
         // 2. Save Address if valid
         if (addrObj) {
             updateData.address = addrObj.full;       // Save String
@@ -1347,7 +1357,7 @@ function updateUserUI(loggedIn) {
 
         // Hide the guest login link if it exists
         if (guestLink) guestLink.style.display = 'none';
-        if(saveBtn) saveBtn.style.display = 'inline-block'; // Allow saving
+        if (saveBtn) saveBtn.style.display = 'inline-block'; // Allow saving
 
     } else {
         document.getElementById('login-btn').style.display = 'block';
@@ -1355,7 +1365,7 @@ function updateUserUI(loggedIn) {
 
         // Show the guest login link if it exists
         if (guestLink) guestLink.style.display = 'block';
-        if(saveBtn) saveBtn.style.display = 'none'; // Hide for guests
+        if (saveBtn) saveBtn.style.display = 'none'; // Hide for guests
     }
 }
 
@@ -2115,7 +2125,7 @@ async function saveOrderToFirebase(method, paymentStatus, txnId) {
     } else if (currentUser && currentUser.email) {
         email = currentUser.email;
     }
-    
+
 
     // 2. Generate Order ID
     const generateShortId = () => {
@@ -2129,7 +2139,7 @@ async function saveOrderToFirebase(method, paymentStatus, txnId) {
     const orderId = 'ORD-' + generateShortId();
 
     let uid = currentUser ? currentUser.uid : `guest_${phone}`;
-  // --- FIX: Capture Name ---
+    // --- FIX: Capture Name ---
     let uName = "Guest";
     const nameInput = document.getElementById('cust-name');
     if (nameInput && nameInput.value.trim()) {
@@ -2244,11 +2254,11 @@ async function saveOrderToFirebase(method, paymentStatus, txnId) {
 
 function showSuccessModal(orderId, amount, method) {
     const custName = currentUser ? currentUser.displayName : "Guest";
-    
+
     // --- FIX: Read from New Address Fields ---
     const addrObj = getAddressFromInputs('cust');
     // If for some reason inputs are cleared, fallback to generic text
-    const address = addrObj ? addrObj.full : "Address not captured"; 
+    const address = addrObj ? addrObj.full : "Address not captured";
     // -----------------------------------------
 
     // Optional Delivery Note
@@ -2795,13 +2805,13 @@ function selectAddress(idx) {
         streetInput.value = '';
         cityInput.value = 'Indore'; // Default city
         pinInput.value = '';
-        
+
         // Show Save Button
-        if(saveBtn) saveBtn.style.display = 'inline-block';
+        if (saveBtn) saveBtn.style.display = 'inline-block';
     } else {
         // Load Saved Data
         const savedItem = userProfile.savedAddresses[idx];
-        
+
         if (savedItem.details) {
             // New Format: Fill all fields
             streetInput.value = savedItem.details.street || '';
@@ -2813,16 +2823,16 @@ function selectAddress(idx) {
             cityInput.value = 'Indore';
             pinInput.value = '';
         }
-        
+
         // Hide Save Button (Already saved)
-        if(saveBtn) saveBtn.style.display = 'none';
+        if (saveBtn) saveBtn.style.display = 'none';
     }
 }
 
 async function saveNewAddress() {
     // 1. Read New Fields
     const addrObj = getAddressFromInputs('cust');
-    
+
     if (!addrObj) return showToast("Please complete address first", "error");
     if (addrObj.street.length < 5) return showToast("Street address too short", "error");
 
@@ -2830,8 +2840,8 @@ async function saveNewAddress() {
     if (!label) return;
 
     // 2. Create Structured Entry
-    const newAddrEntry = { 
-        label: label, 
+    const newAddrEntry = {
+        label: label,
         text: addrObj.full,      // For display in dropdown
         details: addrObj         // For filling inputs later
     };
@@ -2850,7 +2860,7 @@ async function saveNewAddress() {
 
         // Auto-select the new address
         const selector = document.getElementById('addr-selector');
-        if(selector) selector.value = userProfile.savedAddresses.length - 1;
+        if (selector) selector.value = userProfile.savedAddresses.length - 1;
 
     } catch (e) {
         console.error(e);
@@ -3270,4 +3280,49 @@ function requestUserNotifications() {
             }).catch(err => console.log("Token Error", err));
         }
     });
+}
+
+function openWhatsAppLogin() {
+    document.getElementById('whatsapp-login-modal').style.display = 'flex';
+}
+async function sendWhatsAppOTP() {
+    const phoneInput = document.getElementById('whatsapp-phone');
+    const phone = phoneInput.value.trim();
+
+    if (phone.length !== 10) {
+        return showToast("Enter valid 10-digit mobile number", "error");
+    }
+
+    try {
+        const sendOTP = firebase.functions().httpsCallable('sendWhatsAppOTP');
+        await sendOTP({ phoneNumber: phone });
+
+        showToast("OTP sent to your WhatsApp!", "success");
+        document.getElementById('whatsapp-otp-section').style.display = 'block';
+
+    } catch (error) {
+        showToast("Failed to send OTP: " + error.message, "error");
+    }
+}
+async function verifyWhatsAppOTP() {
+    const phone = document.getElementById('whatsapp-phone').value.trim();
+    const otp = document.getElementById('whatsapp-otp-input').value.trim();
+
+    if (otp.length !== 6) {
+        return showToast("Enter 6-digit OTP", "error");
+    }
+
+    try {
+        const verifyOTP = firebase.functions().httpsCallable('verifyWhatsAppOTP');
+        const result = await verifyOTP({ phoneNumber: phone, otp: otp });
+
+        // Sign in with custom token
+        await firebase.auth().signInWithCustomToken(result.data.token);
+
+        showToast("Login successful! 🎉", "success");
+        closeWhatsAppLogin();
+
+    } catch (error) {
+        showToast("Invalid OTP: " + error.message, "error");
+    }
 }
