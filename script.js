@@ -145,6 +145,9 @@ function fetchUserProfile(uid) {
                 initReferral(); // Call the generator function immediately
             }
 
+            // --- AUTO FILL CHECKOUT HERE ---
+            autoFillCheckout();
+
             // Auto-fill Checkout Fields
             // Auto-fill Checkout Fields
             const nameInput = document.getElementById('cust-name'); // <--- NEW
@@ -1133,9 +1136,18 @@ async function clearCart() {
     }
 }
 
+// --- TOGGLE CART (Updated to Auto-Fill) ---
 function toggleCart() {
-    document.getElementById('cart-sidebar').classList.toggle('active');
-    document.querySelector('.cart-overlay').classList.toggle('active');
+    const sidebar = document.getElementById('cart-sidebar');
+    const overlay = document.querySelector('.cart-overlay');
+
+    sidebar.classList.toggle('active');
+    overlay.classList.toggle('active');
+
+    // Auto-fill when opening
+    if (sidebar.classList.contains('active')) {
+        autoFillCheckout();
+    }
 }
 
 function handleCheckout() {
@@ -1862,14 +1874,10 @@ function saveProfile() {
     const name = document.getElementById('edit-name').value.trim();
     const phone = document.getElementById('edit-phone').value.trim();
     const email = document.getElementById('edit-email').value.trim();
-
-    // Address
     const addrObj = getAddressFromInputs('edit');
+
     if (!name) return showToast("Name is required", "error");
     if (!addrObj || !addrObj.street) return showToast("Address is incomplete", "error");
-
-    // Photo
-    const picBase64 = document.getElementById('profile-pic-base64').value;
 
     const updateData = {
         name: name,
@@ -1880,6 +1888,8 @@ function saveProfile() {
         lastUpdated: new Date()
     };
 
+    // Photo
+    const picBase64 = document.getElementById('profile-pic-base64').value;
     if (picBase64) updateData.photoURL = picBase64;
 
     toggleBtnLoading('btn-save-profile', true);
@@ -1889,21 +1899,11 @@ function saveProfile() {
             if (!userProfile) userProfile = {};
             Object.assign(userProfile, updateData);
 
-            // Update UI Elements
             document.getElementById('user-name').innerText = name;
             if (picBase64) document.getElementById('user-pic').src = picBase64;
 
-            // Auto-fill Checkout if open
-            const custPhone = document.getElementById('cust-phone');
-            if (custPhone) custPhone.value = phone.replace('+91', '');
-
-            // Auto-fill Checkout Address inputs if they exist
-            const custStreet = document.getElementById('cust-addr-street');
-            if (custStreet) {
-                custStreet.value = addrObj.street;
-                document.getElementById('cust-addr-city').value = addrObj.city;
-                document.getElementById('cust-addr-pin').value = addrObj.pin;
-            }
+            // Update Checkout Fields immediately
+            autoFillCheckout();
 
             closeProfileModal();
             showToast("Profile Saved!", "success");
@@ -3364,4 +3364,42 @@ function closeWhatsAppLogin() {
     document.getElementById('whatsapp-phone-section').style.display = 'block';
     document.getElementById('whatsapp-otp-section').style.display = 'none';
     document.getElementById('whatsapp-otp-input').value = '';
+}
+
+function autoFillCheckout() {
+    if (!userProfile) return;
+
+    // 1. Name (Profile > Auth > Keep Existing)
+    const nameInput = document.getElementById('cust-name');
+    if (nameInput) {
+        if (userProfile.name) nameInput.value = userProfile.name;
+        else if (currentUser && currentUser.displayName && !nameInput.value) nameInput.value = currentUser.displayName;
+    }
+
+    // 2. Email (Profile > Auth > Keep Existing)
+    const emailInput = document.getElementById('cust-email');
+    if (emailInput) {
+        if (userProfile.email) emailInput.value = userProfile.email;
+        else if (currentUser && currentUser.email && !emailInput.value) emailInput.value = currentUser.email;
+    }
+
+    // 3. Phone (Profile > Keep Existing)
+    const phoneInput = document.getElementById('cust-phone');
+    if (phoneInput && userProfile.phone) {
+        let clean = userProfile.phone.replace('+91', '').replace(/\D/g, '');
+        phoneInput.value = clean;
+    }
+
+    // 4. Address (Structured > Flat > Keep Existing)
+    const streetInput = document.getElementById('cust-addr-street');
+    const cityInput = document.getElementById('cust-addr-city');
+    const pinInput = document.getElementById('cust-addr-pin');
+
+    if (streetInput && userProfile.addressDetails) {
+        streetInput.value = userProfile.addressDetails.street || '';
+        if (cityInput) cityInput.value = userProfile.addressDetails.city || 'Indore';
+        if (pinInput) pinInput.value = userProfile.addressDetails.pin || '';
+    } else if (streetInput && userProfile.address) {
+        streetInput.value = userProfile.address; // Fallback
+    }
 }
