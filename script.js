@@ -3381,22 +3381,44 @@ function toggleGlobalLoading(show) {
     }
 }
 
+// --- USER NOTIFICATIONS (Fixed Token Registration) ---
 function requestUserNotifications() {
-    // Check if key is loaded
+    // 1. Check requirements
     if (!shopConfig.vapidKey) {
-        dbg("VAPID Key missing from config");
+        console.log("VAPID Key missing from config");
         return;
     }
+    if (!('serviceWorker' in navigator)) return;
 
+    // 2. Request Permission
     Notification.requestPermission().then(permission => {
         if (permission === 'granted') {
-            messaging.getToken({ vapidKey: shopConfig.vapidKey }).then((currentToken) => {
-                if (currentToken && currentUser) {
-                    db.collection("users").doc(currentUser.uid).update({
-                        fcmToken: currentToken
-                    });
-                }
-            }).catch(err => dbg("Token Error", err));
+            
+            // 3. CRITICAL: Get the active SW Registration first!
+            navigator.serviceWorker.ready.then((registration) => {
+                
+                // 4. Pass the registration to getToken
+                messaging.getToken({ 
+                    vapidKey: shopConfig.vapidKey, 
+                    serviceWorkerRegistration: registration 
+                }).then((currentToken) => {
+                    if (currentToken && currentUser) {
+                        // 5. Save Token to Firestore
+                        db.collection("users").doc(currentUser.uid).update({
+                            fcmToken: currentToken,
+                            lastTokenUpdate: new Date()
+                        });
+                        console.log("Notification Token Saved ✅");
+                    }
+                }).catch(err => {
+                    console.error("Token Error:", err);
+                    // If error is "no active service worker", try reloading
+                    if (err.message.includes('no active service worker')) {
+                        console.log("Reloading to activate SW...");
+                        // Optional: location.reload(); 
+                    }
+                });
+            });
         }
     });
 }

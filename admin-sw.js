@@ -23,7 +23,7 @@ messaging.onBackgroundMessage(function (payload) {
   self.registration.showNotification(notificationTitle, notificationOptions);
 });
 
-const CACHE_NAME = 'namo-admin-v22';
+const CACHE_NAME = 'namo-admin-v23';
 const urlsToCache = [
   '/admin.html',
   '/admin.css',
@@ -57,19 +57,28 @@ self.addEventListener('fetch', event => {
   );
 });
 
-// Handle Admin Notification Clicks
+// 3. Handle Notification Click (THE FIX)
 self.addEventListener('notificationclick', function(event) {
+  console.log('[Admin SW] Notification Clicked');
   event.notification.close();
-  let urlToOpen = event.notification.data?.url || '/admin.html';
+
+  // Default to admin dashboard, or use specific link from payload
+  let urlToOpen = (event.notification.data && event.notification.data.url) ? event.notification.data.url : '/admin.html';
+
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then(windowClients => {
+      // Check if Admin Panel is already open
       for (let i = 0; i < windowClients.length; i++) {
         const client = windowClients[i];
+        // Match base URL
         if (client.url.includes('admin.html') && 'focus' in client) {
-          return client.focus();
+          return client.focus().then(c => c.navigate(urlToOpen));
         }
       }
-      if (clients.openWindow) return clients.openWindow(urlToOpen);
+      // If not open, open new window
+      if (clients.openWindow) {
+        return clients.openWindow(urlToOpen);
+      }
     })
   );
 });

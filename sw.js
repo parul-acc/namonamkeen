@@ -30,7 +30,32 @@ messaging.onBackgroundMessage(function (payload) {
   self.registration.showNotification(notificationTitle, notificationOptions);
 });
 
-const CACHE_NAME = 'namo-v22'; // Increment Version
+// 2. Handle Notification Click (Opens App)
+self.addEventListener('notificationclick', function(event) {
+  console.log('[Service Worker] Notification Clicked');
+  event.notification.close();
+
+  // Open the URL from the data, or default to home
+  let urlToOpen = (event.notification.data && event.notification.data.url) ? event.notification.data.url : '/';
+
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(windowClients => {
+      // If app is already open, focus it
+      for (let i = 0; i < windowClients.length; i++) {
+        const client = windowClients[i];
+        if (client.url.includes(self.registration.scope) && 'focus' in client) {
+          return client.focus().then(c => c.navigate(urlToOpen));
+        }
+      }
+      // If not open, open a new window
+      if (clients.openWindow) {
+        return clients.openWindow(urlToOpen);
+      }
+    })
+  );
+});
+
+const CACHE_NAME = 'namo-v23'; // Increment Version
 const urlsToCache = [
   '/',
   '/index.html',
@@ -75,32 +100,6 @@ self.addEventListener('fetch', event => {
   event.respondWith(
     caches.match(event.request).then(response => {
       return response || fetch(event.request);
-    })
-  );
-});
-
-// 5. Notification Click Handler (THE FIX)
-self.addEventListener('notificationclick', function(event) {
-  if (self.DEBUG) console.log('[Service Worker] Notification click Received.');
-
-  event.notification.close(); // Close the notification
-
-  // Open the app to the specific URL
-  let urlToOpen = event.notification.data?.url || '/';
-
-  event.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(windowClients => {
-      // If tab is already open, focus it
-      for (let i = 0; i < windowClients.length; i++) {
-        const client = windowClients[i];
-        if (client.url.includes(self.registration.scope) && 'focus' in client) {
-          return client.focus().then(c => c.navigate(urlToOpen));
-        }
-      }
-      // Otherwise open new tab
-      if (clients.openWindow) {
-        return clients.openWindow(urlToOpen);
-      }
     })
   );
 });

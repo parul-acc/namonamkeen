@@ -1,7 +1,9 @@
 {
   "name": "Namo Namkeen",
   "short_name": "Namo",
-  "start_url": "/index.html",
+  "id": "/index.html",
+  "start_url": "/index.html?mode=pwa",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#e85d04",

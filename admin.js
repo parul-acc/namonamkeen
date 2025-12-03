@@ -2533,22 +2533,39 @@ function enableAdminNotifications() {
         if (doc.exists && doc.data().vapidKey) {
             const vapidKey = doc.data().vapidKey;
 
-            // 2. Request Permission using Dynamic Key
+            // 2. Request Permission
             Notification.requestPermission().then(permission => {
                 if (permission === 'granted') {
-                    messaging.getToken({ vapidKey: vapidKey }).then((currentToken) => {
-                        if (currentToken) {
-                            db.collection("admin_tokens").doc(currentToken).set({
-                                token: currentToken,
-                                email: auth.currentUser.email,
-                                updatedAt: new Date()
-                            }).then(() => {
-                                showToast("Notifications Enabled! 🔔", "success");
-                                const btn = document.getElementById('notif-btn');
-                                if (btn) btn.style.display = 'none';
-                            });
-                        }
-                    }).catch((err) => showToast("Error: " + err, "error"));
+                    
+                    // 3. CRITICAL: Get the active Admin SW Registration
+                    navigator.serviceWorker.ready.then((registration) => {
+                        
+                        // 4. Generate Token using specific registration
+                        messaging.getToken({ 
+                            vapidKey: vapidKey,
+                            serviceWorkerRegistration: registration 
+                        }).then((currentToken) => {
+                            if (currentToken) {
+                                // 5. Save to Admin Tokens Collection
+                                db.collection("admin_tokens").doc(currentToken).set({
+                                    token: currentToken,
+                                    email: auth.currentUser.email,
+                                    updatedAt: new Date(),
+                                    device: navigator.userAgent
+                                }).then(() => {
+                                    showToast("Notifications Enabled! 🔔", "success");
+                                    
+                                    // Optional: Hide the enable button if it exists
+                                    const btn = document.getElementById('notif-btn'); // Old button ID
+                                    if (btn) btn.style.display = 'none';
+                                });
+                            }
+                        }).catch((err) => {
+                            console.error("Token Error:", err);
+                            showToast("Error getting token: " + err.message, "error");
+                        });
+                    });
+                    
                 } else {
                     showToast("Permission Denied", "error");
                 }
