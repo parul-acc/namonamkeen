@@ -74,22 +74,25 @@
                     </div>
                 </div>
 
-                <div class="notif-trigger" onclick="toggleUserNotif()" style="position: relative; margin-right: 15px; cursor: pointer; color: var(--text-dark);">
-    <i class="fas fa-bell" style="font-size: 1.3rem;"></i>
-    <span id="user-notif-badge" style="position: absolute; top: -5px; right: -5px; background: red; color: white; border-radius: 50%; width: 16px; height: 16px; font-size: 0.6rem; display: none; align-items: center; justify-content: center; font-weight: bold; border: 2px solid white;">0</span>
-</div>
+                <div class="notif-trigger" onclick="toggleUserNotif()"
+                    style="position: relative; margin-right: 15px; cursor: pointer; color: var(--text-dark);">
+                    <i class="fas fa-bell" style="font-size: 1.3rem;"></i>
+                    <span id="user-notif-badge"
+                        style="position: absolute; top: -5px; right: -5px; background: red; color: white; border-radius: 50%; width: 16px; height: 16px; font-size: 0.6rem; display: none; align-items: center; justify-content: center; font-weight: bold; border: 2px solid white;">0</span>
+                </div>
 
-<div id="user-notif-modal" class="modal-overlay">
-    <div class="modal-content mobile-modal">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; padding-bottom:10px; border-bottom:1px solid #eee;">
-            <h3 style="margin:0;">Your Updates</h3>
-            <button class="close-modal" onclick="closeUserNotif()">&times;</button>
-        </div>
-        <div id="user-notif-list" style="max-height: 60vh; overflow-y: auto;">
-            <p style="text-align:center; color:#999;">Loading...</p>
-        </div>
-    </div>
-</div>
+                <div id="user-notif-modal" class="modal-overlay">
+                    <div class="modal-content mobile-modal">
+                        <div
+                            style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; padding-bottom:10px; border-bottom:1px solid #eee;">
+                            <h3 style="margin:0;">Your Updates</h3>
+                            <button class="close-modal" onclick="closeUserNotif()">&times;</button>
+                        </div>
+                        <div id="user-notif-list" style="max-height: 60vh; overflow-y: auto;">
+                            <p style="text-align:center; color:#999;">Loading...</p>
+                        </div>
+                    </div>
+                </div>
 
                 <div class="cart-trigger" onclick="toggleCart()">
                     <i class="fas fa-shopping-bag"></i>
@@ -164,9 +167,9 @@
             <div class="search-container">
                 <i class="fas fa-search"></i>
                 <input type="search" id="menu-search" placeholder="Search for Sev, Mixture..." enterkeyhint="search">
-               <button class="filter-trigger-btn" onclick="openFilterSheet()">
-    <i class="fas fa-sliders-h"></i>
-</button>
+                <button class="filter-trigger-btn" onclick="openFilterSheet()">
+                    <i class="fas fa-sliders-h"></i>
+                </button>
                 <div id="search-suggestions" class="search-suggestions"></div>
             </div>
             <div class="category-slider">
@@ -701,104 +704,110 @@
     </div>
 
     <div id="chat-widget-btn" class="chat-widget-btn" onclick="toggleChatWidget()">
-    <i class="fas fa-comment-dots"></i>
-</div>
+        <i class="fas fa-comment-dots"></i>
+    </div>
 
-<div id="chat-window" class="chat-window">
-    <div class="chat-header">
-        <div style="display:flex; align-items:center; gap:10px;">
-            <div style="width:35px; height:35px; background:white; border-radius:50%; display:flex; align-items:center; justify-content:center;">
-                <img src="logo.jpg" style="width:30px; height:30px; border-radius:50%;">
+    <div id="chat-window" class="chat-window">
+        <div class="chat-header">
+            <div style="display:flex; align-items:center; gap:10px;">
+                <div
+                    style="width:35px; height:35px; background:white; border-radius:50%; display:flex; align-items:center; justify-content:center;">
+                    <img src="logo.jpg" style="width:30px; height:30px; border-radius:50%;">
+                </div>
+                <div>
+                    <h4 style="margin:0; font-size:0.95rem;">Namo Assistant</h4>
+                    <small style="color:rgba(255,255,255,0.8); font-size:0.75rem;">Online</small>
+                </div>
             </div>
-            <div>
-                <h4 style="margin:0; font-size:0.95rem;">Namo Assistant</h4>
-                <small style="color:rgba(255,255,255,0.8); font-size:0.75rem;">Online</small>
-            </div>
+            <button onclick="toggleChatWidget()"
+                style="background:none; border:none; color:white; font-size:1.2rem; cursor:pointer;">&times;</button>
         </div>
-        <button onclick="toggleChatWidget()" style="background:none; border:none; color:white; font-size:1.2rem; cursor:pointer;">&times;</button>
-    </div>
-    
-    <div id="chat-messages" class="chat-messages">
-        <div class="message bot-msg">
-            Hello! 👋 I'm your Namo assistant.<br>
-            I can help you with:<br>
-            📦 <b>Order Status</b><br>
-            🍟 <b>Snack Advice</b><br>
-            🚚 <b>Delivery Info</b>
-        </div>
-    </div>
 
-    <div class="chat-input-area">
-        <div class="chat-chips" id="chat-chips">
-            <button onclick="sendPreset('Track my order')">Track Order</button>
-            <button onclick="sendPreset('Suggest a spicy snack')">Products</button>
-            <button onclick="sendPreset('Delivery charges?')">Delivery?</button>
-        </div>
-        <div style="display:flex; gap:8px;">
-            <input type="text" id="chat-input" placeholder="Type a message..." onkeydown="handleChatKey(event)">
-            <button class="send-btn" onclick="handleUserMessage()"><i class="fas fa-paper-plane"></i></button>
-        </div>
-    </div>
-</div>
-
-<div id="express-checkout-modal" class="modal-overlay">
-    <div class="modal-content mobile-modal" style="background: #f8f9fa;">
-        <div class="express-header">
-            <h3><i class="fas fa-bolt" style="color:#f1c40f;"></i> Express Checkout</h3>
-            <button class="close-modal" onclick="closeModal('express-checkout-modal')">&times;</button>
-        </div>
-        
-        <div style="background:white; padding:15px; border-radius:10px; margin-bottom:15px; display:flex; gap:15px; align-items:center;">
-            <img id="express-img" src="" style="width:60px; height:60px; object-fit:cover; border-radius:8px;">
-            <div>
-                <h4 id="express-name" style="margin:0; font-size:1rem;">Product Name</h4>
-                <div id="express-variant" style="font-size:0.85rem; color:#666;">Standard</div>
-                <div id="express-price" style="font-weight:bold; color:var(--primary);">₹0</div>
+        <div id="chat-messages" class="chat-messages">
+            <div class="message bot-msg">
+                Hello! 👋 I'm your Namo assistant.<br>
+                I can help you with:<br>
+                📦 <b>Order Status</b><br>
+                🍟 <b>Snack Advice</b><br>
+                🚚 <b>Delivery Info</b>
             </div>
         </div>
 
-        <div class="express-section">
-            <label>Delivery To:</label>
-            <div class="saved-address-card">
-                <i class="fas fa-map-marker-alt"></i>
-                <div id="express-address" style="flex:1; font-size:0.9rem;">Loading address...</div>
-                <button onclick="openProfileModal()" style="color:var(--primary); background:none; border:none; font-weight:bold;">Change</button>
+        <div class="chat-input-area">
+            <div class="chat-chips" id="chat-chips">
+                <button onclick="sendPreset('Track my order')">Track Order</button>
+                <button onclick="sendPreset('Suggest a spicy snack')">Products</button>
+                <button onclick="sendPreset('Delivery charges?')">Delivery?</button>
+            </div>
+            <div style="display:flex; gap:8px;">
+                <input type="text" id="chat-input" placeholder="Type a message..." onkeydown="handleChatKey(event)">
+                <button class="send-btn" onclick="handleUserMessage()"><i class="fas fa-paper-plane"></i></button>
             </div>
         </div>
-
-        <div class="express-payment-options" style="margin-top: 15px;">
-    <label style="font-size:0.85rem; font-weight:600; color:#555; margin-bottom:8px; display:block;">Payment Method</label>
-    
-    <div class="compact-radio-group">
-        <label class="compact-radio">
-            <input type="radio" name="expressPaymentMethod" value="COD" onchange="toggleExpressPayUI()">
-            <span class="radio-design"></span>
-            <span class="radio-text">
-                <i class="fas fa-money-bill-wave" style="color: #27ae60;"></i> COD
-            </span>
-        </label>
-
-        <label class="compact-radio">
-            <input type="radio" name="expressPaymentMethod" value="Online" checked onchange="toggleExpressPayUI()">
-            <span class="radio-design"></span>
-            <span class="radio-text">
-                <i class="fas fa-bolt" style="color: #e85d04;"></i> Pay Now
-            </span>
-        </label>
     </div>
-</div>
 
-        <div class="express-totals">
-            <div class="row"><span>Item Total</span><span id="exp-subtotal">₹0</span></div>
-            <div class="row"><span>Delivery</span><span id="exp-shipping">₹0</span></div>
-            <div class="row total"><span>To Pay</span><span id="exp-total">₹0</span></div>
+    <div id="express-checkout-modal" class="modal-overlay">
+        <div class="modal-content mobile-modal" style="background: #f8f9fa;">
+            <div class="express-header">
+                <h3><i class="fas fa-bolt" style="color:#f1c40f;"></i> Express Checkout</h3>
+                <button class="close-modal" onclick="closeModal('express-checkout-modal')">&times;</button>
+            </div>
+
+            <div
+                style="background:white; padding:15px; border-radius:10px; margin-bottom:15px; display:flex; gap:15px; align-items:center;">
+                <img id="express-img" src="" style="width:60px; height:60px; object-fit:cover; border-radius:8px;">
+                <div>
+                    <h4 id="express-name" style="margin:0; font-size:1rem;">Product Name</h4>
+                    <div id="express-variant" style="font-size:0.85rem; color:#666;">Standard</div>
+                    <div id="express-price" style="font-weight:bold; color:var(--primary);">₹0</div>
+                </div>
+            </div>
+
+            <div class="express-section">
+                <label>Delivery To:</label>
+                <div class="saved-address-card">
+                    <i class="fas fa-map-marker-alt"></i>
+                    <div id="express-address" style="flex:1; font-size:0.9rem;">Loading address...</div>
+                    <button onclick="openProfileModal()"
+                        style="color:var(--primary); background:none; border:none; font-weight:bold;">Change</button>
+                </div>
+            </div>
+
+            <div class="express-payment-options" style="margin-top: 15px;">
+                <label style="font-size:0.85rem; font-weight:600; color:#555; margin-bottom:8px; display:block;">Payment
+                    Method</label>
+
+                <div class="compact-radio-group">
+                    <label class="compact-radio">
+                        <input type="radio" name="expressPaymentMethod" value="COD" onchange="toggleExpressPayUI()">
+                        <span class="radio-design"></span>
+                        <span class="radio-text">
+                            <i class="fas fa-money-bill-wave" style="color: #27ae60;"></i> COD
+                        </span>
+                    </label>
+
+                    <label class="compact-radio">
+                        <input type="radio" name="expressPaymentMethod" value="Online" checked
+                            onchange="toggleExpressPayUI()">
+                        <span class="radio-design"></span>
+                        <span class="radio-text">
+                            <i class="fas fa-bolt" style="color: #e85d04;"></i> Pay Now
+                        </span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="express-totals">
+                <div class="row"><span>Item Total</span><span id="exp-subtotal">₹0</span></div>
+                <div class="row"><span>Delivery</span><span id="exp-shipping">₹0</span></div>
+                <div class="row total"><span>To Pay</span><span id="exp-total">₹0</span></div>
+            </div>
+
+            <button id="btn-express-pay" class="btn-primary full-width" onclick="processExpressPay()">
+                Pay Securely <i class="fas fa-arrow-right"></i>
+            </button>
         </div>
-
-        <button id="btn-express-pay" class="btn-primary full-width" onclick="processExpressPay()">
-            Pay Securely <i class="fas fa-arrow-right"></i>
-        </button>
     </div>
-</div>
 
     <footer class="footer">
         <div class="container">
@@ -898,59 +907,61 @@
         </div>
     </div>
 
-<nav class="bottom-nav">
-    <a href="#" onclick="window.scrollTo(0,0); setActiveNav(this)" class="nav-item active">
-        <i class="fas fa-home"></i>
-        <span>Home</span>
-    </a>
-    <a href="javascript:void(0)" onclick="openQuiz(); setActiveNav(this)" class="nav-item">
-        <i class="fas fa-search"></i>
-        <span>Finder</span>
-    </a>
-    <a href="javascript:void(0)" onclick="toggleCart(); setActiveNav(this)" class="nav-item" style="position: relative;">
-        <i class="fas fa-shopping-bag"></i>
-        <span id="bottom-cart-count" class="nav-badge" style="display:none;">0</span>
-        <span>Cart</span>
-    </a>
-    <a href="javascript:void(0)" onclick="openProfileModal(); setActiveNav(this)" class="nav-item">
-        <i class="fas fa-user"></i>
-        <span>Profile</span>
-    </a>
-</nav>
+    <nav class="bottom-nav">
+        <a href="#" onclick="window.scrollTo(0,0); setActiveNav(this)" class="nav-item active">
+            <i class="fas fa-home"></i>
+            <span>Home</span>
+        </a>
+        <a href="javascript:void(0)" onclick="installPWA(); setActiveNav(this)" class="nav-item" id="install-nav-btn"
+            style="position: relative;">
+            <i class="fas fa-download"></i>
+            <span>App</span>
+        </a>
+        <a href="javascript:void(0)" onclick="toggleCart(); setActiveNav(this)" class="nav-item"
+            style="position: relative;">
+            <i class="fas fa-shopping-bag"></i>
+            <span id="bottom-cart-count" class="nav-badge" style="display:none;">0</span>
+            <span>Cart</span>
+        </a>
+        <a href="javascript:void(0)" onclick="openProfileModal(); setActiveNav(this)" class="nav-item">
+            <i class="fas fa-user"></i>
+            <span>Profile</span>
+        </a>
+    </nav>
 
     <div id="ptr-spinner" class="ptr-spinner">
-    <i class="fas fa-circle-notch fa-spin"></i>
-</div>
+        <i class="fas fa-circle-notch fa-spin"></i>
+    </div>
 
-<div id="filter-sheet-overlay" class="modal-overlay" onclick="closeFilterSheet()"></div>
-<div id="filter-sheet" class="bottom-sheet">
-    <div class="sheet-header">
-        <h3>Sort & Filter</h3>
-        <button onclick="closeFilterSheet()">&times;</button>
-    </div>
-    <div class="sheet-content">
-        <div class="filter-group">
-            <label>Sort By</label>
-            <div class="chip-group">
-                <button class="filter-chip active" onclick="applySort('default', this)">Recommended</button>
-                <button class="filter-chip" onclick="applySort('price-low', this)">Price: Low to High</button>
-                <button class="filter-chip" onclick="applySort('price-high', this)">Price: High to Low</button>
-                <button class="filter-chip" onclick="applySort('rating', this)">Top Rated</button>
+    <div id="filter-sheet-overlay" class="modal-overlay" onclick="closeFilterSheet()"></div>
+    <div id="filter-sheet" class="bottom-sheet">
+        <div class="sheet-header">
+            <h3>Sort & Filter</h3>
+            <button onclick="closeFilterSheet()">&times;</button>
+        </div>
+        <div class="sheet-content">
+            <div class="filter-group">
+                <label>Sort By</label>
+                <div class="chip-group">
+                    <button class="filter-chip active" onclick="applySort('default', this)">Recommended</button>
+                    <button class="filter-chip" onclick="applySort('price-low', this)">Price: Low to High</button>
+                    <button class="filter-chip" onclick="applySort('price-high', this)">Price: High to Low</button>
+                    <button class="filter-chip" onclick="applySort('rating', this)">Top Rated</button>
+                </div>
+            </div>
+            <div class="filter-group">
+                <label>Quick Filters</label>
+                <div class="chip-group">
+                    <button class="filter-chip" onclick="toggleQuickFilter('bestseller', this)">🔥 Bestsellers</button>
+                    <button class="filter-chip" onclick="toggleQuickFilter('featured', this)">⭐ Featured</button>
+                    <button class="filter-chip" onclick="toggleQuickFilter('stock', this)">📦 In Stock Only</button>
+                </div>
             </div>
         </div>
-        <div class="filter-group">
-            <label>Quick Filters</label>
-            <div class="chip-group">
-                <button class="filter-chip" onclick="toggleQuickFilter('bestseller', this)">🔥 Bestsellers</button>
-                <button class="filter-chip" onclick="toggleQuickFilter('featured', this)">⭐ Featured</button>
-                <button class="filter-chip" onclick="toggleQuickFilter('stock', this)">📦 In Stock Only</button>
-            </div>
+        <div class="sheet-footer">
+            <button class="btn-primary full-width" onclick="closeFilterSheet()">Apply Filters</button>
         </div>
     </div>
-    <div class="sheet-footer">
-        <button class="btn-primary full-width" onclick="closeFilterSheet()">Apply Filters</button>
-    </div>
-</div>
 
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>

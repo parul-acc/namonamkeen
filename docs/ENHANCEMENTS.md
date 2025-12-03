@@ -463,9 +463,9 @@ This document outlines potential enhancements and new features that can improve 
 **Enhancement**:
 - Pre-curated gift boxes for Diwali, Rakhi, etc.
 - Seasonal product bundles
-- Festive discounts automation
 - Gift wrapping options
 - Greeting card customization
+- Festive discounts automation
 - Delivery scheduling for festivals
 
 **Impact**: Increased seasonal sales

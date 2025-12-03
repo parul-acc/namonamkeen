@@ -365,6 +365,9 @@
                             title="Recalculate customer tiers">
                             <i class="fas fa-sync"></i> Update Segments
                         </button>
+                        <button class="btn btn-blue" onclick="viewLeaderboard()" title="View Top Spenders">
+    <i class="fas fa-trophy"></i> Top 20
+</button>
 
                         <input type="text" id="custSearch" onkeyup="filterCustomers()" placeholder="Search..."
                             class="search-input">
@@ -702,6 +705,22 @@
             <button class="btn btn-primary full-width" onclick="saveProduct()">Save Product</button>
         </div>
     </div>
+
+    <div id="leaderboard-modal" class="modal">
+    <div class="modal-content" style="max-width: 500px;">
+        <div class="modal-header">
+            <h3 style="color:var(--dark);"><i class="fas fa-crown" style="color:#ffd700;"></i> Top Customers</h3>
+            <button class="close-btn" onclick="closeModal('leaderboard-modal')">&times;</button>
+        </div>
+        <div class="leaderboard-header" style="display:flex; justify-content:space-between; padding:10px; background:#f8f9fa; border-radius:8px; margin-bottom:10px; font-weight:600; font-size:0.85rem;">
+            <span>Rank & User</span>
+            <span>Lifetime Spend</span>
+        </div>
+        <div id="lb-admin-list" style="max-height:400px; overflow-y:auto;">
+            <p style="text-align:center; padding:20px;">Loading...</p>
+        </div>
+    </div>
+</div>
 
     <div id="logs-modal" class="modal">
         <div class="modal-content">

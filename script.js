@@ -1906,12 +1906,6 @@ function openProfileModal() {
             <div style="font-size:0.75rem; text-align:center; margin-top:5px; opacity:0.9;">
                 ${tier === 'Platinum' ? 'You are a Legend! 🏆' : `Spend ₹${needed.toLocaleString()} more to reach ${nextTier}!`}
             </div>
-
-            <div style="margin-top:15px; text-align:center;">
-                <button onclick="openLeaderboard()" style="background:rgba(255,255,255,0.2); border:none; color:white; padding:8px 15px; border-radius:20px; font-size:0.8rem; cursor:pointer;">
-                    <i class="fas fa-trophy"></i> View Leaderboard
-                </button>
-            </div>
         </div>
 
         <div style="margin-bottom:20px;">
@@ -4548,4 +4542,36 @@ auth.onAuthStateChanged(user => {
                 }
             });
     }
+});
+
+// 2. Install Function (Called by Button)
+async function installPWA() {
+    if (!deferredPrompt) {
+        // Fallback for iOS or if prompt is missing
+        if (navigator.userAgent.match(/(iPhone|iPad|iPod)/)) {
+            showToast("Tap 'Share' -> 'Add to Home Screen' 📲", "neutral");
+        } else {
+            showToast("App is already installed! ✅", "success");
+        }
+        return;
+    }
+
+    // Show the prompt
+    deferredPrompt.prompt();
+
+    // Wait for the user to respond to the prompt
+    const { outcome } = await deferredPrompt.userChoice;
+    
+    if (outcome === 'accepted') {
+        showToast("Installing App... 🚀", "success");
+        if (installBtn) installBtn.style.display = 'none'; // Hide button after install
+    }
+    
+    deferredPrompt = null;
+}
+
+// 3. Check if already installed (Standalone Mode)
+window.addEventListener('appinstalled', () => {
+    showToast("Thank you for installing Namo Namkeen! 🎉", "success");
+    if (installBtn) installBtn.style.display = 'none';
 });

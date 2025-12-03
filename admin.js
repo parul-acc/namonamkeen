@@ -2440,6 +2440,64 @@ async function calculateSegments() {
     }
 }
 
+// --- ADMIN LEADERBOARD ---
+async function viewLeaderboard() {
+    document.getElementById('leaderboard-modal').style.display = 'flex';
+    const container = document.getElementById('lb-admin-list');
+    container.innerHTML = '<p style="text-align:center; padding:20px; color:#666;">Fetching top snackers...</p>';
+
+    try {
+        // Requires 'totalLifetimeSpend' field (Updated by calculateSegments)
+        const snap = await db.collection("users")
+            .orderBy("totalLifetimeSpend", "desc")
+            .limit(20)
+            .get();
+
+        if (snap.empty) {
+            container.innerHTML = '<p style="text-align:center; padding:20px;">No data found. Try "Update Segments" first.</p>';
+            return;
+        }
+
+        let html = '';
+        let rank = 1;
+
+        snap.forEach(doc => {
+            const u = doc.data();
+            const name = u.name || 'Unknown';
+            const phone = u.phone || '';
+            const spend = u.totalLifetimeSpend || 0;
+            const tier = u.loyaltyTier || 'Bronze';
+            const img = u.photoURL || 'logo.jpg';
+            
+            // Rank Styling
+            let rankBadge = `<span class="lb-rank rank-other">${rank}</span>`;
+            if (rank === 1) rankBadge = `<span class="lb-rank rank-1">🥇</span>`;
+            if (rank === 2) rankBadge = `<span class="lb-rank rank-2">🥈</span>`;
+            if (rank === 3) rankBadge = `<span class="lb-rank rank-3">🥉</span>`;
+
+            html += `
+            <div class="lb-row">
+                <div style="display:flex; align-items:center; gap:12px;">
+                    <div style="width:30px; text-align:center; font-weight:bold; font-size:1.1rem;">${rankBadge}</div>
+                    <img src="${img}" style="width:40px; height:40px; border-radius:50%; object-fit:cover; border:1px solid #eee;" onerror="this.src='logo.jpg'">
+                    <div>
+                        <div style="font-weight:600; font-size:0.95rem; color:var(--text-dark);">${escapeHtml(name)}</div>
+                        <div style="font-size:0.75rem; color:#666;">${phone} • <span class="tier-tag ${tier}">${tier}</span></div>
+                    </div>
+                </div>
+                <div style="font-weight:700; color:#27ae60;">₹${spend.toLocaleString()}</div>
+            </div>`;
+            rank++;
+        });
+
+        container.innerHTML = html;
+
+    } catch (e) {
+        console.error(e);
+        container.innerHTML = `<p style="text-align:center; color:red; padding:20px;">Error: ${e.message}<br><small>Ensure 'Update Segments' has been run once.</small></p>`;
+    }
+}
+
 // --- PWA INSTALLATION LOGIC (Admin Side) ---
 let adminPrompt;
 
@@ -2729,6 +2787,83 @@ function renderReportCharts(data) {
         },
         options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right' } } }
     });
+}
+
+// ==========================================
+// 🧠 POS AUTO-FETCH CUSTOMER LOGIC
+// ==========================================
+
+document.addEventListener('DOMContentLoaded', () => {
+    const phoneInput = document.getElementById('pos-phone');
+    
+    if (phoneInput) {
+        phoneInput.addEventListener('input', function(e) {
+            const val = this.value.replace(/\D/g, ''); // Remove non-digits
+            
+            // Trigger search when exactly 10 digits are entered
+            if (val.length === 10) {
+                fetchPosCustomer(val);
+            }
+        });
+    }
+});
+
+async function fetchPosCustomer(phoneNumber) {
+    // Visual feedback that we are searching
+    const nameInput = document.getElementById('pos-name');
+    nameInput.setAttribute('placeholder', 'Searching...');
+    
+    try {
+        // Search for phone number (try both formats: raw 10-digit and +91)
+        // Note: We use multiple queries because some old data might format differently
+        const snapRaw = await db.collection("users").where("phone", "==", phoneNumber).limit(1).get();
+        let userDoc = null;
+
+        if (!snapRaw.empty) {
+            userDoc = snapRaw.docs[0].data();
+        } else {
+            // Try with +91 prefix if raw failed
+            const snapPrefix = await db.collection("users").where("phone", "==", "+91" + phoneNumber).limit(1).get();
+            if (!snapPrefix.empty) userDoc = snapPrefix.docs[0].data();
+        }
+
+        if (userDoc) {
+            // --- CUSTOMER FOUND: POPULATE FIELDS ---
+            showToast("Existing Customer Found! 🎉", "success");
+            
+            // 1. Populate Name
+            if (userDoc.name) {
+                nameInput.value = userDoc.name;
+                nameInput.style.borderColor = "#2ecc71"; // Green border indicator
+            }
+
+            // 2. Populate Address
+            // Handle both new (addressDetails) and old (address string) formats
+            if (userDoc.addressDetails) {
+                document.getElementById('pos-addr-street').value = userDoc.addressDetails.street || '';
+                document.getElementById('pos-addr-city').value = userDoc.addressDetails.city || 'Indore';
+                document.getElementById('pos-addr-pin').value = userDoc.addressDetails.pin || '';
+            } else if (userDoc.address) {
+                // Fallback: Put the whole string in the street field
+                document.getElementById('pos-addr-street').value = userDoc.address;
+                document.getElementById('pos-addr-city').value = 'Indore'; 
+            }
+            
+            // Optional: Play a small success sound if sound enabled
+            if (typeof orderSound !== 'undefined' && soundEnabled) {
+                 // Just a short blip to confirm
+            }
+
+        } else {
+            // New Customer - Reset styling
+            nameInput.setAttribute('placeholder', 'Customer Name *');
+            nameInput.style.borderColor = "";
+        }
+
+    } catch (e) {
+        console.error("Customer Fetch Error:", e);
+        nameInput.setAttribute('placeholder', 'Customer Name *');
+    }
 }
 
 registerAdminServiceWorker();
