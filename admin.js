@@ -633,7 +633,7 @@ function renderInventoryRows(tbody, items) {
         // Existing Logic for Variants & Stock Class
         const vs = p.variants ? p.variants.map(v => `${v.weight}: ₹${v.price}`).join(' ') : '₹' + p.price;
         const rowClass = !p.in_stock ? 'row-out-stock' : '';
-
+        const totalStock = p.variants ? p.variants.reduce((sum, v) => sum + (v.stock || 0), 0) : 0;
         // --- NEW: Featured Button Logic ---
         // If featured: Solid Star (fas), Yellow Background
         // If not: Empty Star (far), Yellow Border
@@ -654,9 +654,9 @@ function renderInventoryRows(tbody, items) {
                 </td>
                 <td><small>${vs}</small></td>
                 <td>
-                    <span class="stock-tag ${p.in_stock ? 'stock-in' : 'stock-out'}" onclick="toggleStock('${p.docId}',${!p.in_stock})">
-                        ${p.in_stock ? 'In Stock' : 'Out'}
-                    </span>
+                <span class="stock-tag ${totalStock > 0 ? 'stock-in' : 'stock-out'}">
+            ${totalStock > 0 ? totalStock + ' Units' : 'Out of Stock'}
+        </span>
                 </td>
                 <td>
                     <button class="icon-btn" onclick="toggleFeatured('${p.docId}', ${!isFeat})" title="Toggle Featured" style="${featuredStyle}">
@@ -1198,28 +1198,27 @@ function editProduct(id) {
         const vc = document.getElementById('variant-container');
         vc.innerHTML = '';
         if (p.variants && p.variants.length > 0) {
-            p.variants.forEach(v => {
-                const stockStatus = (v.inStock !== undefined) ? v.inStock : true;
-                addVariantRow(v.weight, v.price, stockStatus);
-            });
-        } else {
-            addVariantRow('Standard', p.price, true);
-        }
+        p.variants.forEach(v => {
+            // Handle both old (boolean) and new (number) data
+            let stockQty = v.stock || 0;
+            if (v.inStock === true && v.stock === undefined) stockQty = 10; // Default for migrated items
+            
+            addVariantRow(v.weight, v.price, stockQty);
+        });
+    } else {
+        addVariantRow('Standard', p.price, p.in_stock ? 10 : 0);
+    }
         document.getElementById('product-modal').style.display = 'flex';
     });
 }
 
-function addVariantRow(w = '', p = '', inStock = true) {
+function addVariantRow(w = '', p = '', qty = 0) { // Changed default qty to 0
     const d = document.createElement('div');
     d.className = 'variant-row';
-    const checked = inStock ? 'checked' : '';
     d.innerHTML = `
         <input class="form-control var-name" placeholder="Size (e.g. 250g)" value="${w}" style="margin:0; flex:2;">
         <input class="form-control var-price" type="number" placeholder="Price" value="${p}" style="margin:0; flex:1;">
-        <div style="display:flex; align-items:center; gap:5px; background:#eee; padding:5px 10px; border-radius:5px;">
-            <input type="checkbox" class="var-stock" ${checked} style="width:auto; margin:0;">
-            <small>Stock</small>
-        </div>
+        <input class="form-control var-stock" type="number" placeholder="Qty" value="${qty}" style="margin:0; flex:1; border-color:#2980b9;">
         <button class="remove-variant" onclick="this.parentElement.remove()">&times;</button>
     `;
     document.getElementById('variant-container').appendChild(d);
@@ -1233,10 +1232,23 @@ function saveProduct() {
     document.querySelectorAll('.variant-row').forEach(r => {
         const name = r.querySelector('.var-name').value.trim();
         const price = parseInt(r.querySelector('.var-price').value);
-        const inStock = r.querySelector('.var-stock').checked;
-        if (name && price) vs.push({ weight: name, price: price, inStock: inStock });
+        const stock = parseInt(r.querySelector('.var-stock').value) || 0; // Read Stock
+        
+        // Calculate boolean for backward compatibility
+        const isInStock = stock > 0;
+        
+        if (name && price) {
+            vs.push({ 
+                weight: name, 
+                price: price, 
+                stock: stock, 
+                inStock: isInStock 
+            });
+        }
     });
-    if (vs.length === 0) vs.push({ weight: 'Standard', price: 0, inStock: true });
+    // Calculate Global Stock status (if any variant has stock)
+    const globalStock = vs.some(v => v.stock > 0);
+    if (vs.length === 0) vs.push({ weight: 'Standard', price: 0, in_stock: globalStock });
     const activeVariants = vs.filter(v => v.inStock);
     const basePrice = activeVariants.length > 0 ? Math.min(...activeVariants.map(v => v.price)) : (vs[0].price || 0);
 

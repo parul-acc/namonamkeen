@@ -1244,3 +1244,29 @@ exports.logUserNotification = functions.firestore
         });
         return null;
     });
+
+    async function requestRestock(productId) {
+    if (!currentUser) {
+        showToast("Login to get notified!", "neutral");
+        openLoginChoiceModal();
+        return;
+    }
+
+    const p = products.find(x => x.id === productId);
+    if (!p) return;
+
+    try {
+        await db.collection("stock_alerts").add({
+            productId: p.id,
+            productName: p.name,
+            userId: currentUser.uid,
+            contact: currentUser.phoneNumber || currentUser.email,
+            requestedAt: new Date(),
+            status: 'pending'
+        });
+        showToast("We'll notify you when it's back! 🔔", "success");
+    } catch (e) {
+        console.error(e);
+        showToast("Error saving request", "error");
+    }
+}

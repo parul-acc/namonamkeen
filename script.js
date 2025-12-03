@@ -405,35 +405,21 @@ function renderMenu() {
         const name = (p.name + (p.nameHi || '')).toLowerCase();
         const matchesCat = currentCategory === 'all' || p.category === currentCategory;
         const matchesSearch = name.includes(searchQuery.toLowerCase());
-
-        // --- NEW QUICK FILTER LOGIC ---
-        // Ensure quickFilters object exists (defined in new JS above)
-        const qf = (typeof quickFilters !== 'undefined') ? quickFilters : { bestseller: false, featured: false, stock: false };
-
-        const matchesQuick =
-            (!qf.bestseller || p.bestseller) &&
-            (!qf.featured || p.isFeatured) &&
-            (!qf.stock || p.in_stock);
-
-        return matchesCat && matchesSearch && matchesQuick;
+        return matchesCat && matchesSearch;
     });
 
+    // Sort Logic
     filtered.sort((a, b) => {
-        // 1. Featured items first
         if (a.isFeatured && !b.isFeatured) return -1;
         if (!a.isFeatured && b.isFeatured) return 1;
-        // 2. Then Bestsellers
         if (a.bestseller && !b.bestseller) return -1;
         if (!a.bestseller && b.bestseller) return 1;
         return 0;
     });
 
-    if (currentSort === 'price-low') {
-        filtered.sort((a, b) => a.price - b.price);
-    } else if (currentSort === 'price-high') {
-        filtered.sort((a, b) => b.price - a.price);
-    } else if (currentSort === 'rating') {
-        // Calculate average rating safely
+    if (currentSort === 'price-low') filtered.sort((a, b) => a.price - b.price);
+    else if (currentSort === 'price-high') filtered.sort((a, b) => b.price - a.price);
+    else if (currentSort === 'rating') {
         const getRating = (p) => p.ratingCount ? (p.ratingSum / p.ratingCount) : 0;
         filtered.sort((a, b) => getRating(b) - getRating(a));
     }
@@ -452,35 +438,40 @@ function renderMenu() {
         let displayPrice = p.price;
         let isAvailable = p.in_stock;
 
+        // --- VARIANT LOGIC ---
         if (p.variants && p.variants.length > 0) {
+            // Find first in-stock variant
             const firstActive = p.variants.find(v => v.inStock !== false);
+            
+            // Set display price to that variant's price (or default to first if all OOS)
             displayPrice = firstActive ? firstActive.price : p.variants[0].price;
+            
             if (!firstActive) isAvailable = false;
 
+            // Build Dropdown
             variantHtml = `<select class="variant-select" id="variant-select-${p.id}" onclick="event.stopPropagation()" onchange="updateCardPrice(${p.id}, this.value)">`;
+            
             p.variants.forEach((v, index) => {
                 const stockStatus = (v.inStock !== false);
                 const disabledAttr = stockStatus ? '' : 'disabled';
                 const label = v.weight + (stockStatus ? '' : ' (Out of Stock)');
+                
+                // FIX: Define selectedAttr here properly
                 const selectedAttr = (v.price === displayPrice && stockStatus) ? 'selected' : '';
+                
                 variantHtml += `<option value="${index}" ${disabledAttr} ${selectedAttr}>${label}</option>`;
             });
             variantHtml += `</select>`;
         }
 
         let btnAction = isAvailable ? `addToCartFromGrid(${p.id})` : '';
-        // NEW: One-Click Button HTML
-        const oneClickBtn = isAvailable
-            ? `<button class="buy-now-btn" onclick="event.stopPropagation(); buyNow(${p.id})" title="Buy Now"><i class="fas fa-bolt"></i></button>`
-            : '';
         let btnText = isAvailable ? (currentLang === 'en' ? 'Add' : 'जोड़ें') : 'Sold Out';
         let cardClass = isAvailable ? '' : 'sold-out';
 
-        // NEW: Calculate Rating
+        // Rating Logic
         const avgRating = p.ratingCount ? (p.ratingSum / p.ratingCount).toFixed(1) : 0;
         const reviewCount = p.ratingCount || 0;
 
-        // Generate Star HTML
         let starHTML = '';
         if (reviewCount > 0) {
             starHTML = `<div class="star-display">`;
@@ -493,27 +484,92 @@ function renderMenu() {
             starHTML = `<div class="star-display" style="opacity:0.5; filter:grayscale(1)"><small>No reviews yet</small></div>`;
         }
 
+        // NEW: One-Click Button (Lightning Icon)
+        const oneClickBtn = isAvailable 
+            ? `<button class="buy-now-btn" onclick="event.stopPropagation(); buyNow(${p.id})" title="Buy Now"><i class="fas fa-bolt"></i></button>` 
+            : '';
+
         grid.innerHTML += `
         <div class="product-card ${cardClass}" onclick="openProductDetail(${p.id})">
             ${ribbonHTML}
            <img src="${p.image}" class="product-img" loading="lazy" onload="this.classList.add('loaded')" onerror="this.onerror=null; this.src='logo.jpg';">
             <div class="product-info">
                 <h3>${sanitizeHTML(name)}</h3>
-                ${starHTML} <p class="product-desc">${sanitizeHTML(desc)}</p>
+                ${starHTML} 
+                <p class="product-desc">${sanitizeHTML(desc)}</p>
                 <div style="margin-bottom:10px; min-height:30px;">${variantHtml}</div>
+                
                 <div class="price-row">
                     <span class="price" id="price-${p.id}">₹${displayPrice}</span>
                     <div style="display:flex; gap:5px;">
-            ${oneClickBtn}
-                    <button class="add-btn" 
-                        onclick="event.stopPropagation(); ${btnAction}" 
-                        ${!isAvailable ? 'disabled style="background:#ccc; cursor:not-allowed;"' : ''}>
-                        ${btnText}
-                    </button>
+                        ${oneClickBtn}
+                        <button class="add-btn" 
+                            onclick="event.stopPropagation(); ${btnAction}" 
+                            ${!isAvailable ? 'disabled style="background:#ccc; cursor:not-allowed;"' : ''}>
+                            ${btnText}
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>`;
     });
+}
+
+function checkVariantStock(id, selectElem) {
+    const selectedOption = selectElem.options[selectElem.selectedIndex];
+    const stock = parseInt(selectedOption.getAttribute('data-stock')) || 0;
+    const price = selectedOption.getAttribute('data-price'); // Ensure you added this in renderMenu too
+
+    // Update Price Display
+    const priceEl = document.getElementById(`price-${id}`);
+    if (priceEl) priceEl.innerText = `₹${price}`; // Assuming you added data-price in renderMenu
+
+    // Find the Action Container (Button row)
+    const card = selectElem.closest('.product-card');
+    const btnContainer = card.querySelector('.price-row div'); // Div holding buttons
+
+    if (stock > 0) {
+        // SHOW ADD BUTTONS
+        card.classList.remove('sold-out');
+        btnContainer.innerHTML = `
+            <button class="buy-now-btn" onclick="event.stopPropagation(); buyNow(${id})"><i class="fas fa-bolt"></i></button>
+            <button class="add-btn" onclick="event.stopPropagation(); addToCartFromGrid(${id})">Add</button>
+        `;
+    } else {
+        // SHOW NOTIFY BUTTON
+        card.classList.add('sold-out');
+        btnContainer.innerHTML = `
+            <button class="btn-notify" onclick="event.stopPropagation(); requestRestock('${id}')">
+                <i class="fas fa-bell"></i> Notify Me
+            </button>
+        `;
+    }
+}
+
+async function requestRestock(productId) {
+    if (!currentUser) {
+        showToast("Login to get notified!", "neutral");
+        openLoginChoiceModal();
+        return;
+    }
+
+    const p = products.find(x => x.id === productId);
+    if (!p) return;
+
+    try {
+        await db.collection("stock_alerts").add({
+            productId: p.id,
+            productName: p.name,
+            userId: currentUser.uid,
+            contact: currentUser.phoneNumber || currentUser.email,
+            requestedAt: new Date(),
+            status: 'pending'
+        });
+        showToast("We'll notify you when it's back! 🔔", "success");
+    } catch (e) {
+        console.error(e);
+        showToast("Error saving request", "error");
+    }
 }
 
 function updateCardPrice(id, index) {
@@ -973,7 +1029,7 @@ function updateCartUI() {
         // Reset Badge & Totals
         if (document.getElementById('cart-total')) document.getElementById('cart-total').innerText = '₹0';
         if (document.getElementById('cart-count')) document.getElementById('cart-count').innerText = '0';
-        
+
         const bottomBadge = document.getElementById('bottom-cart-count');
         if (bottomBadge) bottomBadge.style.display = 'none';
 
@@ -1033,7 +1089,7 @@ function updateCartUI() {
         if (currentUser && userProfile && userProfile.walletBalance > 0) {
             const maxRedeemable = Math.min(userProfile.walletBalance, subtotal);
             const isChecked = (appliedDiscount.type === 'loyalty') ? 'checked' : '';
-            
+
             loyaltyContainer.innerHTML = `
             <div style="background:#fff8e1; padding:10px; border-radius:8px; margin-bottom:15px; border:1px dashed #e85d04; display:flex; align-items:center; gap:10px;">
                 <i class="fas fa-coins" style="color:#f1c40f;"></i>
@@ -1090,8 +1146,8 @@ function updateCartUI() {
     } else {
         if (checkoutBtn) {
             checkoutBtn.disabled = false;
-            checkoutBtn.style.background = ''; 
-            togglePaymentUI(); 
+            checkoutBtn.style.background = '';
+            togglePaymentUI();
         }
     }
 
@@ -2197,7 +2253,7 @@ function openSecureRazorpay(orderId, keyId, amount, userPhone) {
         "description": "Secure Payment",
         "image": "logo.jpg",
         "order_id": orderId, // Critical: Links to the secure server order
-            "handler": function (response) {
+        "handler": function (response) {
             dbg("Payment Success:", response);
             // Verify signature here if needed, or trust the success for basic flow
             saveOrderToFirebase('Online', 'Paid', response.razorpay_payment_id);
@@ -3393,14 +3449,14 @@ function requestUserNotifications() {
     // 2. Request Permission
     Notification.requestPermission().then(permission => {
         if (permission === 'granted') {
-            
+
             // 3. CRITICAL: Get the active SW Registration first!
             navigator.serviceWorker.ready.then((registration) => {
-                
+
                 // 4. Pass the registration to getToken
-                messaging.getToken({ 
-                    vapidKey: shopConfig.vapidKey, 
-                    serviceWorkerRegistration: registration 
+                messaging.getToken({
+                    vapidKey: shopConfig.vapidKey,
+                    serviceWorkerRegistration: registration
                 }).then((currentToken) => {
                     if (currentToken && currentUser) {
                         // 5. Save Token to Firestore
@@ -4209,12 +4265,12 @@ async function generateBotResponse(input) {
 
     // Matches "Products", "Spicy", "Sweet", etc.
     if (text.includes('product') || text.includes('spicy') || text.includes('sweet') || text.includes('snack')) {
-        
+
         // 1. Determine Category Filter
         let filter = 'all';
         if (text.includes('spicy')) filter = 'spicy';
         if (text.includes('sweet')) filter = 'sweet';
-        
+
         // 2. Reset Index if Query Changed
         if (chatState.lastQuery !== filter) {
             chatState.currentIndex = 0;
@@ -4338,7 +4394,7 @@ function getChatProductHtml(filter) {
 function refreshChatProduct(elementId, filter) {
     // Generate new HTML
     const newHtml = getChatProductHtml(filter);
-    
+
     // Find the message bubble and replace content
     // Note: We replace the *parent* .message.bot-msg content if possible, 
     // or just replace the card itself.
@@ -4416,7 +4472,7 @@ function buyNow(id) {
 function toggleExpressPayUI() {
     const method = document.querySelector('input[name="expressPaymentMethod"]:checked').value;
     const btn = document.getElementById('btn-express-pay');
-    
+
     if (method === 'COD') {
         btn.innerHTML = 'Place Order <i class="fas fa-check"></i>';
         btn.style.background = "var(--primary)"; // Orange
@@ -4434,7 +4490,7 @@ async function processExpressPay() {
     const paymentMethod = methodElem ? methodElem.value : 'Online';
 
     toggleBtnLoading('btn-express-pay', true);
-    
+
     // 2. Create Virtual Cart & Calculate Total
     const virtualCart = [expressItem];
     const subtotal = expressItem.price;
@@ -4444,9 +4500,9 @@ async function processExpressPay() {
     try {
         // --- OPTION A: CASH ON DELIVERY ---
         if (paymentMethod === 'COD') {
-           // Save directly
+            // Save directly
             await saveExpressOrder('COD', 'Pending', null, virtualCart, finalTotal);
-            return; 
+            return;
         }
 
         // --- OPTION B: ONLINE PAYMENT (Razorpay) ---
@@ -4472,10 +4528,10 @@ async function processExpressPay() {
             },
             "theme": { "color": "#e85d04" },
             "handler": async function (response) {
-                await saveExpressOrder('Online', 'Paid', response.razorpay_payment_id, virtualCart, amount/100);
+                await saveExpressOrder('Online', 'Paid', response.razorpay_payment_id, virtualCart, amount / 100);
             },
             "modal": {
-                "ondismiss": function() { toggleBtnLoading('btn-express-pay', false); }
+                "ondismiss": function () { toggleBtnLoading('btn-express-pay', false); }
             }
         };
 
@@ -4528,7 +4584,7 @@ auth.onAuthStateChanged(user => {
             .onSnapshot(snap => {
                 const list = document.getElementById('user-notif-list');
                 const badge = document.getElementById('user-notif-badge');
-                
+
                 if (!list || !badge) return;
 
                 if (snap.empty) {
@@ -4543,7 +4599,7 @@ auth.onAuthStateChanged(user => {
                     const n = doc.data();
                     if (!n.read) unread++;
                     const time = n.timestamp ? new Date(n.timestamp.seconds * 1000).toLocaleDateString() : '';
-                    
+
                     html += `
                     <div style="padding:15px; border-bottom:1px solid #eee; background:${n.read ? 'white' : '#f0f9ff'}; display:flex; gap:12px;">
                         <div style="background:#e8f5e9; width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#2ecc71;">
@@ -4583,12 +4639,12 @@ async function installPWA() {
 
     // Wait for the user to respond to the prompt
     const { outcome } = await deferredPrompt.userChoice;
-    
+
     if (outcome === 'accepted') {
         showToast("Installing App... 🚀", "success");
         if (installBtn) installBtn.style.display = 'none'; // Hide button after install
     }
-    
+
     deferredPrompt = null;
 }
 

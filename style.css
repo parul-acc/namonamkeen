@@ -3945,6 +3945,51 @@ button { position: relative; overflow: hidden; } /* Ensure buttons contain rippl
     background: rgba(0, 0, 0, 0.6) !important; /* Ensure dimming works */
 }
 
+/* --- STOCK MANAGEMENT STYLES --- */
+
+/* Sold Out Card (Transparent Look) */
+.product-card.sold-out {
+    opacity: 0.8;
+    border: 1px solid #eee;
+}
+.product-card.sold-out .product-img {
+    filter: grayscale(100%); /* Black & White image */
+    opacity: 0.6;
+}
+
+/* Notify Button */
+.btn-notify {
+    background: transparent;
+    border: 1px solid var(--primary);
+    color: var(--primary);
+    padding: 8px 12px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: 0.2s;
+    width: 100%;
+    justify-content: center;
+}
+
+.btn-notify:hover {
+    background: #fff3e0;
+    transform: scale(1.05);
+}
+
+/* Stock Tag in Admin */
+.stock-tag {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: bold;
+}
+.stock-in { background: #e8f5e9; color: #27ae60; }
+.stock-out { background: #ffebee; color: #c62828; }
+
 /* ========================================= */
 /* 📱 MOBILE RESPONSIVE STYLES (Consolidated)*/
 /* ========================================= */
@@ -4419,6 +4464,42 @@ button { position: relative; overflow: hidden; } /* Ensure buttons contain rippl
         width: 50px;
         height: 50px;
         font-size: 1.5rem;
+    }
+
+    .badge-grid {
+        display: grid !important;
+        /* Force all 4 items into 1 row */
+        grid-template-columns: repeat(4, 1fr) !important; 
+        gap: 5px !important; /* Tight gap */
+        padding: 10px 5px;
+        overflow-x: hidden; /* Prevent horizontal scroll */
+    }
+
+    .badge-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-start;
+        text-align: center;
+        margin: 0;
+    }
+
+    /* Compact Icons */
+    .badge-item i {
+        font-size: 1.2rem !important; /* Smaller icon */
+        margin-bottom: 5px !important;
+        color: var(--primary);
+    }
+
+    /* Compact Text (2 lines max) */
+    .badge-item h4 {
+        font-size: 0.65rem !important; /* Tiny readable text */
+        line-height: 1.1;
+        margin: 0;
+        color: var(--text-dark);
+        font-weight: 600;
+        width: 100%;
+        word-wrap: break-word; /* Prevent overflow */
     }
     
 }
