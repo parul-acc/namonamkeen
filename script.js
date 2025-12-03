@@ -1839,6 +1839,17 @@ function ensureModalExists(modalId) {
                 </div>
             </div>
         </div>`;
+    } else if (modalId === 'leaderboard-modal') {
+        modalHTML = `
+        <div id="leaderboard-modal" class="modal-overlay">
+            <div class="modal-content mobile-modal">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; border-bottom:1px solid #eee; padding-bottom:10px;">
+                    <h3 style="margin:0; color:var(--text-dark);"><i class="fas fa-trophy" style="color:#ffd700"></i> Top Snackers</h3>
+                    <button class="close-modal" onclick="document.getElementById('leaderboard-modal').style.display='none'">&times;</button>
+                </div>
+                <div id="lb-list" style="max-height:60vh; overflow-y:auto;"></div>
+            </div>
+        </div>`;
     }
 
     if (modalHTML) document.body.insertAdjacentHTML('beforeend', modalHTML);
@@ -1847,43 +1858,106 @@ function ensureModalExists(modalId) {
 function openProfileModal() {
     const modal = document.getElementById('profile-modal');
     if (!modal) return;
-
     pushModalState();
-
     modal.style.display = 'flex';
-    if (document.getElementById('profile-menu')) document.getElementById('profile-menu').classList.remove('active');
-
-    // Init Referrals
+    
     if (typeof initReferral === 'function') initReferral();
 
-    // Fill Data
+    // --- GAMIFICATION UI INJECTION ---
     if (userProfile) {
+        // 1. Existing Form Fill
         document.getElementById('edit-name').value = userProfile.name || (currentUser.displayName || '');
         document.getElementById('edit-phone').value = userProfile.phone || '';
-        document.getElementById('edit-email').value = userProfile.email || (currentUser.email || '');
-
-        // Address Logic
+        document.getElementById('edit-email').value = userProfile.email || '';
+        // ... (Keep existing address logic here) ...
         if (userProfile.addressDetails) {
             document.getElementById('edit-addr-street').value = userProfile.addressDetails.street || '';
             document.getElementById('edit-addr-city').value = userProfile.addressDetails.city || 'Indore';
             document.getElementById('edit-addr-pin').value = userProfile.addressDetails.pin || '';
         } else {
             document.getElementById('edit-addr-street').value = userProfile.address || '';
-            document.getElementById('edit-addr-city').value = 'Indore';
-            document.getElementById('edit-addr-pin').value = '';
         }
-
-        // Photo Logic
+        
         const imgEl = document.getElementById('edit-profile-pic');
-        const hiddenInput = document.getElementById('profile-pic-base64');
-        if (userProfile.photoURL) {
-            imgEl.src = userProfile.photoURL;
-            hiddenInput.value = userProfile.photoURL;
-        } else {
-            imgEl.src = 'logo.jpg';
-            hiddenInput.value = '';
-        }
+        if (userProfile.photoURL) imgEl.src = userProfile.photoURL;
+
+        // 2. NEW: Loyalty Card Render
+        const tier = userProfile.loyaltyTier || 'Bronze';
+        const spend = userProfile.totalLifetimeSpend || 0;
+        
+        // Calculate Progress to next tier
+        let nextGoal = 2000;
+        let nextTier = 'Silver';
+        if (tier === 'Silver') { nextGoal = 5000; nextTier = 'Gold'; }
+        else if (tier === 'Gold') { nextGoal = 10000; nextTier = 'Platinum'; }
+        else if (tier === 'Platinum') { nextGoal = spend * 1.5; nextTier = 'Max'; } // Cap
+
+        const percent = Math.min(100, (spend / nextGoal) * 100);
+        const needed = nextGoal - spend;
+
+        // Insert Card before the form
+        const container = document.querySelector('#profile-modal .modal-content');
+        // Remove old card if exists
+        const oldCard = document.getElementById('loyalty-card-ui');
+        if(oldCard) oldCard.remove();
+
+        const cardHTML = `
+        <div id="loyalty-card-ui" class="loyalty-card ${tier}">
+            <div class="loyalty-header">
+                <div>
+                    <div style="font-size:0.8rem; opacity:0.8;">Current Tier</div>
+                    <h2 style="margin:0; font-size:1.5rem;">${tier}</h2>
+                </div>
+                <div class="tier-badge bg-${tier}"><i class="fas fa-crown"></i> ${tier}</div>
+            </div>
+            
+            <div style="display:flex; justify-content:space-between; font-size:0.85rem;">
+                <span>₹${spend.toLocaleString()} Spent</span>
+                <span>Goal: ₹${nextGoal.toLocaleString()}</span>
+            </div>
+            <div class="loyalty-progress">
+                <div class="progress-bar-fill" style="width: ${percent}%"></div>
+            </div>
+            <div style="font-size:0.75rem; text-align:center; margin-top:5px; opacity:0.9;">
+                ${tier === 'Platinum' ? 'You are a Legend! 🏆' : `Spend ₹${needed.toLocaleString()} more to reach ${nextTier}!`}
+            </div>
+
+            <div style="margin-top:15px; text-align:center;">
+                <button onclick="openLeaderboard()" style="background:rgba(255,255,255,0.2); border:none; color:white; padding:8px 15px; border-radius:20px; font-size:0.8rem; cursor:pointer;">
+                    <i class="fas fa-trophy"></i> View Leaderboard
+                </button>
+            </div>
+        </div>
+
+        <div style="margin-bottom:20px;">
+            <strong style="display:block; font-size:0.9rem; margin-bottom:10px; color:#555;">Achievements</strong>
+            <div class="badges-container">
+                ${renderBadges(userProfile.badges || [])}
+            </div>
+        </div>`;
+
+        // Insert after the close button header (child index 0)
+        container.insertBefore(document.createRange().createContextualFragment(cardHTML), container.children[1]);
     }
+}
+
+function renderBadges(unlockedIds) {
+    const allBadges = [
+        { id: 'newbie', icon: 'fa-user', name: 'Newbie' },
+        { id: 'foodie', icon: 'fa-utensils', name: 'Foodie' },
+        { id: 'vip', icon: 'fa-crown', name: 'VIP' },
+        { id: 'legend', icon: 'fa-gem', name: 'Legend' },
+        { id: 'saver', icon: 'fa-piggy-bank', name: 'Saver' }
+    ];
+
+    return allBadges.map(b => {
+        const isUnlocked = unlockedIds.includes(b.id);
+        return `
+        <div class="badge-item ${isUnlocked ? 'unlocked' : ''}" title="${b.name}">
+            <div class="badge-icon"><i class="fas ${b.icon}"></i></div>
+            <div class="badge-name">${b.name}</div>
+        </div>`;
+    }).join('');
 }
 
 async function validateCartIntegrity() {
@@ -4047,3 +4121,252 @@ auth.onAuthStateChanged(user => {
             });
     }
 });
+
+// --- LEADERBOARD LOGIC ---
+async function openLeaderboard() {
+    ensureModalExists('leaderboard-modal');
+    document.getElementById('leaderboard-modal').style.display = 'flex';
+    
+    const container = document.getElementById('lb-list');
+    container.innerHTML = '<div style="text-align:center; padding:30px;"><i class="fas fa-spinner fa-spin"></i> Loading Top Snackers...</div>';
+
+    try {
+        // Requires Index on 'totalLifetimeSpend' DESC in Firestore
+        const snap = await db.collection("users")
+            .orderBy("totalLifetimeSpend", "desc")
+            .limit(10)
+            .get();
+
+        let html = '';
+        let rank = 1;
+
+        snap.forEach(doc => {
+            const u = doc.data();
+            const name = u.name || 'Anonymous Snacker';
+            const spend = u.totalLifetimeSpend || 0;
+            const avatar = u.photoURL || 'logo.jpg';
+            
+            // Highlight current user
+            const isMe = currentUser && currentUser.uid === doc.id;
+            const bgStyle = isMe ? 'background:#fff3e0;' : '';
+            
+            html += `
+            <div class="leaderboard-row" style="${bgStyle}">
+                <div class="rank-num rank-${rank}">${rank}</div>
+                <div class="lb-user">
+                    <img src="${avatar}" class="lb-avatar" onerror="this.src='logo.jpg'">
+                    <div>
+                        <div style="font-weight:600; font-size:0.9rem;">${escapeHtml(name)} ${isMe ? '(You)' : ''}</div>
+                        <div style="font-size:0.75rem; color:#666;">${u.loyaltyTier || 'Bronze'} Member</div>
+                    </div>
+                </div>
+                <div class="lb-points">₹${spend.toLocaleString()}</div>
+            </div>`;
+            rank++;
+        });
+
+        container.innerHTML = html;
+
+    } catch (e) {
+        console.error(e);
+        container.innerHTML = '<p style="text-align:center; padding:20px; color:red;">Leaderboard unavailable. Check network.</p>';
+    }
+}
+
+// ==========================================
+// 🤖 SMART CHATBOT LOGIC
+// ==========================================
+
+function toggleChatWidget() {
+    const win = document.getElementById('chat-window');
+    const btn = document.getElementById('chat-widget-btn');
+    
+    if (win.style.display === 'flex') {
+        win.style.display = 'none';
+        btn.style.display = 'flex';
+    } else {
+        win.style.display = 'flex';
+        btn.style.display = 'none'; // Hide button when open on mobile
+        // Focus input
+        setTimeout(() => document.getElementById('chat-input').focus(), 100);
+    }
+}
+
+function handleChatKey(e) {
+    if (e.key === 'Enter') handleUserMessage();
+}
+
+function sendPreset(msg) {
+    const input = document.getElementById('chat-input');
+    input.value = msg;
+    handleUserMessage();
+}
+
+function handleUserMessage() {
+    const inputEl = document.getElementById('chat-input');
+    const text = inputEl.value.trim();
+    if (!text) return;
+
+    // 1. Add User Message
+    addChatMessage(text, 'user');
+    inputEl.value = '';
+
+    // 2. Show Typing Indicator
+    const typingId = 'typing-' + Date.now();
+    addChatMessage('<i class="fas fa-ellipsis-h"></i>', 'bot', typingId);
+
+    // 3. Process Response (Simulate delay for realism)
+    setTimeout(async () => {
+        // Remove typing indicator
+        const typingEl = document.getElementById(typingId);
+        if(typingEl) typingEl.remove();
+
+        const response = await generateBotResponse(text);
+        addChatMessage(response, 'bot');
+        
+    }, 800);
+}
+
+function addChatMessage(html, sender, id = null) {
+    const container = document.getElementById('chat-messages');
+    const div = document.createElement('div');
+    div.className = `message ${sender}-msg`;
+    if(id) div.id = id;
+    div.innerHTML = html;
+    container.appendChild(div);
+    container.scrollTop = container.scrollHeight;
+}
+
+// --- THE BRAIN: Rule-Based Intelligence ---
+// ==========================================
+// 🧠 NAMO BOT BRAIN (Full Version)
+// ==========================================
+
+async function generateBotResponse(input) {
+    const text = input.toLowerCase();
+    
+    // --- HELPER: Random Greeting ---
+    const greetings = ["Hello! 👋", "Hi there! 🧡", "Namaste! 🙏", "Welcome to Namo Namkeen!"];
+    const randomGreet = greetings[Math.floor(Math.random() * greetings.length)];
+
+    // 1. GREETINGS & SMALL TALK
+    if (text.match(/^(hi|hello|hey|namaste|start|help)/)) {
+        return `${randomGreet}<br>I can help you with:<br>📦 <b>Tracking Orders</b><br>💰 <b>Checking Points</b><br>🍔 <b>Finding Snacks</b><br>🚚 <b>Delivery Info</b>`;
+    }
+
+    if (text.includes('thank')) return "You're welcome! Enjoy your snacks! 😋";
+    if (text.includes('bye')) return "Goodbye! Come back soon! 👋";
+
+    // 2. ORDER TRACKING & STATUS
+    if (text.includes('order') || text.includes('track') || text.includes('status') || text.includes('where is')) {
+        if (!currentUser) {
+            return `Please <a href="javascript:void(0)" onclick="openLoginChoiceModal()" style="color:var(--primary); text-decoration:underline; font-weight:bold;">Login first</a> to track your orders.`;
+        }
+        
+        try {
+            const snap = await db.collection("orders")
+                .where("userId", "==", currentUser.uid)
+                .orderBy("timestamp", "desc")
+                .limit(1)
+                .get();
+
+            if (snap.empty) return "You haven't placed any orders yet. <br>Try our <b>Ratlami Sev</b>, it's famous! 😋";
+            
+            const o = snap.docs[0].data();
+            const date = o.timestamp ? o.timestamp.toDate().toLocaleDateString() : 'Recent';
+            
+            let statusMsg = `Your last order <b>#${o.id}</b> is <b>${o.status}</b>.`;
+            if (o.status === 'Shipped') statusMsg += "<br>🚚 It's on the way!";
+            if (o.status === 'Delivered') statusMsg += "<br>🎉 It was delivered on " + date;
+            
+            return statusMsg + `<br><button class="btn-primary" style="padding:5px 10px; margin-top:5px; font-size:0.8rem;" onclick="showOrderHistory()">View Details</button>`;
+        } catch (e) {
+            return "I couldn't load your orders right now. Please check the 'My Orders' section.";
+        }
+    }
+
+    // 3. LOYALTY & WALLET (Specific to your app)
+    if (text.includes('point') || text.includes('coin') || text.includes('wallet') || text.includes('balance') || text.includes('loyalty')) {
+        if (!currentUser) return "Login to check your Namo Coins balance! 💰";
+        const bal = userProfile?.walletBalance || 0;
+        const tier = userProfile?.loyaltyTier || 'Bronze';
+        return `💰 <b>Wallet Balance:</b> ₹${bal}<br>👑 <b>Tier:</b> ${tier}<br><br>You can use these coins for discounts at checkout!`;
+    }
+
+    if (text.includes('refer') || text.includes('invite') || text.includes('code')) {
+        if (!currentUser) return "Login to get your referral code.";
+        const code = userProfile?.referralCode || "Loading...";
+        return `🎁 <b>Refer & Earn:</b><br>Share your code: <b>${code}</b><br>Both you and your friend get ₹50! <a href="javascript:void(0)" onclick="openProfileModal()" style="color:var(--primary);">View Profile</a>`;
+    }
+
+    // 4. PRODUCT SEARCH (Dynamic Price/Stock Check)
+    // Checks if user asks "Price of Sev" or "Do you have Cookies"
+    const productMatch = products.find(p => text.includes(p.name.toLowerCase()) || (p.category && text.includes(p.category.toLowerCase())));
+    
+    if (productMatch) {
+        const price = productMatch.variants && productMatch.variants.length > 0 ? productMatch.variants[0].price : productMatch.price;
+        const stockStatus = productMatch.in_stock ? "✅ In Stock" : "❌ Out of Stock";
+        
+        return `<b>${productMatch.name}</b><br>💰 Price: ₹${price}<br>${stockStatus}<br><br><button class="btn-primary" style="padding:5px 10px; font-size:0.8rem;" onclick="openProductDetail(${productMatch.id})">View Product</button>`;
+    }
+
+    // General Category Queries
+    if (text.includes('sev')) return "We have the best Sev in Indore! Try <b>Ratlami Sev</b>, <b>Ujjani Sev</b>, or <b>Loung Sev</b>.";
+    if (text.includes('sweet') || text.includes('mithai')) return "Craving sweets? Try our <b>Gulab Jamun</b>, <b>Gujiya</b>, or <b>Shakkar Pare</b>! 🍬";
+    if (text.includes('spicy') || text.includes('tikha')) return "For spicy lovers 🌶️, I recommend <b>Ratlami Sev</b> or <b>Red Mixture</b>.";
+    if (text.includes('jain') || text.includes('no onion')) return "Yes! Most of our Sev and Mixtures are Jain-friendly. Please check the description of <b>Ujjani Sev</b>.";
+
+    // 5. HAMPER / GIFTS
+    if (text.includes('gift') || text.includes('hamper') || text.includes('box') || text.includes('pack')) {
+        return "🎁 We have a <b>Make Your Own Hamper</b> feature!<br>Select any 3 items for a special price.<br><a href='#hamper-section' style='color:var(--primary); font-weight:bold;'>Build Hamper Now</a>";
+    }
+
+    // 6. STORE POLICIES & INFO
+    if (text.includes('delivery') || text.includes('shipping') || text.includes('charge')) {
+        const charge = shopConfig.deliveryCharge || 50;
+        const free = shopConfig.freeShippingThreshold || 250;
+        return `🚚 <b>Delivery Info:</b><br>• Standard Charge: ₹${charge}<br>• <b>FREE Delivery</b> on orders above ₹${free}!`;
+    }
+
+    if (text.includes('return') || text.includes('refund') || text.includes('cancel')) {
+        return "⚠️ <b>Cancellation Policy:</b><br>You can cancel an order within <b>30 minutes</b> of placing it via the 'My Orders' section.<br>For returns, please contact support.";
+    }
+
+    if (text.includes('payment') || text.includes('cod') || text.includes('upi')) {
+        return "💳 We accept:<br>• <b>UPI</b> (GPay, PhonePe, Paytm)<br>• <b>Cash on Delivery</b> (COD)<br>• All major cards via Razorpay.";
+    }
+
+    if (text.includes('location') || text.includes('address') || text.includes('shop') || text.includes('where')) {
+        return "📍 <b>Visit Us:</b><br>131, Keshav Park, Mhow (M.P.)<br>We deliver authentic Indori taste! 🇮🇳";
+    }
+
+    if (text.includes('time') || text.includes('open')) {
+        return "🕒 We are an online store, open <b>24/7</b>!<br>Deliveries are processed between 9 AM - 9 PM.";
+    }
+
+    if (text.includes('contact') || text.includes('call') || text.includes('support') || text.includes('number')) {
+        return `📞 <b>Support:</b> +91 98266 98822<br>💬 <a href="https://wa.me/${shopConfig.adminPhone}" target="_blank" style="color:#25D366; font-weight:bold;">Chat on WhatsApp</a>`;
+    }
+
+    // 7. TECHNICAL HELP
+    if (text.includes('login') || text.includes('otp') || text.includes('sign in')) {
+        return "Having trouble logging in? Try using the <b>WhatsApp Login</b> button for instant access! 📲";
+    }
+
+    if (text.includes('app') || text.includes('download') || text.includes('install')) {
+        return "📲 You can install our app!<br>Tap the 'Install' button in the menu or 'Add to Home Screen' in your browser.";
+    }
+
+    // 8. FUN / EASTER EGGS
+    if (text.includes('owner') || text.includes('made by')) {
+        return "I was built with ❤️ by the Namo Namkeen tech team!";
+    }
+
+    // 9. FALLBACK (Smart Handoff)
+    return `I'm not sure about that. 🤔<br>
+    Try asking about: <br>
+    • <b>"Price of Ratlami Sev"</b><br>
+    • <b>"My Wallet Balance"</b><br>
+    • <b>"Track Order"</b><br><br>
+    Or <a href="https://wa.me/${shopConfig.adminPhone}" target="_blank" style="color:#25D366; font-weight:bold;">Chat with Human</a>`;
+}

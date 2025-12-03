@@ -3501,6 +3501,262 @@ button { position: relative; overflow: hidden; } /* Ensure buttons contain rippl
     display: none; /* Show only on mobile via media query if needed */
 }
 
+/* --- LOYALTY & GAMIFICATION --- */
+
+/* 1. Loyalty Card (in Profile) */
+.loyalty-card {
+    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+    border-radius: 15px;
+    padding: 20px;
+    color: white;
+    margin-bottom: 20px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+}
+
+/* Tier Themes */
+.loyalty-card.Bronze { border-bottom: 4px solid #cd7f32; }
+.loyalty-card.Silver { border-bottom: 4px solid #c0c0c0; }
+.loyalty-card.Gold { border-bottom: 4px solid #ffd700; }
+.loyalty-card.Platinum { border-bottom: 4px solid #e5e4e2; background: linear-gradient(135deg, #2c3e50, #000); }
+
+.loyalty-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.tier-badge {
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+.bg-Bronze { background: #cd7f32; color: white; }
+.bg-Silver { background: #c0c0c0; color: black; }
+.bg-Gold { background: #ffd700; color: black; }
+.bg-Platinum { background: #e5e4e2; color: black; box-shadow: 0 0 10px rgba(255,255,255,0.5); }
+
+.loyalty-progress {
+    background: rgba(255,255,255,0.1);
+    height: 8px;
+    border-radius: 4px;
+    margin: 10px 0 5px;
+    overflow: hidden;
+}
+
+.progress-bar-fill {
+    height: 100%;
+    background: #2ecc71;
+    border-radius: 4px;
+    transition: width 0.5s ease;
+}
+
+/* 2. Badges Grid */
+.badges-container {
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    padding: 5px 0;
+    scrollbar-width: none;
+}
+.badge-item {
+    flex: 0 0 auto;
+    width: 60px;
+    text-align: center;
+    opacity: 0.5;
+    filter: grayscale(1);
+    transition: 0.3s;
+}
+.badge-item.unlocked {
+    opacity: 1;
+    filter: grayscale(0);
+    transform: scale(1.05);
+}
+.badge-icon {
+    width: 45px;
+    height: 45px;
+    background: #f8f9fa;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    margin: 0 auto 5px;
+    border: 2px solid #eee;
+}
+.badge-item.unlocked .badge-icon {
+    border-color: var(--primary);
+    background: #fff3e0;
+    color: var(--primary);
+}
+.badge-name { font-size: 0.65rem; color: #666; font-weight: 600; }
+
+/* 3. Leaderboard */
+.leaderboard-row {
+    display: flex;
+    align-items: center;
+    padding: 12px 15px;
+    border-bottom: 1px solid #f0f0f0;
+    transition: 0.2s;
+}
+.leaderboard-row:hover { background: #f9f9f9; }
+.rank-num {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #ccc;
+    width: 30px;
+}
+.rank-1 { color: #ffd700; }
+.rank-2 { color: #c0c0c0; }
+.rank-3 { color: #cd7f32; }
+
+.lb-user { flex: 1; display: flex; align-items: center; gap: 10px; }
+.lb-avatar { width: 35px; height: 35px; border-radius: 50%; background: #eee; object-fit: cover; }
+.lb-points { font-weight: 700; color: var(--primary); }
+
+/* --- CHATBOT WIDGET STYLES --- */
+.chat-widget-btn {
+    position: fixed;
+    bottom: 90px;
+    right: 20px; /* Positioned to not overlap WhatsApp */
+    width: 55px;
+    height: 55px;
+    background: var(--primary);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(232, 93, 4, 0.4);
+    z-index: 9990;
+    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+.chat-widget-btn:hover { transform: scale(1.1); }
+
+.chat-window {
+    position: fixed;
+    bottom: 100px;
+    right: 20px;
+    width: 350px;
+    height: 500px;
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 5px 30px rgba(0,0,0,0.2);
+    z-index: 9999;
+    display: none;
+    flex-direction: column;
+    overflow: hidden;
+    border: 1px solid #eee;
+    transform-origin: bottom right;
+    animation: chatPop 0.3s ease-out;
+}
+
+@keyframes chatPop {
+    from { opacity: 0; transform: scale(0.8); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+.chat-header {
+    background: var(--primary); /* Orange */
+    color: white;
+    padding: 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.chat-messages {
+    flex: 1;
+    padding: 15px;
+    overflow-y: auto;
+    background: #f9fafb;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.message {
+    max-width: 80%;
+    padding: 10px 14px;
+    border-radius: 12px;
+    font-size: 0.9rem;
+    line-height: 1.4;
+    word-wrap: break-word;
+}
+
+.bot-msg {
+    background: white;
+    border: 1px solid #eee;
+    border-bottom-left-radius: 2px;
+    align-self: flex-start;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.03);
+}
+
+.user-msg {
+    background: var(--primary);
+    color: white;
+    border-bottom-right-radius: 2px;
+    align-self: flex-end;
+    box-shadow: 0 2px 5px rgba(232, 93, 4, 0.2);
+}
+
+.chat-input-area {
+    padding: 15px;
+    border-top: 1px solid #eee;
+    background: white;
+}
+
+.chat-chips {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 10px;
+    margin-bottom: 5px;
+    scrollbar-width: none;
+}
+.chat-chips button {
+    white-space: nowrap;
+    background: #f0f2f5;
+    border: 1px solid #ddd;
+    padding: 6px 12px;
+    border-radius: 15px;
+    font-size: 0.8rem;
+    color: #555;
+    cursor: pointer;
+    transition: 0.2s;
+}
+.chat-chips button:hover { background: #e0e0e0; }
+
+#chat-input {
+    flex: 1;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 20px;
+    outline: none;
+    font-size: 0.9rem;
+}
+
+.send-btn {
+    width: 40px;
+    height: 40px;
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+
 /* FIX: Responsive css for mobile */
 @media (max-width: 768px) {
 
@@ -4418,6 +4674,15 @@ button { position: relative; overflow: hidden; } /* Ensure buttons contain rippl
 
 @media (max-width: 480px) {
 
+     .chat-window {
+        width: 100%;
+        height: 100%;
+        bottom: 0;
+        right: 0;
+        border-radius: 0;
+    }
+    .chat-widget-btn { bottom: 80px; } /* Adjust for bottom nav */
+    
     /* 1. Grid Layout: Force 2 Columns */
     .product-grid {
         display: grid;

@@ -2369,36 +2369,73 @@ function saveExpense() {
     });
 }
 
+// --- GAMIFICATION & LOYALTY ENGINE ---
 async function calculateSegments() {
-    showToast("Analyzing customer data...", "neutral");
-    const usersSnap = await db.collection("users").get();
+    if (!await showConfirm("Recalculate Loyalty Tiers & Leaderboard?")) return;
 
-    const batch = db.batch();
-    let count = 0;
+    showToast("Calculating loyalty scores...", "neutral");
+    
+    try {
+        const usersSnap = await db.collection("users").get();
+        const batch = db.batch();
+        let count = 0;
 
-    for (const doc of usersSnap.docs) {
-        const u = doc.data();
+        const updates = usersSnap.docs.map(async (doc) => {
+            const u = doc.data();
+            
+            // 1. Calculate Lifetime Spend
+            const ordersSnap = await db.collection("orders")
+                .where("userId", "==", doc.id)
+                .get();
+                
+            let totalSpend = 0;
+            let orderCount = 0;
+            
+            ordersSnap.forEach(o => {
+                if (o.data().status !== 'Cancelled') {
+                    totalSpend += (o.data().total || 0);
+                    orderCount++;
+                }
+            });
 
-        // Calculate Total Spend (You might need to query orders for this user if not stored in user doc)
-        const ordersSnap = await db.collection("orders").where("userId", "==", doc.id).get();
-        let totalSpend = 0;
-        ordersSnap.forEach(o => {
-            if (o.data().status !== 'Cancelled') totalSpend += o.data().total
+            // 2. Determine Tier (Bronze -> Silver -> Gold -> Platinum)
+            let tier = 'Bronze';
+            if (totalSpend >= 10000) tier = 'Platinum';
+            else if (totalSpend >= 5000) tier = 'Gold';
+            else if (totalSpend >= 2000) tier = 'Silver';
+
+            // 3. Assign Badges
+            let badges = u.badges || [];
+            const addBadge = (id) => { if(!badges.includes(id)) badges.push(id); };
+
+            if (orderCount >= 1) addBadge('newbie');      // First Order
+            if (orderCount >= 5) addBadge('foodie');      // 5+ Orders
+            if (orderCount >= 10) addBadge('legend');     // 10+ Orders
+            if (totalSpend >= 5000) addBadge('vip');      // High Spender
+            if (u.walletBalance > 500) addBadge('saver'); // High Wallet Balance
+
+            // 4. Update User Doc
+            batch.update(doc.ref, { 
+                segment: tier, // Used for Admin Table
+                loyaltyTier: tier, // Used for User App
+                totalLifetimeSpend: totalSpend,
+                totalOrders: orderCount,
+                badges: badges,
+                lastSegmentUpdate: new Date()
+            });
+            count++;
         });
 
-        let segment = 'Regular';
-        if (totalSpend > 5000) segment = 'Gold';
-        else if (totalSpend > 2000) segment = 'Silver';
+        await Promise.all(updates);
+        await batch.commit();
 
-        if (u.segment !== segment) {
-            batch.update(doc.ref, { segment: segment, totalLifetimeSpend: totalSpend });
-            count++;
-        }
+        showToast(`Updated ${count} customer profiles!`, "success");
+        loadCustomers(); // Refresh Table
+
+    } catch (e) {
+        console.error(e);
+        showToast("Error: " + e.message, "error");
     }
-
-    await batch.commit();
-    showToast(`Updated ${count} customer segments!`, "success");
-    loadCustomers(); // Refresh table
 }
 
 // --- PWA INSTALLATION LOGIC (Admin Side) ---
@@ -2692,6 +2729,114 @@ function markAllAdminRead() {
             snap.forEach(doc => batch.update(doc.ref, { read: true }));
             batch.commit();
         });
+}
+
+// --- AUTOMATED REPORTING LOGIC ---
+
+async function generateReport() {
+    const start = document.getElementById('report-start').value;
+    const end = document.getElementById('report-end').value;
+    const type = document.getElementById('report-type').value;
+
+    if (!start || !end) return showToast("Select date range", "error");
+
+    // Set Loading State
+    setBtnLoading('btn-gen-report', true);
+    document.getElementById('report-results').style.display = 'none';
+
+    try {
+        const generateFn = firebase.functions().httpsCallable('generateReport');
+        const result = await generateFn({ startDate: start, endDate: end, type: type });
+        const data = result.data;
+
+        renderReportUI(data);
+    } catch (error) {
+        console.error(error);
+        showToast("Report Generation Failed: " + error.message, "error");
+    } finally {
+        setBtnLoading('btn-gen-report', false);
+    }
+}
+
+function renderReportUI(data) {
+    document.getElementById('report-results').style.display = 'block';
+
+    // 1. KPI Cards
+    document.getElementById('rep-revenue').innerText = '₹' + data.financials.revenue.toLocaleString();
+    document.getElementById('rep-expense').innerText = '₹' + data.financials.totalExpenses.toLocaleString();
+    
+    const profitEl = document.getElementById('rep-profit');
+    profitEl.innerText = '₹' + data.financials.netProfit.toLocaleString();
+    profitEl.style.color = data.financials.netProfit >= 0 ? '#27ae60' : '#e74c3c';
+
+    document.getElementById('rep-cac').innerText = '₹' + Math.round(data.marketing.cac);
+
+    // 2. Charts
+    renderReportCharts(data);
+
+    // 3. Table Data based on Type
+    const thead = document.getElementById('rep-thead');
+    const tbody = document.getElementById('rep-tbody');
+    tbody.innerHTML = '';
+
+    if (data.meta.type === 'inventory') {
+        document.getElementById('rep-table-title').innerText = "Top Selling Products (Velocity)";
+        thead.innerHTML = '<tr><th>Product Name</th><th>Units Sold</th><th>Est. Revenue</th></tr>';
+        
+        data.inventory.topProducts.forEach(([name, qty]) => {
+            tbody.innerHTML += `<tr><td>${name}</td><td>${qty}</td><td>-</td></tr>`;
+        });
+    } else {
+        document.getElementById('rep-table-title').innerText = "Expense Breakdown";
+        thead.innerHTML = '<tr><th>Category</th><th>Amount</th><th>% of Total</th></tr>';
+        
+        Object.entries(data.financials.expenses).forEach(([cat, amt]) => {
+            if (amt > 0) {
+                const pct = Math.round((amt / data.financials.totalExpenses) * 100) || 0;
+                tbody.innerHTML += `<tr><td>${cat}</td><td>₹${amt.toLocaleString()}</td><td>${pct}%</td></tr>`;
+            }
+        });
+    }
+}
+
+let reportTrendChart, reportExpenseChart;
+
+function renderReportCharts(data) {
+    // A. Sales Trend Line
+    const ctx1 = document.getElementById('reportTrendChart').getContext('2d');
+    if (reportTrendChart) reportTrendChart.destroy();
+
+    reportTrendChart = new Chart(ctx1, {
+        type: 'line',
+        data: {
+            labels: Object.keys(data.chartData),
+            datasets: [{
+                label: 'Daily Revenue',
+                data: Object.values(data.chartData),
+                borderColor: '#2ecc71',
+                tension: 0.3,
+                fill: true,
+                backgroundColor: 'rgba(46, 204, 113, 0.1)'
+            }]
+        },
+        options: { responsive: true, maintainAspectRatio: false }
+    });
+
+    // B. Expense Doughnut
+    const ctx2 = document.getElementById('reportExpenseChart').getContext('2d');
+    if (reportExpenseChart) reportExpenseChart.destroy();
+
+    reportExpenseChart = new Chart(ctx2, {
+        type: 'doughnut',
+        data: {
+            labels: Object.keys(data.financials.expenses),
+            datasets: [{
+                data: Object.values(data.financials.expenses),
+                backgroundColor: ['#3498db', '#e74c3c', '#f1c40f', '#9b59b6', '#e67e22']
+            }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right' } } }
+    });
 }
 
 registerAdminServiceWorker();

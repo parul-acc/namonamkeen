@@ -1018,3 +1018,174 @@ exports.notifyUserStatusChange = functions.firestore
             }
         });
     });
+
+    // =====================================================
+// AUTOMATED REPORTING SYSTEM
+// =====================================================
+
+// --- FUNCTION 9: Scheduled Daily Business Digest ---
+exports.dailyReport = functions.pubsub
+    .schedule('every day 09:00')
+    .timeZone('Asia/Kolkata')
+    .onRun(async (context) => {
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        yesterday.setHours(0, 0, 0, 0);
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        // 1. Fetch Data
+        const ordersSnap = await admin.firestore().collection('orders')
+            .where('timestamp', '>=', yesterday)
+            .where('timestamp', '<', today)
+            .get();
+
+        const expensesSnap = await admin.firestore().collection('expenses')
+            .where('date', '>=', yesterday)
+            .where('date', '<', today)
+            .get();
+
+        // 2. Calculate Metrics
+        let revenue = 0;
+        let orderCount = 0;
+        let cancelled = 0;
+        ordersSnap.forEach(doc => {
+            const o = doc.data();
+            if (o.status !== 'Cancelled') {
+                revenue += o.total || 0;
+                orderCount++;
+            } else {
+                cancelled++;
+            }
+        });
+
+        let totalExpenses = 0;
+        expensesSnap.forEach(doc => {
+            totalExpenses += parseFloat(doc.data().amount || 0);
+        });
+
+        const netProfit = revenue - totalExpenses;
+
+        // 3. Generate Email
+        const html = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #ddd; border-radius: 8px; overflow: hidden;">
+            <div style="background: #2c3e50; padding: 20px; color: white; text-align: center;">
+                <h2 style="margin:0;">📅 Daily Business Digest</h2>
+                <p style="margin:5px 0 0; opacity:0.8;">${yesterday.toDateString()}</p>
+            </div>
+            <div style="padding: 20px;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+                    <div style="background: #f8f9fa; padding: 15px; border-radius: 6px; text-align: center;">
+                        <div style="font-size: 12px; color: #666;">Revenue</div>
+                        <div style="font-size: 20px; font-weight: bold; color: #27ae60;">₹${revenue.toLocaleString()}</div>
+                    </div>
+                    <div style="background: #f8f9fa; padding: 15px; border-radius: 6px; text-align: center;">
+                        <div style="font-size: 12px; color: #666;">Net Profit</div>
+                        <div style="font-size: 20px; font-weight: bold; color: ${netProfit >= 0 ? '#27ae60' : '#e74c3c'};">₹${netProfit.toLocaleString()}</div>
+                    </div>
+                </div>
+                <ul style="line-height: 1.8; color: #444;">
+                    <li>📦 <strong>Orders:</strong> ${orderCount} (${cancelled} cancelled)</li>
+                    <li>💸 <strong>Expenses:</strong> ₹${totalExpenses.toLocaleString()}</li>
+                </ul>
+                <a href="https://namo-namkeen.web.app/admin.html" style="display: block; background: #e85d04; color: white; text-align: center; padding: 12px; text-decoration: none; border-radius: 4px; margin-top: 20px;">Open Admin Dashboard</a>
+            </div>
+        </div>`;
+
+        // 4. Send Email
+        await transporter.sendMail({
+            from: `"Namo Analytics" <${emailSender.value()}>`,
+            to: emailAdmin.value(),
+            subject: `📊 Daily Report: ₹${revenue} Revenue`,
+            html: html
+        });
+
+        return null;
+    });
+
+// --- FUNCTION 10: Generate Custom Report (Callable) ---
+exports.generateReport = functions.https.onCall(async (data, context) => {
+    if (!context.auth) throw new functions.https.HttpsError('unauthenticated', 'Auth required');
+
+    const { startDate, endDate, type } = data;
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    end.setHours(23, 59, 59, 999); // End of day
+
+    // Fetch Data Range
+    const ordersSnap = await admin.firestore().collection('orders')
+        .where('timestamp', '>=', start)
+        .where('timestamp', '<=', end)
+        .get();
+
+    const expensesSnap = await admin.firestore().collection('expenses')
+        .where('date', '>=', start)
+        .where('date', '<=', end)
+        .get();
+
+    // --- 1. PROFIT & LOSS ---
+    let revenue = 0, costOfGoods = 0, shippingCost = 0, discounts = 0;
+    let expenses = { Marketing: 0, Packaging: 0, Salary: 0, Other: 0, 'Delivery/Fuel': 0 };
+    
+    let salesData = {}; // Date -> Revenue (for chart)
+
+    ordersSnap.forEach(doc => {
+        const o = doc.data();
+        if (o.status !== 'Cancelled') {
+            revenue += o.total || 0;
+            shippingCost += o.shippingCost || 0;
+            discounts += o.discountAmt || 0;
+            
+            // Track Daily Sales
+            const day = o.timestamp.toDate().toISOString().split('T')[0];
+            salesData[day] = (salesData[day] || 0) + o.total;
+        }
+    });
+
+    expensesSnap.forEach(doc => {
+        const e = doc.data();
+        const amt = parseFloat(e.amount || 0);
+        const cat = e.category || 'Other';
+        expenses[cat] = (expenses[cat] || 0) + amt;
+    });
+
+    const totalExpenses = Object.values(expenses).reduce((a, b) => a + b, 0);
+    const netProfit = revenue - totalExpenses;
+
+    // --- 2. CAC (Customer Acquisition Cost) ---
+    // Fetch new customers in this period
+    const usersSnap = await admin.firestore().collection('users')
+        .where('lastLogin', '>=', start) // Approximation using lastLogin or createdAt if available
+        .where('lastLogin', '<=', end)
+        .get();
+    
+    // Filter mostly new users (users with exactly 1 order in this period)
+    // Note: For strict CAC, we should track 'createdAt' on users. Using approximation for now.
+    const newCustomers = usersSnap.size || 1; // Avoid division by zero
+    const marketingSpend = expenses['Marketing'] || 0;
+    const cac = marketingSpend / newCustomers;
+
+    // --- 3. INVENTORY TURNOVER (Velocity) ---
+    let productSales = {};
+    ordersSnap.forEach(doc => {
+        const o = doc.data();
+        if (o.status !== 'Cancelled' && o.items) {
+            o.items.forEach(i => {
+                productSales[i.name] = (productSales[i.name] || 0) + i.qty;
+            });
+        }
+    });
+    // Sort top selling
+    const topProducts = Object.entries(productSales)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 10);
+
+    return {
+        meta: { start: startDate, end: endDate, type },
+        financials: { revenue, totalExpenses, netProfit, expenses },
+        marketing: { newCustomers, marketingSpend, cac },
+        inventory: { topProducts },
+        chartData: salesData
+    };
+});

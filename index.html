@@ -703,6 +703,47 @@
         </div>
     </div>
 
+    <div id="chat-widget-btn" class="chat-widget-btn" onclick="toggleChatWidget()">
+    <i class="fas fa-comment-dots"></i>
+</div>
+
+<div id="chat-window" class="chat-window">
+    <div class="chat-header">
+        <div style="display:flex; align-items:center; gap:10px;">
+            <div style="width:35px; height:35px; background:white; border-radius:50%; display:flex; align-items:center; justify-content:center;">
+                <img src="logo.jpg" style="width:30px; height:30px; border-radius:50%;">
+            </div>
+            <div>
+                <h4 style="margin:0; font-size:0.95rem;">Namo Assistant</h4>
+                <small style="color:rgba(255,255,255,0.8); font-size:0.75rem;">Online</small>
+            </div>
+        </div>
+        <button onclick="toggleChatWidget()" style="background:none; border:none; color:white; font-size:1.2rem; cursor:pointer;">&times;</button>
+    </div>
+    
+    <div id="chat-messages" class="chat-messages">
+        <div class="message bot-msg">
+            Hello! 👋 I'm your Namo assistant.<br>
+            I can help you with:<br>
+            📦 <b>Order Status</b><br>
+            🍟 <b>Snack Advice</b><br>
+            🚚 <b>Delivery Info</b>
+        </div>
+    </div>
+
+    <div class="chat-input-area">
+        <div class="chat-chips" id="chat-chips">
+            <button onclick="sendPreset('Track my order')">Track Order</button>
+            <button onclick="sendPreset('Suggest a spicy snack')">Spicy Snack</button>
+            <button onclick="sendPreset('Delivery charges?')">Delivery?</button>
+        </div>
+        <div style="display:flex; gap:8px;">
+            <input type="text" id="chat-input" placeholder="Type a message..." onkeydown="handleChatKey(event)">
+            <button class="send-btn" onclick="handleUserMessage()"><i class="fas fa-paper-plane"></i></button>
+        </div>
+    </div>
+</div>
+
     <footer class="footer">
         <div class="container">
             <div class="footer-top">
