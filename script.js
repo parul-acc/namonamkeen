@@ -1564,14 +1564,13 @@ function closeHistory() {
 }
 
 // Invoice & Repeat
-// Invoice & Repeat
 function openInvoice(orderId) {
     const order = historyOrders.find(o => o.id === orderId);
     if (!order) return showToast("Order details not found.", "error");
 
     // Fill basic details
-    document.getElementById('inv-customer-name').innerText = order.userName;
-    document.getElementById('inv-customer-email').innerText = currentUser.email || '-';
+    document.getElementById('inv-customer-name').innerText = order.userName || 'Guest';
+    document.getElementById('inv-customer-email').innerText = (currentUser && currentUser.email) ? currentUser.email : (order.userEmail || '-');
     document.getElementById('inv-order-id').innerText = `#${order.id}`;
     document.getElementById('inv-date').innerText = order.timestamp ? new Date(order.timestamp.seconds * 1000).toLocaleDateString() : '-';
 
@@ -1579,31 +1578,19 @@ function openInvoice(orderId) {
     const tbody = document.getElementById('inv-items-body');
     tbody.innerHTML = '';
     order.items.forEach(i => {
-        tbody.innerHTML += `<tr><td>${escapeHtml(String(i.name))} <br><small>${escapeHtml(String(i.weight))}</small></td><td class="text-center">${i.qty}</td><td class="text-right">₹${i.price}</td><td class="text-right">₹${i.price * i.qty}</td></tr>`;
+        tbody.innerHTML += `
+            <tr>
+                <td style="padding:10px; border-bottom:1px solid #eee;">
+                    ${escapeHtml(String(i.name))} <br>
+                    <small style="color:#888;">${escapeHtml(String(i.weight))}</small>
+                </td>
+                <td class="text-center" style="padding:10px; border-bottom:1px solid #eee;">${i.qty}</td>
+                <td class="text-right" style="padding:10px; border-bottom:1px solid #eee;">₹${i.price}</td>
+                <td class="text-right" style="padding:10px; border-bottom:1px solid #eee;">₹${i.price * i.qty}</td>
+            </tr>`;
     });
 
     document.getElementById('inv-grand-total').innerText = `₹${order.total}`;
-
-    // --- NEW: INTERACTIVE QR CODE LOGIC ---
-    // 1. Construct the UPI Payment Link
-    const upiLink = `upi://pay?pa=${shopConfig.upiId}&pn=NamoNamkeen&am=${order.total}&cu=INR`;
-
-    // 2. Generate the QR Image URL
-    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(upiLink)}`;
-
-    // 3. Inject clickable HTML into the QR Section
-    const qrContainer = document.getElementById('inv-qr-section');
-    if (qrContainer) {
-        qrContainer.innerHTML = `
-            <p style="margin:0 0 10px; font-weight:bold; color:#d35400;">Tap QR to Pay via App</p>
-            <a href="${upiLink}" target="_blank" style="display:inline-block; transition:transform 0.2s;" onclick="this.style.transform='scale(0.95)'">
-                <img src="${qrUrl}" alt="Scan or Tap to Pay" style="width:150px; height:150px; mix-blend-mode: multiply; border: 2px solid rgba(232,93,4,0.3); border-radius: 8px;">
-            </a>
-            <p style="margin:10px 0 0; font-size:0.8rem; color:#555;">Works with GPay, PhonePe, Paytm</p>
-        `;
-    }
-    // --------------------------------------
-
     document.getElementById('invoice-modal').style.display = 'flex';
 }
 

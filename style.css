@@ -3918,6 +3918,26 @@ button { position: relative; overflow: hidden; } /* Ensure buttons contain rippl
     font-size: 1.1rem;
 }
 
+/* --- INVOICE MODAL FIXES --- */
+
+/* 1. Fix Z-Index: Ensure Invoice is above History/Sidebar */
+#invoice-modal {
+    z-index: 10000 !important; /* Beats everything (Sidebar is ~5000) */
+    background: rgba(0, 0, 0, 0.85) !important; /* Darker background for focus */
+}
+
+/* 2. Ensure Content is clickable and pops out */
+.invoice-container {
+    z-index: 10001 !important;
+    position: relative;
+    box-shadow: 0 0 50px rgba(0,0,0,0.5); /* Strong shadow to separate layers */
+}
+
+/* 3. Hide QR Code Section visually (Backup for JS) */
+#inv-qr-section {
+    display: none !important;
+}
+
 
 /* FIX: Responsive css for mobile */
 @media (max-width: 768px) {
