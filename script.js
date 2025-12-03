@@ -1087,10 +1087,6 @@ function updateCartUI() {
         }
     }
 
-    // 4. Update Footer Totals
-   const { subtotal, discountAmount, shipping, finalTotal } = getCartTotals();
-    const count = cart.reduce((sum, i) => sum + i.qty, 0);
-
     // Desktop Header
     const totalEl = document.getElementById('cart-total');
     if (totalEl) totalEl.innerText = '₹' + finalTotal.toLocaleString('en-IN');
