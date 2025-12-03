@@ -2607,4 +2607,106 @@ function markAllAdminRead() {
         });
 }
 
+// ===========================
+// 🔔 ADMIN NOTIFICATION CENTER
+// ===========================
+
+document.addEventListener('DOMContentLoaded', () => {
+    const header = document.querySelector('.top-bar-left');
+    if (header) {
+        // Create Bell UI
+        const wrapper = document.createElement('div');
+        wrapper.className = 'notif-wrapper';
+        wrapper.style.position = 'relative';
+        wrapper.style.marginLeft = '15px';
+        
+        wrapper.innerHTML = `
+            <button class="icon-btn" onclick="toggleNotifDropdown()" style="position:relative; background:white; color:#555; border:1px solid #ddd;">
+                <i class="fas fa-bell"></i>
+                <span id="admin-notif-badge" style="position:absolute; top:-5px; right:-5px; background:red; color:white; border-radius:50%; width:18px; height:18px; font-size:0.7rem; display:none; align-items:center; justify-content:center; border:2px solid white;">0</span>
+            </button>
+            <div id="admin-notif-dropdown" style="display:none; position:absolute; top:45px; left:0; width:300px; background:white; border:1px solid #eee; border-radius:8px; box-shadow:0 5px 20px rgba(0,0,0,0.15); z-index:1000; overflow:hidden;">
+                <div style="padding:10px 15px; background:#f8f9fa; border-bottom:1px solid #eee; font-weight:600; display:flex; justify-content:space-between;">
+                    <span>Notifications</span>
+                    <span onclick="markAllAdminRead()" style="font-size:0.8rem; color:var(--primary); cursor:pointer;">Mark all read</span>
+                </div>
+                <div id="admin-notif-list" style="max-height:300px; overflow-y:auto;">
+                    <p style="padding:20px; text-align:center; color:#999;">Loading...</p>
+                </div>
+            </div>
+        `;
+        
+        // Insert after the toggle menu
+        const toggle = header.querySelector('.toggle-menu');
+        if(toggle) toggle.after(wrapper);
+        else header.appendChild(wrapper);
+
+        // Start Listening
+        listenToAdminNotifications();
+    }
+});
+
+function toggleNotifDropdown() {
+    const dd = document.getElementById('admin-notif-dropdown');
+    dd.style.display = dd.style.display === 'block' ? 'none' : 'block';
+}
+
+function listenToAdminNotifications() {
+    db.collection('admin_notifications')
+        .orderBy('timestamp', 'desc')
+        .limit(20)
+        .onSnapshot(snap => {
+            const list = document.getElementById('admin-notif-list');
+            const badge = document.getElementById('admin-notif-badge');
+            
+            if (snap.empty) {
+                list.innerHTML = '<p style="padding:20px; text-align:center; color:#999;">No notifications</p>';
+                badge.style.display = 'none';
+                return;
+            }
+
+            let unread = 0;
+            let html = '';
+
+            snap.forEach(doc => {
+                const n = doc.data();
+                if (!n.read) unread++;
+                const bg = n.read ? 'white' : '#f0f9ff';
+                
+                html += `
+                <div onclick="readAndNav('${doc.id}', '${n.link}')" style="padding:12px 15px; border-bottom:1px solid #eee; background:${bg}; cursor:pointer; display:flex; gap:10px;">
+                    <div style="color:#2ecc71; margin-top:2px;"><i class="fas fa-shopping-bag"></i></div>
+                    <div>
+                        <div style="font-size:0.85rem; font-weight:600; color:#333;">${escapeHtml(n.title)}</div>
+                        <div style="font-size:0.8rem; color:#666;">${escapeHtml(n.message)}</div>
+                    </div>
+                </div>`;
+            });
+
+            list.innerHTML = html;
+            if (unread > 0) {
+                badge.style.display = 'flex';
+                badge.innerText = unread;
+            } else {
+                badge.style.display = 'none';
+            }
+        });
+}
+
+function readAndNav(id, link) {
+    db.collection('admin_notifications').doc(id).update({ read: true });
+    if(link === '#nav-orders') switchView('orders');
+    // Close dropdown
+    document.getElementById('admin-notif-dropdown').style.display = 'none';
+}
+
+function markAllAdminRead() {
+    db.collection('admin_notifications').where('read', '==', false).get()
+        .then(snap => {
+            const batch = db.batch();
+            snap.forEach(doc => batch.update(doc.ref, { read: true }));
+            batch.commit();
+        });
+}
+
 registerAdminServiceWorker();

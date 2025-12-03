@@ -12,86 +12,92 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
-// Handle Background Notifications
+// 1. Background Handler
 messaging.onBackgroundMessage(function (payload) {
   console.log('[firebase-messaging-sw.js] Received background message ', payload);
-
+  // Customize notification here
   const notificationTitle = payload.notification.title;
   const notificationOptions = {
     body: payload.notification.body,
-    icon: '/logo.jpg', // Ensure this path is correct
-    badge: '/logo.jpg'
+    icon: '/logo.jpg',
+    badge: '/logo.jpg',
+    data: payload.data // Preserve data payload (contains URL)
   };
 
   self.registration.showNotification(notificationTitle, notificationOptions);
 });
 
-const CACHE_NAME = 'namo-v18';
+const CACHE_NAME = 'namo-v20'; // Increment Version
 const urlsToCache = [
   '/',
   '/index.html',
   '/style.css',
   '/script.js',
   '/logo.jpg',
+  '/manifest.json',
   'privacy.html',
   'terms.html',
   'pricelist.html',
-  'blog.html', // <--- Added this
+  'blog.html',
   'story.html',
-  'faq.html'
+  'faq.html',
+  // Cache FontAwesome (Critical for icons)
+  'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css'
 ];
 
-// 1. Install: Force new SW to activate immediately
+// 2. Install
 self.addEventListener('install', event => {
-  self.skipWaiting(); // Crucial: Kick out the old SW
+  self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME).then(cache => cache.addAll(urlsToCache))
   );
 });
 
-
-// 2. Activate: Clean up old caches
+// 3. Activate
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys().then(cacheNames => {
       return Promise.all(
         cacheNames.map(cacheName => {
-          if (cacheName !== CACHE_NAME) {
-            console.log('Deleting old cache:', cacheName);
-            return caches.delete(cacheName);
-          }
+          if (cacheName !== CACHE_NAME) return caches.delete(cacheName);
         })
       );
     })
   );
-  return self.clients.claim(); // Take control of the page immediately
+  return self.clients.claim();
 });
 
-// 3. Fetch: Network First, Fallback to Cache (Safer for updates)
+// 4. Fetch
 self.addEventListener('fetch', event => {
   event.respondWith(
-    fetch(event.request)
-      .then(response => {
-        // If network works, return response
-        return response;
-      })
-      .catch(() => {
-        // If network fails (offline), try cache
-        return caches.match(event.request);
-      })
+    caches.match(event.request).then(response => {
+      return response || fetch(event.request);
+    })
   );
 });
 
-self.addEventListener('push', function (event) {
-  const data = event.data.json();
-  const options = {
-    body: data.body,
-    icon: '/logo.jpg',
-    badge: '/logo.jpg',
-    data: { url: data.url || '/' }
-  };
+// 5. Notification Click Handler (THE FIX)
+self.addEventListener('notificationclick', function(event) {
+  console.log('[Service Worker] Notification click Received.');
+
+  event.notification.close(); // Close the notification
+
+  // Open the app to the specific URL
+  let urlToOpen = event.notification.data?.url || '/';
 
   event.waitUntil(
-    self.registration.showNotification(data.title, options)
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(windowClients => {
+      // If tab is already open, focus it
+      for (let i = 0; i < windowClients.length; i++) {
+        const client = windowClients[i];
+        if (client.url.includes(self.registration.scope) && 'focus' in client) {
+          return client.focus().then(c => c.navigate(urlToOpen));
+        }
+      }
+      // Otherwise open new tab
+      if (clients.openWindow) {
+        return clients.openWindow(urlToOpen);
+      }
+    })
   );
 });

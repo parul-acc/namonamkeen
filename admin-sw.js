@@ -12,63 +12,64 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
-// Handle Background Notifications
 messaging.onBackgroundMessage(function (payload) {
-  console.log('[firebase-messaging-sw.js] Received background message ', payload);
-
   const notificationTitle = payload.notification.title;
   const notificationOptions = {
     body: payload.notification.body,
-    icon: '/logo.jpg', // Ensure this path is correct
-    badge: '/logo.jpg'
+    icon: '/logo.jpg',
+    badge: '/logo.jpg',
+    data: payload.data
   };
-
   self.registration.showNotification(notificationTitle, notificationOptions);
 });
 
-const CACHE_NAME = 'namo-admin-v18';
+const CACHE_NAME = 'namo-admin-v20';
 const urlsToCache = [
   '/admin.html',
-  '/admin.css', // Important: Cache the new styles
-  '/admin.js',  // Important: Cache the new logic
-  '/logo.jpg'
+  '/admin.css',
+  '/admin.js',
+  '/logo.jpg',
+  '/admin-manifest.json',
+  'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css'
 ];
 
-// 1. Install: Force new SW to activate immediately
 self.addEventListener('install', event => {
-  self.skipWaiting(); // Kick out the old SW immediately
-  event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => cache.addAll(urlsToCache))
-  );
+  self.skipWaiting();
+  event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(urlsToCache)));
 });
 
-// 2. Activate: Clean up old caches
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys().then(cacheNames => {
       return Promise.all(
         cacheNames.map(cacheName => {
-          if (cacheName !== CACHE_NAME) {
-            console.log('Deleting old admin cache:', cacheName);
-            return caches.delete(cacheName);
-          }
+          if (cacheName !== CACHE_NAME) return caches.delete(cacheName);
         })
       );
     })
   );
-  return self.clients.claim(); // Take control of the page immediately
+  return self.clients.claim();
 });
 
-// 3. Fetch: Network First, Fallback to Cache
-// This ensures you ALWAYS get the latest dashboard if you are online.
 self.addEventListener('fetch', event => {
   event.respondWith(
-    fetch(event.request)
-      .then(response => {
-        return response; // Return fresh data from network
-      })
-      .catch(() => {
-        return caches.match(event.request); // Fallback to cache if offline
-      })
+    fetch(event.request).catch(() => caches.match(event.request))
+  );
+});
+
+// Handle Admin Notification Clicks
+self.addEventListener('notificationclick', function(event) {
+  event.notification.close();
+  let urlToOpen = event.notification.data?.url || '/admin.html';
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(windowClients => {
+      for (let i = 0; i < windowClients.length; i++) {
+        const client = windowClients[i];
+        if (client.url.includes('admin.html') && 'focus' in client) {
+          return client.focus();
+        }
+      }
+      if (clients.openWindow) return clients.openWindow(urlToOpen);
+    })
   );
 });

@@ -3947,3 +3947,103 @@ window.addEventListener('popstate', (event) => {
         profileMenu.classList.remove('active');
     }
 });
+
+// ===========================
+// 🔔 USER NOTIFICATION CENTER
+// ===========================
+
+// 1. Insert Bell Icon into Navbar
+document.addEventListener('DOMContentLoaded', () => {
+    const actions = document.querySelector('.nav-actions');
+    if (actions) {
+        const bellDiv = document.createElement('div');
+        bellDiv.className = 'notif-trigger';
+        bellDiv.style.cssText = "position: relative; margin-right: 15px; cursor: pointer; color: var(--text-dark);";
+        bellDiv.onclick = toggleUserNotifModal;
+        bellDiv.innerHTML = `
+            <i class="fas fa-bell" style="font-size: 1.3rem;"></i>
+            <span id="user-notif-badge" style="position: absolute; top: -5px; right: -5px; background: red; color: white; border-radius: 50%; width: 16px; height: 16px; font-size: 0.6rem; display: none; align-items: center; justify-content: center; font-weight: bold; border: 2px solid white;">0</span>
+        `;
+        
+        // Insert before Cart Trigger
+        const cartTrigger = actions.querySelector('.cart-trigger');
+        if(cartTrigger) actions.insertBefore(bellDiv, cartTrigger);
+        
+        // Create Modal
+        const modalHtml = `
+        <div id="user-notif-modal" class="modal-overlay">
+            <div class="modal-content mobile-modal">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; padding-bottom:10px; border-bottom:1px solid #eee;">
+                    <h3 style="margin:0;">Updates</h3>
+                    <button class="close-modal" onclick="document.getElementById('user-notif-modal').style.display='none'">&times;</button>
+                </div>
+                <div id="user-notif-list" style="max-height: 60vh; overflow-y: auto;">
+                    <p style="text-align:center; color:#999;">Loading...</p>
+                </div>
+            </div>
+        </div>`;
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+    }
+});
+
+// 2. Toggle Modal & Mark Read
+function toggleUserNotifModal() {
+    if (!currentUser) return showToast("Please login first", "neutral");
+    document.getElementById('user-notif-modal').style.display = 'flex';
+    
+    // Mark visible as read
+    const badge = document.getElementById('user-notif-badge');
+    badge.style.display = 'none';
+    
+    db.collection(`users/${currentUser.uid}/notifications`)
+        .where('read', '==', false).get()
+        .then(snap => {
+            const batch = db.batch();
+            snap.forEach(doc => batch.update(doc.ref, { read: true }));
+            batch.commit();
+        });
+}
+
+// 3. Listen for Updates
+auth.onAuthStateChanged(user => {
+    if (user) {
+        db.collection(`users/${user.uid}/notifications`)
+            .orderBy('timestamp', 'desc')
+            .limit(20)
+            .onSnapshot(snap => {
+                const list = document.getElementById('user-notif-list');
+                const badge = document.getElementById('user-notif-badge');
+                
+                if (snap.empty) {
+                    list.innerHTML = '<div style="text-align:center; padding:30px; color:#999;"><i class="far fa-bell-slash" style="font-size:2rem; margin-bottom:10px;"></i><p>No updates yet</p></div>';
+                    return;
+                }
+
+                let unread = 0;
+                let html = '';
+
+                snap.forEach(doc => {
+                    const n = doc.data();
+                    if (!n.read) unread++;
+                    
+                    html += `
+                    <div style="padding:15px; border-bottom:1px solid #eee; background:${n.read ? 'white' : '#f0f9ff'}; display:flex; gap:12px;">
+                        <div style="background:#e8f5e9; width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#2ecc71;">
+                            <i class="fas fa-box"></i>
+                        </div>
+                        <div>
+                            <div style="font-weight:600; font-size:0.95rem; margin-bottom:2px;">${n.title}</div>
+                            <div style="color:#555; font-size:0.85rem; line-height:1.4;">${n.message}</div>
+                        </div>
+                    </div>`;
+                });
+
+                list.innerHTML = html;
+                if (unread > 0) {
+                    badge.textContent = unread;
+                    badge.style.display = 'flex';
+                    vibrate(100); // Haptic feedback
+                }
+            });
+    }
+});

@@ -909,3 +909,112 @@ exports.notifyUserStatusChange = functions.firestore
             }
         });
     });
+
+    // =====================================================
+// 🔔 PUSH NOTIFICATION SYSTEM (Add to functions/index.js)
+// =====================================================
+
+// Helper: Send Push & Save to DB
+async function sendNotification(target, payload, dbData) {
+    try {
+        // 1. Send Push if token exists
+        if (target.tokens && target.tokens.length > 0) {
+            await admin.messaging().sendMulticast({
+                tokens: target.tokens,
+                notification: payload.notification,
+                data: payload.data || {}
+            });
+        }
+
+        // 2. Save to Firestore for Notification Center UI
+        if (dbData.collection) {
+            await admin.firestore().collection(dbData.collection).add({
+                ...dbData.content,
+                read: false,
+                timestamp: admin.firestore.FieldValue.serverTimestamp()
+            });
+        }
+    } catch (error) {
+        console.error("Notification Error:", error);
+    }
+}
+
+// 1. Notify Admin on New Order
+exports.notifyAdminNewOrder = functions.firestore
+    .document('orders/{orderId}')
+    .onCreate(async (snap, context) => {
+        const order = snap.data();
+        
+        // Fetch all admin tokens
+        const tokensSnap = await admin.firestore().collection('admin_tokens').get();
+        const tokens = tokensSnap.docs.map(doc => doc.data().token).filter(t => t);
+
+        if (tokens.length === 0) return;
+
+        const payload = {
+            notification: {
+                title: "🚀 New Order Received!",
+                body: `Order #${order.id} for ₹${order.total} by ${order.userName}`
+            },
+            data: { url: '/admin.html#orders' }
+        };
+
+        // Save to 'admin_notifications' collection
+        await sendNotification({ tokens }, payload, {
+            collection: 'admin_notifications',
+            content: {
+                title: payload.notification.title,
+                message: payload.notification.body,
+                type: 'order',
+                link: '#nav-orders'
+            }
+        });
+    });
+
+// 2. Notify User on Status Change
+exports.notifyUserStatusChange = functions.firestore
+    .document('orders/{orderId}')
+    .onUpdate(async (change, context) => {
+        const newData = change.after.data();
+        const oldData = change.before.data();
+
+        // Only if status changed
+        if (newData.status === oldData.status) return;
+
+        const userId = newData.userId;
+        if (!userId || userId.startsWith('guest')) return;
+
+        // Get User Token
+        const userDoc = await admin.firestore().collection('users').doc(userId).get();
+        const fcmToken = userDoc.data()?.fcmToken;
+
+        if (!fcmToken) return;
+
+        const messages = {
+            'Packed': '📦 Your order is packed & ready!',
+            'Shipped': '🚚 Your order is on the way!',
+            'Delivered': '🎉 Your order has been delivered. Enjoy!',
+            'Cancelled': '❌ Your order has been cancelled.'
+        };
+
+        const message = messages[newData.status] || `Status Update: ${newData.status}`;
+
+        const payload = {
+            notification: {
+                title: `Order #${newData.id} Update`,
+                body: message
+            },
+            data: { url: '/index.html' } // Opens app
+        };
+
+        // Save to user's private notification collection
+        await sendNotification({ tokens: [fcmToken] }, payload, {
+            collection: `users/${userId}/notifications`,
+            content: {
+                title: payload.notification.title,
+                message: payload.notification.body,
+                type: 'status',
+                orderId: newData.id
+            }
+        });
+    });
