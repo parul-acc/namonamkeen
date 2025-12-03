@@ -731,7 +731,7 @@
     <div class="chat-input-area">
         <div class="chat-chips" id="chat-chips">
             <button onclick="sendPreset('Track my order')">Track Order</button>
-            <button onclick="sendPreset('Suggest a spicy snack')">Spicy Snack</button>
+            <button onclick="sendPreset('Suggest a spicy snack')">Products</button>
             <button onclick="sendPreset('Delivery charges?')">Delivery?</button>
         </div>
         <div style="display:flex; gap:8px;">
@@ -820,9 +820,6 @@
     </footer>
 
     <button id="scrollTopBtn" onclick="scrollToTop()" title="Go to top"><i class="fas fa-arrow-up"></i></button>
-    <a href="https://wa.me/919826698822" target="_blank" class="float-wa"
-        style="position:fixed; bottom:90px; right:30px; background:#25d366; color:white; width:50px; height:50px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:30px; box-shadow: 2px 2px 3px #999; z-index:100;"><i
-            class="fab fa-whatsapp"></i></a>
     <div id="toast-container"></div>
 
     <div id="exit-modal" class="modal-overlay">
@@ -879,41 +876,25 @@
         </div>
     </div>
 
-    <div class="bottom-nav">
-        <a href="#home" class="nav-item active"><i class="fas fa-home"></i><span>Home</span></a>
-        <a href="#menu-section" class="nav-item"><i class="fas fa-utensils"></i><span>Menu</span></a>
-        <a href="javascript:void(0)" onclick="toggleCart()" class="nav-item">
-            <div class="icon-wrapper">
-                <i class="fas fa-shopping-bag"></i>
-                <span id="bottom-cart-count" class="badge">0</span>
-            </div>
-            <span>Cart</span>
-        </a>
-        <a href="javascript:void(0)" onclick="openProfileModal()" class="nav-item"><i
-                class="fas fa-user"></i><span>Profile</span></a>
-    </div>
-
-    <div class="bottom-nav">
-        <a href="#home" class="nav-item active" onclick="setActiveNav(this)">
-            <i class="fas fa-home"></i>
-            <span>Home</span>
-        </a>
-        <a href="#menu-section" class="nav-item" onclick="setActiveNav(this)">
-            <i class="fas fa-utensils"></i>
-            <span>Menu</span>
-        </a>
-        <a href="javascript:void(0)" onclick="toggleCart()" class="nav-item">
-            <div class="icon-wrapper">
-                <i class="fas fa-shopping-bag"></i>
-                <span id="bottom-cart-count" class="badge">0</span>
-            </div>
-            <span>Cart</span>
-        </a>
-        <a href="javascript:void(0)" onclick="openProfileModal()" class="nav-item">
-            <i class="fas fa-user"></i>
-            <span>Profile</span>
-        </a>
-    </div>
+<nav class="bottom-nav">
+    <a href="#" onclick="window.scrollTo(0,0); setActiveNav(this)" class="nav-item active">
+        <i class="fas fa-home"></i>
+        <span>Home</span>
+    </a>
+    <a href="javascript:void(0)" onclick="openQuiz(); setActiveNav(this)" class="nav-item">
+        <i class="fas fa-search"></i>
+        <span>Finder</span>
+    </a>
+    <a href="javascript:void(0)" onclick="toggleCart(); setActiveNav(this)" class="nav-item" style="position: relative;">
+        <i class="fas fa-shopping-bag"></i>
+        <span id="bottom-cart-count" class="nav-badge" style="display:none;">0</span>
+        <span>Cart</span>
+    </a>
+    <a href="javascript:void(0)" onclick="openProfileModal(); setActiveNav(this)" class="nav-item">
+        <i class="fas fa-user"></i>
+        <span>Profile</span>
+    </a>
+</nav>
 
     <div id="ptr-spinner" class="ptr-spinner">
     <i class="fas fa-circle-notch fa-spin"></i>

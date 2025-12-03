@@ -1194,3 +1194,53 @@ exports.generateReport = functions.https.onCall(async (data, context) => {
         chartData: salesData
     };
 });
+
+// =====================================================
+// 🔔 IN-APP NOTIFICATION SYSTEM
+// =====================================================
+
+// 1. Notify Admin on New Order (Saves to DB for Bell Icon)
+exports.logAdminNotification = functions.firestore
+    .document('orders/{orderId}')
+    .onCreate(async (snap, context) => {
+        const order = snap.data();
+        
+        await admin.firestore().collection('admin_notifications').add({
+            title: "🚀 New Order Received",
+            message: `Order #${order.id} for ₹${order.total} by ${order.userName}`,
+            type: 'order',
+            link: 'orders', // View to switch to
+            read: false,
+            timestamp: admin.firestore.FieldValue.serverTimestamp()
+        });
+        return null;
+    });
+
+// 2. Notify User on Status Change (Saves to DB for App Bell Icon)
+exports.logUserNotification = functions.firestore
+    .document('orders/{orderId}')
+    .onUpdate(async (change, context) => {
+        const newData = change.after.data();
+        const oldData = change.before.data();
+
+        // Only log if status changed
+        if (newData.status === oldData.status) return null;
+
+        const userId = newData.userId;
+        if (!userId || userId.startsWith('guest')) return null;
+
+        let message = `Your order #${newData.id} is now ${newData.status}.`;
+        if (newData.status === 'Packed') message = `📦 Order #${newData.id} is packed and ready for dispatch!`;
+        if (newData.status === 'Shipped') message = `🚚 Order #${newData.id} is out for delivery.`;
+        if (newData.status === 'Delivered') message = `🎉 Order #${newData.id} has been delivered. Enjoy!`;
+
+        await admin.firestore().collection('users').doc(userId).collection('notifications').add({
+            title: `Order ${newData.status}`,
+            message: message,
+            type: 'status',
+            orderId: newData.id,
+            read: false,
+            timestamp: admin.firestore.FieldValue.serverTimestamp()
+        });
+        return null;
+    });

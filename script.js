@@ -1088,19 +1088,25 @@ function updateCartUI() {
     }
 
     // 4. Update Footer Totals
-    const totalEl = document.getElementById('cart-total');
-    if (totalEl) totalEl.innerText = '₹' + final.toLocaleString('en-IN');
+   const { subtotal, discountAmount, shipping, finalTotal } = getCartTotals();
+    const count = cart.reduce((sum, i) => sum + i.qty, 0);
 
+    // Desktop Header
+    const totalEl = document.getElementById('cart-total');
+    if (totalEl) totalEl.innerText = '₹' + finalTotal.toLocaleString('en-IN');
     const countEl = document.getElementById('cart-count');
     if (countEl) countEl.innerText = count;
 
-    // --- ADD THIS BLOCK ---
-    const bottomCount = document.getElementById('bottom-cart-count');
-    if (bottomCount) {
-        bottomCount.innerText = count;
-        // Optional: Pop animation when count changes
-        bottomCount.style.transform = "scale(1.2)";
-        setTimeout(() => bottomCount.style.transform = "scale(1)", 200);
+    // --- MOBILE BOTTOM NAV FIX ---
+    const bottomBadge = document.getElementById('bottom-cart-count');
+    if (bottomBadge) {
+        bottomBadge.innerText = count;
+        // Hide if 0, Show if > 0
+        bottomBadge.style.display = count > 0 ? 'flex' : 'none';
+        
+        // Animation
+        bottomBadge.style.transform = "scale(1.2)";
+        setTimeout(() => bottomBadge.style.transform = "scale(1)", 200);
     }
 
     // 5. Share Cart Button
@@ -4211,6 +4217,12 @@ function addChatMessage(html, sender, id = null) {
 // 🧠 NAMO BOT BRAIN (Full Version)
 // ==========================================
 
+// --- 1. CHATBOT STATE MANAGEMENT ---
+let chatState = {
+    currentIndex: 0,
+    lastQuery: ''
+};
+
 async function generateBotResponse(input) {
     const text = input.toLowerCase();
 
@@ -4266,6 +4278,24 @@ async function generateBotResponse(input) {
         if (!currentUser) return "Login to get your referral code.";
         const code = userProfile?.referralCode || "Loading...";
         return `🎁 <b>Refer & Earn:</b><br>Share your code: <b>${code}</b><br>Both you and your friend get ₹50! <a href="javascript:void(0)" onclick="openProfileModal()" style="color:var(--primary);">View Profile</a>`;
+    }
+
+    // Matches "Products", "Spicy", "Sweet", etc.
+    if (text.includes('product') || text.includes('spicy') || text.includes('sweet') || text.includes('snack')) {
+        
+        // 1. Determine Category Filter
+        let filter = 'all';
+        if (text.includes('spicy')) filter = 'spicy';
+        if (text.includes('sweet')) filter = 'sweet';
+        
+        // 2. Reset Index if Query Changed
+        if (chatState.lastQuery !== filter) {
+            chatState.currentIndex = 0;
+            chatState.lastQuery = filter;
+        }
+
+        // 3. Get Product to Show
+        return getChatProductHtml(filter);
     }
 
     // 4. PRODUCT SEARCH (Dynamic Price/Stock Check)
@@ -4338,6 +4368,57 @@ async function generateBotResponse(input) {
     • <b>"My Wallet Balance"</b><br>
     • <b>"Track Order"</b><br><br>
     Or <a href="https://wa.me/${shopConfig.adminPhone}" target="_blank" style="color:#25D366; font-weight:bold;">Chat with Human</a>`;
+}
+
+function getChatProductHtml(filter) {
+    // Filter Products
+    let matches = products;
+    if (filter !== 'all') {
+        matches = products.filter(p => p.category === filter || (p.name && p.name.toLowerCase().includes(filter)));
+    }
+
+    if (matches.length === 0) return "No products found in this category.";
+
+    // Cycle Logic
+    if (chatState.currentIndex >= matches.length) chatState.currentIndex = 0;
+    const p = matches[chatState.currentIndex];
+    chatState.currentIndex++; // Prepare for next
+
+    // Create Unique ID for this message bubble to allow updating it later (optional)
+    const msgId = 'bot-msg-' + Date.now();
+
+    // Render Card
+    return `
+    <div id="${msgId}" class="chat-product-card">
+        <div class="chat-p-header">
+            <span class="chat-p-title">Products</span>
+            <button class="chat-refresh-btn" onclick="refreshChatProduct('${msgId}', '${filter}')">
+                <i class="fas fa-sync-alt"></i> Refresh
+            </button>
+        </div>
+        <img src="${p.image}" onerror="this.src='logo.jpg'">
+        <div class="chat-p-info">
+            <h4>${p.name}</h4>
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <span class="chat-p-price">₹${p.price}</span>
+                <button class="chat-add-btn" onclick="addToCartFromGrid(${p.id})">Add</button>
+            </div>
+        </div>
+    </div>`;
+}
+
+// --- NEW: FUNCTION CALLED BY REFRESH BUTTON ---
+function refreshChatProduct(elementId, filter) {
+    // Generate new HTML
+    const newHtml = getChatProductHtml(filter);
+    
+    // Find the message bubble and replace content
+    // Note: We replace the *parent* .message.bot-msg content if possible, 
+    // or just replace the card itself.
+    const card = document.getElementById(elementId);
+    if (card) {
+        card.outerHTML = newHtml;
+    }
 }
 
 // ==========================================
@@ -4482,3 +4563,111 @@ async function saveExpressOrder(method, status, txnId, items, total) {
     toggleBtnLoading('btn-express-pay', false);
     showSuccessModal(orderId, total, method);
 }
+
+// ===========================
+// 🔔 USER NOTIFICATION CENTER
+// ===========================
+
+// 1. Insert Bell Icon into Navbar
+document.addEventListener('DOMContentLoaded', () => {
+    const actions = document.querySelector('.nav-actions'); // Desktop
+    // Also consider mobile header if different
+    
+    if (actions) {
+        // Create container if it doesn't exist
+        if (document.querySelector('.user-notif-btn')) return;
+
+        const bellDiv = document.createElement('div');
+        bellDiv.className = 'user-notif-btn';
+        bellDiv.style.cssText = "position: relative; margin-right: 15px; cursor: pointer; color: var(--text-dark); display: inline-block;";
+        bellDiv.onclick = toggleUserNotifModal;
+        bellDiv.innerHTML = `
+            <i class="fas fa-bell" style="font-size: 1.3rem;"></i>
+            <span id="user-notif-badge" style="position: absolute; top: -5px; right: -5px; background: red; color: white; border-radius: 50%; width: 16px; height: 16px; font-size: 0.6rem; display: none; align-items: center; justify-content: center; font-weight: bold; border: 2px solid white;">0</span>
+        `;
+        
+        // Insert before Cart Trigger
+        const cartTrigger = actions.querySelector('.cart-trigger');
+        if(cartTrigger) actions.insertBefore(bellDiv, cartTrigger);
+        
+        // Create Modal HTML
+        const modalHtml = `
+        <div id="user-notif-modal" class="modal-overlay" style="z-index: 5000;">
+            <div class="modal-content mobile-modal">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; padding-bottom:10px; border-bottom:1px solid #eee;">
+                    <h3 style="margin:0;">Your Updates</h3>
+                    <button class="close-modal" onclick="document.getElementById('user-notif-modal').style.display='none'">&times;</button>
+                </div>
+                <div id="user-notif-list" style="max-height: 60vh; overflow-y: auto;">
+                    <p style="text-align:center; color:#999; padding: 20px;">Loading...</p>
+                </div>
+            </div>
+        </div>`;
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+    }
+});
+
+// 2. Toggle Modal & Mark Read
+function toggleUserNotifModal() {
+    if (!currentUser) return showToast("Please login first", "neutral");
+    document.getElementById('user-notif-modal').style.display = 'flex';
+    
+    // Mark visible as read
+    const badge = document.getElementById('user-notif-badge');
+    badge.style.display = 'none';
+    
+    db.collection(`users/${currentUser.uid}/notifications`)
+        .where('read', '==', false).get()
+        .then(snap => {
+            const batch = db.batch();
+            snap.forEach(doc => batch.update(doc.ref, { read: true }));
+            batch.commit();
+        });
+}
+
+// 3. Listen for Updates (Call this inside your Auth Listener)
+auth.onAuthStateChanged(user => {
+    if (user) {
+        db.collection(`users/${user.uid}/notifications`)
+            .orderBy('timestamp', 'desc')
+            .limit(20)
+            .onSnapshot(snap => {
+                const list = document.getElementById('user-notif-list');
+                const badge = document.getElementById('user-notif-badge');
+                
+                if (!list || !badge) return;
+
+                if (snap.empty) {
+                    list.innerHTML = '<div style="text-align:center; padding:30px; color:#999;"><i class="far fa-bell-slash" style="font-size:2rem; margin-bottom:10px;"></i><p>No updates yet</p></div>';
+                    return;
+                }
+
+                let unread = 0;
+                let html = '';
+
+                snap.forEach(doc => {
+                    const n = doc.data();
+                    if (!n.read) unread++;
+                    const time = n.timestamp ? new Date(n.timestamp.seconds * 1000).toLocaleDateString() : '';
+                    
+                    html += `
+                    <div style="padding:15px; border-bottom:1px solid #eee; background:${n.read ? 'white' : '#f0f9ff'}; display:flex; gap:12px;">
+                        <div style="background:#e8f5e9; width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#2ecc71;">
+                            <i class="fas fa-box"></i>
+                        </div>
+                        <div>
+                            <div style="font-weight:600; font-size:0.95rem; margin-bottom:2px;">${n.title}</div>
+                            <div style="color:#555; font-size:0.85rem; line-height:1.4;">${n.message}</div>
+                            <small style="color:#999;">${time}</small>
+                        </div>
+                    </div>`;
+                });
+
+                list.innerHTML = html;
+                if (unread > 0) {
+                    badge.innerText = unread;
+                    badge.style.display = 'flex';
+                }
+            });
+    }
+});

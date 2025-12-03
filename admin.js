@@ -2519,116 +2519,6 @@ function setBtnLoading(btnId, isLoading) {
 // --- ADMIN NOTIFICATION CENTER ---
 
 // 1. Initialize Bell UI
-document.addEventListener('DOMContentLoaded', () => {
-    const header = document.querySelector('.top-bar-left');
-    if (header) {
-        const wrapper = document.createElement('div');
-        wrapper.className = 'notif-wrapper';
-        wrapper.innerHTML = `
-            <button class="notif-btn" onclick="toggleNotifDropdown()">
-                <i class="fas fa-bell"></i>
-                <span id="admin-notif-badge" class="notif-badge">0</span>
-            </button>
-            <div id="admin-notif-dropdown" class="notif-dropdown">
-                <div class="notif-header">
-                    <h4>Notifications</h4>
-                    <small style="color:var(--primary); cursor:pointer;" onclick="markAllAdminRead()">Mark all read</small>
-                </div>
-                <div id="admin-notif-list" class="notif-list">
-                    <div class="notif-empty">Loading...</div>
-                </div>
-            </div>
-        `;
-        header.appendChild(wrapper);
-        
-        // Check permission & Start Listener
-        if (Notification.permission !== 'granted') {
-            enableAdminNotifications(); // Request permission first
-        }
-        listenToAdminNotifications();
-    }
-});
-
-function toggleNotifDropdown() {
-    const dd = document.getElementById('admin-notif-dropdown');
-    dd.classList.toggle('active');
-}
-
-// Close when clicking outside
-document.addEventListener('click', (e) => {
-    const wrapper = document.querySelector('.notif-wrapper');
-    if (wrapper && !wrapper.contains(e.target)) {
-        document.getElementById('admin-notif-dropdown').classList.remove('active');
-    }
-});
-
-// 2. Real-time Listener
-function listenToAdminNotifications() {
-    db.collection('admin_notifications')
-        .orderBy('timestamp', 'desc')
-        .limit(20)
-        .onSnapshot(snap => {
-            const list = document.getElementById('admin-notif-list');
-            const badge = document.getElementById('admin-notif-badge');
-            
-            if (snap.empty) {
-                list.innerHTML = '<div class="notif-empty">No notifications yet</div>';
-                badge.style.display = 'none';
-                return;
-            }
-
-            let unreadCount = 0;
-            let html = '';
-
-            snap.forEach(doc => {
-                const n = doc.data();
-                if (!n.read) unreadCount++;
-                const time = n.timestamp ? new Date(n.timestamp.seconds * 1000).toLocaleString() : '';
-                const icon = n.type === 'order' ? 'fa-shopping-bag' : 'fa-info-circle';
-                const color = n.type === 'order' ? '#2ecc71' : '#3498db';
-
-                html += `
-                <div class="notif-item ${n.read ? '' : 'unread'}" onclick="handleAdminNotifClick('${doc.id}', '${n.link}')">
-                    <i class="fas ${icon}" style="color:${color}; margin-top:3px;"></i>
-                    <div class="notif-content">
-                        <p><strong>${n.title}</strong><br>${n.message}</p>
-                        <small>${time}</small>
-                    </div>
-                </div>`;
-            });
-
-            list.innerHTML = html;
-            
-            if (unreadCount > 0) {
-                badge.textContent = unreadCount;
-                badge.style.display = 'flex';
-                // Play sound for new unread
-                audio.play().catch(()=>{}); 
-            } else {
-                badge.style.display = 'none';
-            }
-        });
-}
-
-function handleAdminNotifClick(id, link) {
-    // Mark as read
-    db.collection('admin_notifications').doc(id).update({ read: true });
-    // Navigate
-    if (link) {
-        if (link.includes('orders')) switchView('orders');
-        // Add other views as needed
-    }
-}
-
-function markAllAdminRead() {
-    db.collection('admin_notifications').where('read', '==', false).get()
-        .then(snap => {
-            const batch = db.batch();
-            snap.forEach(doc => batch.update(doc.ref, { read: true }));
-            batch.commit();
-        });
-}
-
 // ===========================
 // 🔔 ADMIN NOTIFICATION CENTER
 // ===========================
@@ -2636,7 +2526,7 @@ function markAllAdminRead() {
 document.addEventListener('DOMContentLoaded', () => {
     const header = document.querySelector('.top-bar-left');
     if (header) {
-        // Create Bell UI
+        // Create Notification Wrapper
         const wrapper = document.createElement('div');
         wrapper.className = 'notif-wrapper';
         wrapper.style.position = 'relative';
@@ -2658,12 +2548,11 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
         `;
         
-        // Insert after the toggle menu
+        // Insert after the menu toggle
         const toggle = header.querySelector('.toggle-menu');
         if(toggle) toggle.after(wrapper);
         else header.appendChild(wrapper);
 
-        // Start Listening
         listenToAdminNotifications();
     }
 });
@@ -2694,6 +2583,7 @@ function listenToAdminNotifications() {
                 const n = doc.data();
                 if (!n.read) unread++;
                 const bg = n.read ? 'white' : '#f0f9ff';
+                const time = n.timestamp ? new Date(n.timestamp.seconds * 1000).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '';
                 
                 html += `
                 <div onclick="readAndNav('${doc.id}', '${n.link}')" style="padding:12px 15px; border-bottom:1px solid #eee; background:${bg}; cursor:pointer; display:flex; gap:10px;">
@@ -2701,6 +2591,7 @@ function listenToAdminNotifications() {
                     <div>
                         <div style="font-size:0.85rem; font-weight:600; color:#333;">${escapeHtml(n.title)}</div>
                         <div style="font-size:0.8rem; color:#666;">${escapeHtml(n.message)}</div>
+                        <div style="font-size:0.7rem; color:#999; margin-top:4px;">${time}</div>
                     </div>
                 </div>`;
             });
@@ -2717,8 +2608,7 @@ function listenToAdminNotifications() {
 
 function readAndNav(id, link) {
     db.collection('admin_notifications').doc(id).update({ read: true });
-    if(link === '#nav-orders') switchView('orders');
-    // Close dropdown
+    if(link) switchView(link);
     document.getElementById('admin-notif-dropdown').style.display = 'none';
 }
 
