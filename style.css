@@ -4548,3 +4548,27 @@ button { position: relative; overflow: hidden; } /* Ensure buttons contain rippl
         display: none !important;
     }
 }
+
+/* --- CRITICAL Z-INDEX FIXES --- */
+
+/* 1. Base Overlay (Standard Modals) */
+.modal-overlay {
+    z-index: 8000 !important; /* Higher than Cart */
+}
+
+/* 2. Cart Sidebar */
+.cart-sidebar {
+    z-index: 7000 !important; /* High, but lower than modals */
+}
+
+/* 3. Toast Notifications (Highest) */
+#toast-container {
+    z-index: 9999 !important;
+}
+
+/* 4. Login Choice Modal specifically */
+#login-choice-modal, 
+#otp-modal, 
+#whatsapp-login-modal {
+    z-index: 8001 !important; /* Guarantee visibility over Cart */
+}

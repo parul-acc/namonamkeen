@@ -55,7 +55,7 @@ try {
     if (firebase.messaging.isSupported()) {
         messaging = firebase.messaging();
         // Update this block to use orderSound
-            messaging.onMessage((payload) => {
+        messaging.onMessage((payload) => {
             const { title, body } = payload.notification;
             showToast(`${title}: ${body}`, "success");
             orderSound.play().catch(e => dbg("Audio play failed", e));
@@ -642,7 +642,9 @@ function renderInventoryRows(tbody, items) {
         const featuredStyle = isFeat
             ? 'background: #f1c40f; color: white;'
             : 'background: white; color: #f1c40f; border: 1px solid #f1c40f;';
-
+        const totalQty = p.variants ? p.variants.reduce((acc, v) => acc + (v.stock || 0), 0) : 0;
+        const stockLabel = totalQty > 0 ? `${totalQty} Units` : 'Out of Stock';
+        const stockClass = totalQty > 0 ? 'stock-in' : 'stock-out';
         tbody.innerHTML += `
             <tr class="${rowClass}">
                 <td>
@@ -654,9 +656,9 @@ function renderInventoryRows(tbody, items) {
                 </td>
                 <td><small>${vs}</small></td>
                 <td>
-                <span class="stock-tag ${totalStock > 0 ? 'stock-in' : 'stock-out'}">
-            ${totalStock > 0 ? totalStock + ' Units' : 'Out of Stock'}
-        </span>
+                <span class="stock-tag ${stockClass}" onclick="editProduct('${p.docId}')" style="cursor:pointer; min-width:80px; text-align:center;">
+    ${stockLabel} <i class="fas fa-pen" style="font-size:0.6rem; margin-left:4px; opacity:0.5;"></i>
+</span>
                 </td>
                 <td>
                     <button class="icon-btn" onclick="toggleFeatured('${p.docId}', ${!isFeat})" title="Toggle Featured" style="${featuredStyle}">
@@ -713,11 +715,12 @@ function loadOrders() {
     ordersUnsubscribe = query.onSnapshot(snap => {
         let pending = 0, packed = 0, delivered = 0;
 
-        // Sound & Notification Logic
-        if (previousOrderCount > 0 && snap.size > previousOrderCount) {
+        const hasNewOrder = snap.docChanges().some(change => change.type === 'added');
+
+        // Only play if it's not the very first load (initially everything is 'added')
+        if (hasNewOrder && previousOrderCount > 0) {
             if (soundEnabled) {
-                const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-                orderSound.play().catch(e => { if (isDev) dbg("Sound blocked:", e); });
+                orderSound.play().catch(e => console.log("Sound blocked:", e));
             }
             showToast("New Order Received!", "success");
             vibrate(200);
@@ -728,11 +731,9 @@ function loadOrders() {
         snap.forEach(doc => {
             const o = doc.data();
             o.docId = doc.id;
-
             if (o.status === 'Pending') pending++;
             else if (o.status === 'Packed') packed++;
             else if (o.status === 'Delivered') delivered++;
-
             state.orders.data.push(o);
         });
 
@@ -1192,22 +1193,27 @@ function editProduct(id) {
         document.getElementById('p-nameHi').value = p.nameHi || '';
         document.getElementById('p-category').value = p.category;
         document.getElementById('p-image').value = p.image;
-        document.getElementById('p-stock').checked = p.in_stock;
+
         document.getElementById('p-bestseller').checked = p.bestseller;
         document.getElementById('p-featured').checked = p.isFeatured || false;
+
         const vc = document.getElementById('variant-container');
         vc.innerHTML = '';
+
+        // Load Variants with Stock Counts
         if (p.variants && p.variants.length > 0) {
-        p.variants.forEach(v => {
-            // Handle both old (boolean) and new (number) data
-            let stockQty = v.stock || 0;
-            if (v.inStock === true && v.stock === undefined) stockQty = 10; // Default for migrated items
-            
-            addVariantRow(v.weight, v.price, stockQty);
-        });
-    } else {
-        addVariantRow('Standard', p.price, p.in_stock ? 10 : 0);
-    }
+            p.variants.forEach(v => {
+                // Handle legacy data (if 'stock' is missing, assume 10 if inStock was true)
+                let qty = v.stock;
+                if (qty === undefined) qty = (v.inStock || p.in_stock) ? 10 : 0;
+
+                addVariantRow(v.weight, v.price, qty);
+            });
+        } else {
+            // Default for new/simple products
+            addVariantRow('Standard', p.price, p.in_stock ? 10 : 0);
+        }
+
         document.getElementById('product-modal').style.display = 'flex';
     });
 }
@@ -1225,61 +1231,67 @@ function addVariantRow(w = '', p = '', qty = 0) { // Changed default qty to 0
 }
 
 function saveProduct() {
-    setBtnLoading('btn-save-product', true); // START LOADING (Add ID to your HTML button)
     const id = document.getElementById('p-id').value || Date.now().toString();
-    id: parseInt(id) || id
     const vs = [];
+
+    // Loop through all variant rows to gather data
     document.querySelectorAll('.variant-row').forEach(r => {
         const name = r.querySelector('.var-name').value.trim();
-        const price = parseInt(r.querySelector('.var-price').value);
-        const stock = parseInt(r.querySelector('.var-stock').value) || 0; // Read Stock
-        
-        // Calculate boolean for backward compatibility
-        const isInStock = stock > 0;
-        
-        if (name && price) {
-            vs.push({ 
-                weight: name, 
-                price: price, 
-                stock: stock, 
-                inStock: isInStock 
+        const price = parseInt(r.querySelector('.var-price').value) || 0;
+        const stock = parseInt(r.querySelector('.var-stock').value) || 0;
+
+        // Only save valid variants
+        if (name && price > 0) {
+            vs.push({
+                weight: name,
+                price: price,
+                stock: stock,
+                inStock: stock > 0 // Legacy support for app compatibility
             });
         }
     });
-    // Calculate Global Stock status (if any variant has stock)
-    const globalStock = vs.some(v => v.stock > 0);
-    if (vs.length === 0) vs.push({ weight: 'Standard', price: 0, in_stock: globalStock });
-    const activeVariants = vs.filter(v => v.inStock);
+
+    // Default variant if none added
+    if (vs.length === 0) {
+        vs.push({ weight: 'Standard', price: 0, stock: 0, inStock: false });
+    }
+
+    // Determine Base Price (Lowest active price)
+    const activeVariants = vs.filter(v => v.stock > 0);
     const basePrice = activeVariants.length > 0 ? Math.min(...activeVariants.map(v => v.price)) : (vs[0].price || 0);
 
-    const logEntry = {
+    // Determine Global Stock Status (True if ANY variant has stock)
+    const globalInStock = vs.some(v => v.stock > 0);
+
+    // Log the update
+    db.collection("inventory_logs").add({
         productId: id,
         productName: document.getElementById('p-name').value,
         action: 'Update/Edit',
-        updatedBy: 'Admin',
+        updatedBy: auth.currentUser ? auth.currentUser.email : 'Admin',
         timestamp: new Date()
-    };
-    db.collection("inventory_logs").add(logEntry);
+    });
 
-    db.collection("products").doc(id).set({
-        id: parseInt(id) || id,
+    // Save to Firestore
+    db.collection("products").doc(String(id)).set({
+        id: isNaN(id) ? id : parseInt(id), // Keep ID type consistent
         name: document.getElementById('p-name').value,
         nameHi: document.getElementById('p-nameHi').value,
         category: document.getElementById('p-category').value,
         image: document.getElementById('p-image').value,
-        in_stock: document.getElementById('p-stock').checked,
         bestseller: document.getElementById('p-bestseller').checked,
+        isFeatured: document.getElementById('p-featured').checked,
         variants: vs,
         price: basePrice,
-        isFeatured: document.getElementById('p-featured').checked
+        in_stock: globalInStock // Auto-calculated
     }, { merge: true })
         .then(() => {
             closeModal('product-modal');
-            showToast("Product Saved", "success");
+            showToast("Product Saved Successfully!", "success");
         })
-        .catch(err => showToast("Error: " + err.message, "error"))
-        .finally(() => {
-            setBtnLoading('btn-save-product', false); // STOP LOADING
+        .catch(err => {
+            console.error(err);
+            showToast("Error saving: " + err.message, "error");
         });
 }
 
@@ -1317,8 +1329,24 @@ async function processCSV(csvText) {
 
             // ... (Keep your existing parsing logic for variants/prices) ...
             let v = [], rp = c[3];
-            if (rp.includes('|')) rp.split('|').forEach(x => { let [s, p] = x.split('='); if (s) v.push({ weight: s.trim(), price: parseInt(p) }) });
-            else v.push({ weight: 'Standard', price: parseInt(rp) || 0 });
+            if (rp.includes('|')) {
+                rp.split('|').forEach(x => {
+                    let [s, p] = x.split('=');
+                    if (s) v.push({
+                        weight: s.trim(),
+                        price: parseInt(p),
+                        stock: 50, // DEFAULT STOCK FOR CSV UPLOADS
+                        inStock: true
+                    });
+                });
+            } else {
+                v.push({
+                    weight: 'Standard',
+                    price: parseInt(rp) || 0,
+                    stock: 50, // DEFAULT STOCK
+                    inStock: true
+                });
+            }
 
             const docRef = db.collection("products").doc(id);
             batch.set(docRef, {
@@ -1327,6 +1355,7 @@ async function processCSV(csvText) {
                 nameHi: c[2] || '',
                 price: Math.min(...v.map(z => z.price)),
                 variants: v,
+                in_stock: true,
                 desc: c[4] || '',
                 category: c[6] || 'other',
                 image: c[7] || '',
@@ -1715,10 +1744,16 @@ function vibrate(ms) {
 async function performGlobalSearch() {
     const query = document.getElementById('order-search').value.trim();
 
-    // If empty, reload default view (recent 20)
+    // If empty, restart real-time listener
     if (!query) {
-        loadOrders();
+        loadOrders(); // This restarts the listener
         return;
+    }
+
+    // 1. STOP Real-time updates so results don't get overwritten
+    if (ordersUnsubscribe) {
+        ordersUnsubscribe();
+        ordersUnsubscribe = null;
     }
 
     showToast("Searching server...", "neutral");
@@ -1726,29 +1761,31 @@ async function performGlobalSearch() {
     try {
         let results = [];
 
-        // Strategy 1: Search by Exact Order ID (e.g., "ORD-123456")
+        // Search ID
         const idSnap = await db.collection("orders").where("id", "==", query).get();
         idSnap.forEach(doc => { let d = doc.data(); d.docId = doc.id; results.push(d); });
 
-        // Strategy 2: If no ID found, Search by Phone Number
+        // Search Phone
         if (results.length === 0) {
-            // Note: This requires the phone number to match exactly how it's stored
             const phoneSnap = await db.collection("orders").where("userPhone", "==", query).get();
             phoneSnap.forEach(doc => { let d = doc.data(); d.docId = doc.id; results.push(d); });
         }
 
         if (results.length > 0) {
-            state.orders.data = results; // Replace current table data with search results
+            state.orders.data = results;
             state.orders.filteredData = null;
             state.orders.page = 1;
             renderTable('orders');
             showToast(`Found ${results.length} orders.`, "success");
         } else {
-            showToast("No matching order found in database.", "error");
+            showToast("No matching order found.", "error");
+            // Optional: Reload defaults if nothing found
+            // loadOrders(); 
         }
     } catch (e) {
         console.error(e);
-        showToast("Search failed: " + e.message, "error");
+        showToast("Search error: " + e.message, "error");
+        loadOrders(); // Fallback
     }
 }
 
@@ -2353,33 +2390,40 @@ function saveExpense() {
     const cat = catInput.value;
     const amt = parseFloat(amtInput.value);
 
+    // 1. Validation
     if (!desc) return showToast("Please enter a description", "error");
     if (isNaN(amt) || amt <= 0) return showToast("Please enter a valid amount", "error");
 
-    // Disable button to prevent double-click
+    // 2. Set Loading State
+    // We target the button inside the modal to change its text
     const btn = document.querySelector('#expense-modal .btn-primary');
-    if (btn) { btn.disabled = true; btn.innerHTML = "Saving..."; }
+    const originalText = btn.innerHTML; // Remember "Save" text
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Saving...';
 
+    // 3. Save to Database
     db.collection("expenses").add({
         desc: desc,
         category: cat,
         amount: amt,
-        date: new Date(), // Server Timestamp is better, but local Date is fine for now
+        date: new Date(),
+        // Optional: track who added it
         addedBy: auth.currentUser ? auth.currentUser.email : 'Admin'
     }).then(() => {
         closeModal('expense-modal');
-        showToast("Expense Added Successfully", "success");
+        showToast("Expense Added Successfully! 💰", "success");
 
-        // Clear inputs
+        // 4. Clear Inputs
         descInput.value = '';
         amtInput.value = '';
 
     }).catch(err => {
-        console.error("Save Error:", err);
+        console.error("Expense Save Error:", err);
         showToast("Failed to save: " + err.message, "error");
     }).finally(() => {
-        // Re-enable button
-        if (btn) { btn.disabled = false; btn.innerText = "Save"; }
+        // 5. Reset Button
+        btn.disabled = false;
+        btn.innerHTML = originalText;
     });
 }
 
@@ -2480,7 +2524,7 @@ async function viewLeaderboard() {
             const spend = u.totalLifetimeSpend || 0;
             const tier = u.loyaltyTier || 'Bronze';
             const img = u.photoURL || 'logo.jpg';
-            
+
             // Rank Styling
             let rankBadge = `<span class="lb-rank rank-other">${rank}</span>`;
             if (rank === 1) rankBadge = `<span class="lb-rank rank-1">🥇</span>`;
@@ -2522,7 +2566,7 @@ window.addEventListener('beforeinstallprompt', (e) => {
     if (btn) {
         btn.style.display = 'flex'; // Make it visible
 
-            btn.onclick = () => {
+        btn.onclick = () => {
             btn.style.display = 'none';
             adminPrompt.prompt();
             adminPrompt.userChoice.then((r) => {
@@ -2548,14 +2592,14 @@ function enableAdminNotifications() {
             // 2. Request Permission
             Notification.requestPermission().then(permission => {
                 if (permission === 'granted') {
-                    
+
                     // 3. CRITICAL: Get the active Admin SW Registration
                     navigator.serviceWorker.ready.then((registration) => {
-                        
+
                         // 4. Generate Token using specific registration
-                        messaging.getToken({ 
+                        messaging.getToken({
                             vapidKey: vapidKey,
-                            serviceWorkerRegistration: registration 
+                            serviceWorkerRegistration: registration
                         }).then((currentToken) => {
                             if (currentToken) {
                                 // 5. Save to Admin Tokens Collection
@@ -2566,7 +2610,7 @@ function enableAdminNotifications() {
                                     device: navigator.userAgent
                                 }).then(() => {
                                     showToast("Notifications Enabled! 🔔", "success");
-                                    
+
                                     // Optional: Hide the enable button if it exists
                                     const btn = document.getElementById('notif-btn'); // Old button ID
                                     if (btn) btn.style.display = 'none';
@@ -2577,7 +2621,7 @@ function enableAdminNotifications() {
                             showToast("Error getting token: " + err.message, "error");
                         });
                     });
-                    
+
                 } else {
                     showToast("Permission Denied", "error");
                 }
@@ -2824,11 +2868,11 @@ function renderReportCharts(data) {
 
 document.addEventListener('DOMContentLoaded', () => {
     const phoneInput = document.getElementById('pos-phone');
-    
+
     if (phoneInput) {
-        phoneInput.addEventListener('input', function(e) {
+        phoneInput.addEventListener('input', function (e) {
             const val = this.value.replace(/\D/g, ''); // Remove non-digits
-            
+
             // Trigger search when exactly 10 digits are entered
             if (val.length === 10) {
                 fetchPosCustomer(val);
@@ -2841,7 +2885,7 @@ async function fetchPosCustomer(phoneNumber) {
     // Visual feedback that we are searching
     const nameInput = document.getElementById('pos-name');
     nameInput.setAttribute('placeholder', 'Searching...');
-    
+
     try {
         // Search for phone number (try both formats: raw 10-digit and +91)
         // Note: We use multiple queries because some old data might format differently
@@ -2859,7 +2903,7 @@ async function fetchPosCustomer(phoneNumber) {
         if (userDoc) {
             // --- CUSTOMER FOUND: POPULATE FIELDS ---
             showToast("Existing Customer Found! 🎉", "success");
-            
+
             // 1. Populate Name
             if (userDoc.name) {
                 nameInput.value = userDoc.name;
@@ -2875,12 +2919,12 @@ async function fetchPosCustomer(phoneNumber) {
             } else if (userDoc.address) {
                 // Fallback: Put the whole string in the street field
                 document.getElementById('pos-addr-street').value = userDoc.address;
-                document.getElementById('pos-addr-city').value = 'Indore'; 
+                document.getElementById('pos-addr-city').value = 'Indore';
             }
-            
+
             // Optional: Play a small success sound if sound enabled
             if (typeof orderSound !== 'undefined' && soundEnabled) {
-                 // Just a short blip to confirm
+                // Just a short blip to confirm
             }
 
         } else {

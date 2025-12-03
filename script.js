@@ -60,10 +60,10 @@ const synonymMap = {
 let shopConfig = {
     upiId: "8103276050@ybl", // Default fallback if DB fails
     adminPhone: "919826698822",
-    deliveryCharge: 50, // Set default to 50
-    freeShippingThreshold: 250, // Add comma here
-    hamperPrice: 250,            // ADD THIS LINE
-    hamperMaxItemPrice: 105      // ADD THIS LINE
+    deliveryCharge: 0, // Set default to 50
+    freeShippingThreshold: 0, // Add comma here
+    hamperPrice: 0,            // ADD THIS LINE
+    hamperMaxItemPrice: 0      // ADD THIS LINE
 };
 
 // --- STATE: Store unsubscribe functions to prevent memory leaks ---
@@ -1267,46 +1267,41 @@ function toggleCart() {
     }
 }
 
-function handleCheckout() {
-    // 1. Check Connectivity
-    if (!navigator.onLine) {
-        showToast("No Internet Connection", "error");
-        return;
-    }
-
-    // 2. Force Login for Guests
+async function handleCheckout() {
+    // 1. Check Connectivity & Auth
+    if (!navigator.onLine) return showToast("No Internet Connection", "error");
     if (!currentUser) {
-        showToast("Please login to place an order", "neutral");
+        showToast("Please login first", "neutral");
         openLoginChoiceModal();
         return;
     }
 
-    // 3. Get Elements safely (UPDATED)
+    // 2. Validate Inputs
     const phoneInput = document.getElementById('cust-phone');
-    // Check for the new street input to ensure form is loaded
     const streetInput = document.getElementById('cust-addr-street');
+    
+    if (!phoneInput || !streetInput) return showToast("Form error. Refresh page.", "error");
+    
+    const phone = phoneInput.value.trim();
+    const addrObj = getAddressFromInputs('cust');
 
-    if (!phoneInput || !streetInput) {
-        showToast("Error: Checkout form not loaded correctly. Please refresh.", "error");
+    if (cart.length === 0) return showToast("Your cart is empty!", "error");
+    if (!/^[0-9]{10}$/.test(phone)) return showToast("Enter valid 10-digit phone", "error");
+    if (!addrObj) return showToast("Enter complete address", "error");
+
+    // --- 3. CRITICAL: VALIDATE PRICES & STOCK ---
+    toggleBtnLoading('btn-main-checkout', true);
+    try {
+        await validateCartIntegrity(); // This throws error if price/stock changed
+    } catch (e) {
+        toggleBtnLoading('btn-main-checkout', false);
+        showToast(e.message, "error"); // e.g. "Price changed for Sev"
+        fetchData(); // Refresh data to get new prices
         return;
     }
+    // ---------------------------------------------
 
-    const phone = phoneInput.value.trim();
-
-    // 4. Validate
-    if (cart.length === 0) return showToast("Your cart is empty!", "error");
-    if (!/^[0-9]{10}$/.test(phone)) return showToast("Please enter a valid 10-digit mobile number.", "error");
-
-    // Validate Address using the helper
-    const addrObj = getAddressFromInputs('cust');
-    if (!addrObj) return showToast("Please enter a complete delivery address.", "error");
-
-    const nameInput = document.getElementById('cust-name');
-    if (nameInput && nameInput.value.trim().length < 2) {
-        return showToast("Please enter your Name", "error");
-    }
-
-    // 5. Proceed
+    // 4. Proceed
     vibrate(50);
     initiateRazorpayPayment();
 }
@@ -2775,58 +2770,54 @@ function initFuzzySearch() {
     fuse = new Fuse(products, options);
 }
 
+// --- OPTIMIZED SEARCH (Debounced) ---
+let userSearchTimeout; // Add this variable
+
 if (searchInput && suggestionsBox) {
     searchInput.addEventListener('input', function () {
+        const inputVal = this.value; // Capture value immediately
+        
+        // Clear previous timer
+        clearTimeout(userSearchTimeout);
 
-        let query = this.value.toLowerCase().trim();
+        // Wait 300ms before running logic
+        userSearchTimeout = setTimeout(() => {
+            let query = inputVal.toLowerCase().trim();
 
-        // --- NEW: Check for Synonyms ---
-        if (synonymMap[query]) {
-            query = synonymMap[query]; // Swap "kaju" for "cashew" automatically
-        }
+            // Synonyms
+            if (synonymMap[query]) query = synonymMap[query];
 
-        if (!fuse) {
-            searchMenu();
-            return;
-        }
+            if (!fuse) { searchMenu(); return; }
 
-        // 1. Hide if empty
-        if (query.length === 0) {
-            suggestionsBox.classList.remove('active');
-            searchMenu(); // Reset grid to show all
-            return;
-        }
+            if (query.length === 0) {
+                suggestionsBox.classList.remove('active');
+                searchMenu();
+                return;
+            }
 
-        // 2. Perform Fuzzy Search
-        // Fuse returns results in { item: ... } format
-        const results = fuse.search(query);
-        const matches = results.map(result => result.item).slice(0, 5); // Limit to top 5
+            const results = fuse.search(query);
+            const matches = results.map(result => result.item).slice(0, 5);
 
-        // 3. Render Suggestions
-        if (matches.length > 0) {
-            suggestionsBox.innerHTML = matches.map(p => `
-                <div class="suggestion-item" onclick="selectSuggestion(${p.id})">
-                    <img src="${p.image}" class="suggestion-img" onerror="this.onerror=null; this.src='logo.jpg';">
-                    <div class="suggestion-info">
-                        <h4>${p.name}</h4>
-                        <span>₹${p.price}</span>
+            if (matches.length > 0) {
+                suggestionsBox.innerHTML = matches.map(p => `
+                    <div class="suggestion-item" onclick="selectSuggestion(${p.id})">
+                        <img src="${p.image}" class="suggestion-img" onerror="this.onerror=null; this.src='logo.jpg';">
+                        <div class="suggestion-info">
+                            <h4>${p.name}</h4>
+                            <span>₹${p.price}</span>
+                        </div>
                     </div>
-                </div>
-            `).join('');
-            suggestionsBox.classList.add('active');
-        } else {
-            suggestionsBox.classList.remove('active');
-        }
-
-        // Also filter the main grid
-        searchMenu();
-    });
-
-    // Hide when clicking outside
-    document.addEventListener('click', (e) => {
-        if (suggestionsBox && !searchInput.contains(e.target) && !suggestionsBox.contains(e.target)) {
-            suggestionsBox.classList.remove('active');
-        }
+                `).join('');
+                suggestionsBox.classList.add('active');
+            } else {
+                suggestionsBox.classList.remove('active');
+            }
+            
+            // Also filter the main grid
+            searchQuery = query; // Update global state
+            renderMenu(); 
+            
+        }, 300); // 300ms Delay
     });
 }
 
@@ -3437,43 +3428,24 @@ function toggleGlobalLoading(show) {
     }
 }
 
-// --- USER NOTIFICATIONS (Fixed Token Registration) ---
+// In script.js
 function requestUserNotifications() {
-    // 1. Check requirements
-    if (!shopConfig.vapidKey) {
-        console.log("VAPID Key missing from config");
-        return;
-    }
-    if (!('serviceWorker' in navigator)) return;
+    if (!shopConfig.vapidKey) return;
 
-    // 2. Request Permission
     Notification.requestPermission().then(permission => {
         if (permission === 'granted') {
-
-            // 3. CRITICAL: Get the active SW Registration first!
+            // FIX: Wait for SW Ready, then pass registration
             navigator.serviceWorker.ready.then((registration) => {
-
-                // 4. Pass the registration to getToken
-                messaging.getToken({
-                    vapidKey: shopConfig.vapidKey,
-                    serviceWorkerRegistration: registration
+                messaging.getToken({ 
+                    vapidKey: shopConfig.vapidKey, 
+                    serviceWorkerRegistration: registration 
                 }).then((currentToken) => {
                     if (currentToken && currentUser) {
-                        // 5. Save Token to Firestore
                         db.collection("users").doc(currentUser.uid).update({
-                            fcmToken: currentToken,
-                            lastTokenUpdate: new Date()
+                            fcmToken: currentToken
                         });
-                        console.log("Notification Token Saved ✅");
                     }
-                }).catch(err => {
-                    console.error("Token Error:", err);
-                    // If error is "no active service worker", try reloading
-                    if (err.message.includes('no active service worker')) {
-                        console.log("Reloading to activate SW...");
-                        // Optional: location.reload(); 
-                    }
-                });
+                }).catch(err => console.log("Token Error", err));
             });
         }
     });

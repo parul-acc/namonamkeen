@@ -105,17 +105,22 @@ body {
 .brand {
     display: flex;
     align-items: center;
-    justify-content: space-between; /* Pushes the X button to the far right */
-    padding: 20px 25px; /* Comfortable spacing */
-    background: rgba(255, 255, 255, 0.03); /* Subtle backdrop */
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05); /* Separator line */
+    justify-content: space-between;
+    /* Pushes the X button to the far right */
+    padding: 20px 25px;
+    /* Comfortable spacing */
+    background: rgba(255, 255, 255, 0.03);
+    /* Subtle backdrop */
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    /* Separator line */
 }
 
 /* 2. Logo & "Admin" Text Group */
 .brand-left {
     display: flex;
     align-items: center;
-    gap: 12px; /* Spacing between logo and text */
+    gap: 12px;
+    /* Spacing between logo and text */
 }
 
 .brand img {
@@ -136,27 +141,34 @@ body {
 
 /* 3. Professional Close Button (The 'X') */
 .close-sidebar {
-    background: transparent; /* Removes the ugly gray box */
+    background: transparent;
+    /* Removes the ugly gray box */
     border: none;
-    color: rgba(255, 255, 255, 0.5); /* Muted white color */
-    font-size: 2rem; /* Larger, clearer icon */
+    color: rgba(255, 255, 255, 0.5);
+    /* Muted white color */
+    font-size: 2rem;
+    /* Larger, clearer icon */
     line-height: 1;
     cursor: pointer;
     width: 40px;
     height: 40px;
-    display: none; /* Hidden on Desktop by default */
+    display: none;
+    /* Hidden on Desktop by default */
     align-items: center;
     justify-content: center;
-    border-radius: 50%; /* Circular touch target */
+    border-radius: 50%;
+    /* Circular touch target */
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* Hover/Active Effects */
 .close-sidebar:hover,
 .close-sidebar:active {
-    color: var(--primary); /* Glows orange on touch */
+    color: var(--primary);
+    /* Glows orange on touch */
     background: rgba(255, 255, 255, 0.1);
-    transform: rotate(90deg); /* Smooth rotation effect */
+    transform: rotate(90deg);
+    /* Smooth rotation effect */
 }
 
 /* --- SIDEBAR --- */
@@ -264,10 +276,13 @@ body {
 
 .toggle-menu {
     cursor: pointer;
-    color: #e85d04; /* Orange Color (or var(--primary)) */
+    color: #e85d04;
+    /* Orange Color (or var(--primary)) */
     margin-right: 15px;
-    display: block; /* Ensure it's not hidden */
-    min-width: 28px; /* Prevent crushing */
+    display: block;
+    /* Ensure it's not hidden */
+    min-width: 28px;
+    /* Prevent crushing */
     min-height: 28px;
     transition: transform 0.2s ease;
 }
@@ -396,7 +411,7 @@ body {
 .pos-card {
     background: white;
     border-radius: 12px;
-    box-shadow: 0 4px 14px rgba(0,0,0,0.06);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
     overflow: hidden;
     cursor: pointer;
     display: flex;
@@ -908,13 +923,15 @@ body.loading .main-content {
 
 /* --- Warning Button (For Featured Toggle) --- */
 .btn-warning {
-    background: #f59e0b; /* Amber/Orange */
+    background: #f59e0b;
+    /* Amber/Orange */
     color: white;
     border: 1px solid #f59e0b;
 }
 
 .btn-warning:hover {
-    background: #d97706; /* Darker Amber */
+    background: #d97706;
+    /* Darker Amber */
     color: white;
     transform: translateY(-2px);
     box-shadow: 0 4px 6px rgba(245, 158, 11, 0.3);
@@ -964,31 +981,150 @@ body.loading .main-content {
     width: 100%;
 }
 
-.skeleton-bar.short { width: 40%; }
-.skeleton-bar.medium { width: 70%; }
+.skeleton-bar.short {
+    width: 40%;
+}
+
+.skeleton-bar.medium {
+    width: 70%;
+}
 
 @keyframes shimmer {
-    0% { background-position: 200% 0; }
-    100% { background-position: -200% 0; }
+    0% {
+        background-position: 200% 0;
+    }
+
+    100% {
+        background-position: -200% 0;
+    }
 }
 
 /* Notification Center Styles */
-.notif-wrapper { position: relative; margin-left: 15px; }
-.notif-btn { background: white; border: 1px solid #ddd; color: #555; position: relative; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; transition: 0.2s; }
-.notif-btn:hover { background: #f3f4f6; color: var(--primary); }
-.notif-badge { position: absolute; top: -2px; right: -2px; background: red; color: white; border-radius: 50%; width: 18px; height: 18px; font-size: 0.7rem; display: flex; align-items: center; justify-content: center; font-weight: bold; border: 2px solid white; display: none; }
-.notif-dropdown { position: absolute; top: 50px; right: 0; width: 320px; background: white; border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.15); border: 1px solid #eee; display: none; z-index: 1000; overflow: hidden; animation: slideDown 0.2s ease; }
-.notif-dropdown.active { display: block; }
-.notif-header { padding: 15px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; background: #f9fafb; }
-.notif-header h4 { margin: 0; font-size: 0.95rem; color: #333; }
-.notif-list { max-height: 350px; overflow-y: auto; }
-.notif-item { padding: 15px; border-bottom: 1px solid #f0f0f0; cursor: pointer; transition: 0.2s; display: flex; gap: 10px; align-items: start; }
-.notif-item:hover { background: #fff8e1; }
-.notif-item.unread { background: #f0f9ff; }
-.notif-item.unread:hover { background: #e0f2fe; }
-.notif-content p { margin: 0; font-size: 0.85rem; color: #444; line-height: 1.4; }
-.notif-content small { color: #999; font-size: 0.75rem; margin-top: 4px; display: block; }
-.notif-empty { padding: 30px; text-align: center; color: #999; font-size: 0.9rem; }
+.notif-wrapper {
+    position: relative;
+    margin-left: 15px;
+}
+
+.notif-btn {
+    background: white;
+    border: 1px solid #ddd;
+    color: #555;
+    position: relative;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    transition: 0.2s;
+}
+
+.notif-btn:hover {
+    background: #f3f4f6;
+    color: var(--primary);
+}
+
+.notif-badge {
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    background: red;
+    color: white;
+    border-radius: 50%;
+    width: 18px;
+    height: 18px;
+    font-size: 0.7rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    border: 2px solid white;
+    display: none;
+}
+
+.notif-dropdown {
+    position: absolute;
+    top: 50px;
+    right: 0;
+    width: 320px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+    border: 1px solid #eee;
+    display: none;
+    z-index: 1000;
+    overflow: hidden;
+    animation: slideDown 0.2s ease;
+}
+
+.notif-dropdown.active {
+    display: block;
+}
+
+.notif-header {
+    padding: 15px;
+    border-bottom: 1px solid #eee;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #f9fafb;
+}
+
+.notif-header h4 {
+    margin: 0;
+    font-size: 0.95rem;
+    color: #333;
+}
+
+.notif-list {
+    max-height: 350px;
+    overflow-y: auto;
+}
+
+.notif-item {
+    padding: 15px;
+    border-bottom: 1px solid #f0f0f0;
+    cursor: pointer;
+    transition: 0.2s;
+    display: flex;
+    gap: 10px;
+    align-items: start;
+}
+
+.notif-item:hover {
+    background: #fff8e1;
+}
+
+.notif-item.unread {
+    background: #f0f9ff;
+}
+
+.notif-item.unread:hover {
+    background: #e0f2fe;
+}
+
+.notif-content p {
+    margin: 0;
+    font-size: 0.85rem;
+    color: #444;
+    line-height: 1.4;
+}
+
+.notif-content small {
+    color: #999;
+    font-size: 0.75rem;
+    margin-top: 4px;
+    display: block;
+}
+
+.notif-empty {
+    padding: 30px;
+    text-align: center;
+    color: #999;
+    font-size: 0.9rem;
+}
 
 /* ========================================= */
 /* PROFESSIONAL MOBILE OPTIMIZATIONS      */
@@ -1017,15 +1153,18 @@ body.loading .main-content {
     /* Force 2 columns even on small screens to avoid "long scroll" */
     .stats-grid {
         grid-template-columns: repeat(2, 1fr) !important;
-        gap: 8px; /* Tighter gap */
+        gap: 8px;
+        /* Tighter gap */
     }
 
     .stat-card {
-        padding: 12px; /* Smaller padding */
+        padding: 12px;
+        /* Smaller padding */
     }
 
     .stat-card h1 {
-        font-size: 1.3rem; /* Resize text to fit */
+        font-size: 1.3rem;
+        /* Resize text to fit */
     }
 
     .stat-card h3 {
@@ -1037,8 +1176,10 @@ body.loading .main-content {
 
     /* --- 2. POS SCREEN REFINEMENTS --- */
     /* Ensure inputs don't feel cramped */
-    #pos-name, #pos-phone {
-        width: 100% !important; /* Stack inputs on very small screens for easier typing */
+    #pos-name,
+    #pos-phone {
+        width: 100% !important;
+        /* Stack inputs on very small screens for easier typing */
         margin-left: 0 !important;
         margin-bottom: 8px !important;
     }
@@ -1050,7 +1191,8 @@ body.loading .main-content {
     }
 
     .pos-card-img-wrap {
-        height: 80px !important; /* Even smaller images */
+        height: 80px !important;
+        /* Even smaller images */
     }
 
     .pos-card h4 {
@@ -1092,6 +1234,7 @@ body.loading .main-content {
     border-bottom: 1px solid #f0f0f0;
     transition: background 0.2s;
 }
+
 .lb-row:hover {
     background: #f9fafb;
 }
@@ -1099,6 +1242,7 @@ body.loading .main-content {
 .lb-rank {
     display: inline-block;
 }
+
 .rank-other {
     color: #999;
     font-size: 0.9rem;
@@ -1112,308 +1256,224 @@ body.loading .main-content {
     text-transform: uppercase;
     font-weight: bold;
 }
-.tier-tag.Bronze { background: #fdf2e9; color: #d35400; }
-.tier-tag.Silver { background: #f1f5f9; color: #475569; }
-.tier-tag.Gold { background: #fef9c3; color: #b45309; }
-.tier-tag.Platinum { background: #e0e7ff; color: #3730a3; }
+
+.tier-tag.Bronze {
+    background: #fdf2e9;
+    color: #d35400;
+}
+
+.tier-tag.Silver {
+    background: #f1f5f9;
+    color: #475569;
+}
+
+.tier-tag.Gold {
+    background: #fef9c3;
+    color: #b45309;
+}
+
+.tier-tag.Platinum {
+    background: #e0e7ff;
+    color: #3730a3;
+}
 
 @media (max-width: 900px) {
 
-    /* 1. MAIN SCROLL CONTAINER */
-    .main-content {
-        height: 100vh;
-        overflow-y: auto;
-        -webkit-overflow-scrolling: touch;
-        padding-bottom: 0 !important; /* Remove padding here */
+    /* --- GLOBAL LAYOUT FIX --- */
+    body {
+        padding-bottom: 0;
     }
 
-    /* 2. POS LAYOUT STRUCTURE */
+    /* Reset */
+    .main-content {
+        margin-left: 0;
+        width: 100%;
+        padding: 15px 10px;
+        overflow-x: hidden;
+        /* Prevent side scroll */
+    }
+
+    /* --- SIDEBAR (Hidden by default) --- */
+    .sidebar {
+        transform: translateX(-100%);
+        /* Slide out */
+        box-shadow: 5px 0 15px rgba(0, 0, 0, 0.2);
+    }
+
+    .sidebar.active {
+        transform: translateX(0);
+    }
+
+    .close-sidebar {
+        display: block;
+    }
+
+    /* Show 'X' button */
+
+    /* --- HEADER / TOP BAR --- */
+    .top-bar {
+        position: sticky;
+        top: 0;
+        border-radius: 0 0 15px 15px;
+        /* Rounded bottom only */
+        padding: 10px 15px;
+        margin-bottom: 15px;
+        z-index: 100;
+        /* Ensure above content */
+    }
+
+    .toggle-menu {
+        display: block;
+    }
+
+    /* Show Hamburger */
+    #page-title {
+        font-size: 1.1rem;
+    }
+
+    /* --- DASHBOARD GRIDS --- */
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+        /* Force 2 columns */
+        gap: 10px;
+    }
+
+    .stat-card {
+        padding: 15px;
+    }
+
+    .stat-card h1 {
+        font-size: 1.5rem;
+    }
+
+    /* Charts Stack Vertical */
+    .charts-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .chart-box {
+        height: 250px;
+    }
+
+    /* --- POS SCREEN (Mobile Optimization) --- */
     .pos-layout {
         display: flex;
         flex-direction: column !important;
         height: auto !important;
         min-height: 100%;
-        padding-bottom: 220px !important; /* HUGE space for the fixed bottom bar */
+        padding-bottom: 140px !important;
+        /* Extra space for fixed bottom bar */
         gap: 15px;
     }
 
-    /* 3. CUSTOMER FORM (Top) */
-    .pos-right {
-        order: 1; /* Show Form First */
-        background: white;
-        border-radius: 12px;
-        padding: 15px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-    }
-
-    /* Swap Phone and Name order visually */
-    .pos-right div[style*="padding: 15px;"] {
-        display: flex;
-        flex-direction: column;
-    }
-    
-    /* Phone Number First */
-    #pos-phone { 
-        order: 1; 
-        margin-bottom: 10px;
-        border: 2px solid #e2e8f0; /* Highlight border */
-    }
-    
-    /* Name Second */
-    #pos-name { 
-        order: 2; 
-        margin-bottom: 10px; 
-    }
-    
-    /* Address Fields Third */
-    .pos-right div:not(#pos-cart-list):not(.pos-total-section) {
-        order: 3;
-    }
-
-    /* 4. PRODUCT GRID (Middle) */
+    /* 1. Products Section (Top) */
     .pos-left {
-        order: 2;
-        background: transparent;
+        order: 1;
+        border: none;
+        box-shadow: none;
+        padding: 0;
+        flex: 0 0 auto;
     }
 
     .pos-product-grid {
         display: grid !important;
-        grid-template-columns: repeat(3, 1fr) !important; /* 3 Columns */
+        grid-template-columns: repeat(3, 1fr) !important;
+        /* 3 Columns */
         gap: 8px !important;
-        padding: 0 0 20px 0;
+        max-height: 40vh;
+        /* Scrollable area */
+        overflow-y: auto;
+        padding-bottom: 10px;
+        margin-bottom: 10px;
+        border-bottom: 1px solid #eee;
     }
 
-    .pos-card {
-        border: 1px solid #eee;
-        border-radius: 8px;
-        overflow: hidden;
-        background: white;
-        display: flex;
-        flex-direction: column;
-    }
-
-    .pos-card-img-wrap {
-        height: 80px !important; /* Fixed small height */
-    }
-
+    /* Compact POS Card */
     .pos-card h4 {
         font-size: 0.75rem;
-        margin: 5px;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
+        margin-bottom: 2px;
     }
 
-    .pos-meta {
-        padding: 0 5px 5px;
-        display: flex;
-        justify-content: space-between;
-        font-size: 0.7rem;
+    .pos-card-img-wrap {
+        height: 70px !important;
     }
 
-    /* 5. FIXED BOTTOM ACTION BAR (Always Visible) */
+    /* 2. Form Section (Below Products) */
+    .pos-right {
+        order: 2;
+        padding: 10px;
+        margin-bottom: 20px;
+    }
+
+    /* Input Layout */
+    #pos-name,
+    #pos-phone {
+        width: 49%;
+        display: inline-block;
+        margin-bottom: 10px !important;
+    }
+
+    #pos-phone {
+        margin-right: 2%;
+    }
+
+    /* Gap */
+
+    .pos-right input {
+        font-size: 16px !important;
+        height: 42px;
+    }
+
+    /* 3. Sticky Bottom Action Bar */
     .pos-total-section {
         position: fixed;
         bottom: 0;
         left: 0;
         width: 100%;
         background: white;
-        z-index: 9999; /* Always on top */
-        padding: 15px;
-        border-top: 2px solid #e85d04;
-        box-shadow: 0 -10px 30px rgba(0,0,0,0.15);
-        border-radius: 20px 20px 0 0;
-        
-        /* Flex layout for total + button */
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-    }
-
-    /* Hide the cart list inside the fixed bar to save space */
-    /* (Optional: You can make it expandable if needed) */
-    #pos-cart-list {
-        display: none; 
-    }
-
-    /* Make the button huge and tappable */
-    .pos-total-section button {
-        height: 55px;
-        font-size: 1.1rem;
-        border-radius: 12px;
-        background: #e85d04;
-        color: white;
-        box-shadow: 0 4px 15px rgba(232, 93, 4, 0.3);
-    }
-    
-    /* Show Total cleanly */
-    .pos-total-section div:first-child {
-        font-size: 1.1rem;
-        font-weight: bold;
-        display: flex;
-        justify-content: space-between;
-        padding: 0 5px;
-    }
-
-    .top-bar {
+        z-index: 999;
         padding: 10px 15px;
-        border-radius: 0 0 15px 15px; /* Rounded bottom only */
-        position: sticky;
-        top: 0;
-        z-index: 90;
-        margin-bottom: 15px;
+        border-top: 2px solid var(--primary);
+        box-shadow: 0 -5px 15px rgba(0, 0, 0, 0.15);
     }
 
-    #page-title {
-        font-size: 1.2rem;
+    .pos-total-section button {
+        width: 100%;
+        padding: 12px;
+        font-size: 1.1rem;
     }
 
-    .stat-card {
-        padding: 15px;
-        border-radius: 12px;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-    }
-
-    .stat-card h3 {
-        font-size: 0.75rem;
-        margin-bottom: 5px;
-    }
-
-    .stat-card h1 {
-        font-size: 1.5rem; /* Smaller numbers to fit */
-    }
-
-    /* Charts stack vertically */
-    .charts-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .chart-box {
-        height: 250px; /* Reduce chart height */
-    }
-
-    /* --- 3. PROFESSIONAL POS LAYOUT --- */
-    /* This fixes the "messed up" POS screen */
-    
-   
-
-    /* --- 4. TABLES & LISTS --- */
-    /* Enable horizontal scroll for data tables */
+    /* --- TABLES (Horizontal Scroll) --- */
     .table-responsive {
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
         border: 1px solid #eee;
         border-radius: 8px;
     }
 
-    table th, table td {
-        padding: 10px;
+    th,
+    td {
         font-size: 0.85rem;
-        white-space: nowrap; /* Prevent wrapping */
+        padding: 10px;
     }
-
-    /* --- 5. INVENTORY CARDS --- */
-    /* If you have inventory cards, ensure they follow the stats grid rule */
-    #view-inventory .stats-grid {
-        grid-template-columns: repeat(3, 1fr) !important; /* 3 tiny cards for inventory count */
-    }
-    
-    #view-inventory .stats-grid h3 {
-        display: none; /* Hide label on tiny screens, show only number */
-    }
-    
-    #view-inventory .stats-grid h1 {
-        font-size: 1.2rem;
-        margin-bottom: 0;
-    }
-    
-    /* Add labels back as small text */
-    #view-inventory .stats-grid .stat-card::after {
-        content: 'Items';
-        font-size: 0.6rem;
-        color: #888;
-        display: block;
-    }
-    #view-inventory .stats-grid .border-green::after { content: 'In Stock'; }
-    #view-inventory .stats-grid .border-red::after { content: 'Out Stock'; }
-
-    /* --- 6. MODALS --- */
-    .modal-content {
-        width: 95%;
-        max-height: 85vh;
-        padding: 20px;
-    }
-
-    /* --- 1. PREVENT IPHONE ZOOM & IMPROVE TYPING --- */
-    /* If font-size is < 16px, iPhones zoom in, breaking the layout. This fixes it. */
-    input, select, textarea, .form-control, .search-input {
-        font-size: 16px !important; 
-    }
-
-    /* --- 2. FIX TOAST NOTIFICATION POSITION --- */
-    /* Move toasts to TOP on mobile so they don't hide behind the new POS bottom bar */
-    #toast-container {
-        bottom: auto !important;
-        top: 20px !important;
-        left: 50% !important;
-        transform: translateX(-50%) !important;
-        width: 90%;
-    }
-
-    /* --- 3. STICKY TABLE HEADERS --- */
-    /* Keeps the header visible while scrolling long lists */
-    th {
-        position: sticky;
-        top: 0;
-        background: #f9fafc; /* Matches your theme */
-        z-index: 5;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.1); /* Subtle shadow line */
-    }
-
-    /* --- 4. LARGER TOUCH TARGETS --- */
-    /* Makes delete/edit buttons easier to tap without fat-fingering */
-    .icon-btn {
-        width: 38px;
-        height: 38px;
-        font-size: 1rem;
-        margin-right: 8px;
-    }
-
-    /* Increase header menu icon size */
-    .toggle-menu {
-        display: block !important;
-    }
-
-     .close-sidebar {
-        display: flex; /* Only show the X on mobile */
-    }
-    
-    .brand {
-        padding: 15px 20px; /* Slightly tighter on mobile */
-    }
-
-    /* --- OTHER MOBILE FIXES --- */
-    .stats-grid {
-        grid-template-columns: repeat(2, 1fr) !important;
-        gap: 10px;
-    }
-    
-    .sidebar { transform: translateX(-100%); }
-    .sidebar.active { transform: translateX(0); }
 }
 
-/* Very Small Screens (iPhone SE, etc) */
-@media (max-width: 380px) {
+/* Very Small Screens */
+@media (max-width: 360px) {
     .stats-grid {
-        grid-template-columns: 1fr !important; /* Back to 1 column for very small screens */
-    }
-    
-    #pos-name, #pos-phone {
-        width: 100%;
-        margin-left: 0;
+        grid-template-columns: 1fr !important;
     }
 
+    /* 1 Column Dashboard */
     .pos-product-grid {
-        grid-template-columns: repeat(2, 1fr) !important; /* Drop to 2 cols */
+        grid-template-columns: repeat(2, 1fr) !important;
+    }
+
+    /* 2 Col POS */
+    #pos-name,
+    #pos-phone {
+        width: 100%;
+        margin-right: 0;
     }
 }

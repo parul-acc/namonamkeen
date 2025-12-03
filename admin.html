@@ -170,8 +170,8 @@
                         <h3>Customer Details</h3>
                     </div>
                     <div style="padding: 15px;">
-                        <input type="text" id="pos-name" class="form-control" placeholder="Customer Name *">
-                        <input type="tel" id="pos-phone" class="form-control" placeholder="Mobile Number *">
+                        <input type="tel" id="pos-phone" class="form-control" placeholder="Mobile Number *" required>
+                        <input type="text" id="pos-name" class="form-control" placeholder="Customer Name *" required>
 
                         <div style="margin-bottom: 10px;">
                             <input type="text" id="pos-addr-street" class="form-control"
@@ -699,7 +699,6 @@
             </div>
 
             <div class="checkbox-group">
-                <label><input type="checkbox" id="p-stock"> In Stock</label>
                 <label><input type="checkbox" id="p-bestseller"> Bestseller</label>
             </div>
             <button class="btn btn-primary full-width" onclick="saveProduct()">Save Product</button>
