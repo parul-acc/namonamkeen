@@ -397,16 +397,16 @@ function renderMenu() {
     if (!grid) return;
     grid.innerHTML = '';
 
-   const filtered = products.filter(p => {
+    const filtered = products.filter(p => {
         const name = (p.name + (p.nameHi || '')).toLowerCase();
         const matchesCat = currentCategory === 'all' || p.category === currentCategory;
         const matchesSearch = name.includes(searchQuery.toLowerCase());
-        
+
         // --- NEW QUICK FILTER LOGIC ---
         // Ensure quickFilters object exists (defined in new JS above)
-        const qf = (typeof quickFilters !== 'undefined') ? quickFilters : { bestseller:false, featured:false, stock:false };
-        
-        const matchesQuick = 
+        const qf = (typeof quickFilters !== 'undefined') ? quickFilters : { bestseller: false, featured: false, stock: false };
+
+        const matchesQuick =
             (!qf.bestseller || p.bestseller) &&
             (!qf.featured || p.isFeatured) &&
             (!qf.stock || p.in_stock);
@@ -465,6 +465,10 @@ function renderMenu() {
         }
 
         let btnAction = isAvailable ? `addToCartFromGrid(${p.id})` : '';
+        // NEW: One-Click Button HTML
+        const oneClickBtn = isAvailable
+            ? `<button class="buy-now-btn" onclick="event.stopPropagation(); buyNow(${p.id})" title="Buy Now"><i class="fas fa-bolt"></i></button>`
+            : '';
         let btnText = isAvailable ? (currentLang === 'en' ? 'Add' : 'जोड़ें') : 'Sold Out';
         let cardClass = isAvailable ? '' : 'sold-out';
 
@@ -495,6 +499,8 @@ function renderMenu() {
                 <div style="margin-bottom:10px; min-height:30px;">${variantHtml}</div>
                 <div class="price-row">
                     <span class="price" id="price-${p.id}">₹${displayPrice}</span>
+                    <div style="display:flex; gap:5px;">
+            ${oneClickBtn}
                     <button class="add-btn" 
                         onclick="event.stopPropagation(); ${btnAction}" 
                         ${!isAvailable ? 'disabled style="background:#ccc; cursor:not-allowed;"' : ''}>
@@ -1860,7 +1866,7 @@ function openProfileModal() {
     if (!modal) return;
     pushModalState();
     modal.style.display = 'flex';
-    
+
     if (typeof initReferral === 'function') initReferral();
 
     // --- GAMIFICATION UI INJECTION ---
@@ -1877,14 +1883,14 @@ function openProfileModal() {
         } else {
             document.getElementById('edit-addr-street').value = userProfile.address || '';
         }
-        
+
         const imgEl = document.getElementById('edit-profile-pic');
         if (userProfile.photoURL) imgEl.src = userProfile.photoURL;
 
         // 2. NEW: Loyalty Card Render
         const tier = userProfile.loyaltyTier || 'Bronze';
         const spend = userProfile.totalLifetimeSpend || 0;
-        
+
         // Calculate Progress to next tier
         let nextGoal = 2000;
         let nextTier = 'Silver';
@@ -1899,7 +1905,7 @@ function openProfileModal() {
         const container = document.querySelector('#profile-modal .modal-content');
         // Remove old card if exists
         const oldCard = document.getElementById('loyalty-card-ui');
-        if(oldCard) oldCard.remove();
+        if (oldCard) oldCard.remove();
 
         const cardHTML = `
         <div id="loyalty-card-ui" class="loyalty-card ${tier}">
@@ -3731,10 +3737,10 @@ function pushModalState() {
 let lastScrollTop = 0;
 const bottomNav = document.querySelector('.bottom-nav');
 
-window.addEventListener('scroll', function() {
+window.addEventListener('scroll', function () {
     const st = window.pageYOffset || document.documentElement.scrollTop;
     if (!bottomNav) return;
-    
+
     // Only trigger if scrolled past 100px
     if (st > 100) {
         if (st > lastScrollTop) {
@@ -3764,7 +3770,7 @@ document.addEventListener('touchmove', e => {
     if (window.scrollY === 0 && touchStartY > 0) {
         const touchY = e.touches[0].clientY;
         const diff = touchY - touchStartY;
-        
+
         // Dragging down logic
         if (diff > 50 && diff < 200) {
             // Visual feedback could go here (e.g. rotate icon)
@@ -3783,13 +3789,13 @@ document.addEventListener('touchend', async e => {
 });
 
 async function performRefresh() {
-    if(!ptrSpinner) return;
+    if (!ptrSpinner) return;
     ptrSpinner.classList.add('loading');
     vibrate(20); // Haptic feedback
-    
+
     // Reload Data
-    await fetchData(); 
-    
+    await fetchData();
+
     setTimeout(() => {
         ptrSpinner.classList.remove('loading');
         showToast("Refreshed! 🚀", "success");
@@ -3819,7 +3825,7 @@ function applySort(sortVal, btn) {
     const parent = btn.parentElement;
     parent.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
     btn.classList.add('active');
-    
+
     // Logic
     currentSort = sortVal;
     renderMenu(); // Re-render grid
@@ -3828,10 +3834,10 @@ function applySort(sortVal, btn) {
 function toggleQuickFilter(type, btn) {
     quickFilters[type] = !quickFilters[type];
     btn.classList.toggle('active');
-    
+
     // Apply logic inside existing renderMenu or create new filter wrapper
     // For now, we'll re-render and patch renderMenu logic below
-    renderMenu(); 
+    renderMenu();
 }
 
 // --- PATCH: Update renderMenu to use Quick Filters ---
@@ -3855,7 +3861,7 @@ const productModal = document.getElementById('product-modal');
 if (productModal) {
     productModal.addEventListener('touchstart', e => {
         // Only track if touching the modal content area (not the overlay)
-        if(e.target.closest('.modal-content')) {
+        if (e.target.closest('.modal-content')) {
             modalTouchStart = e.touches[0].clientY;
         }
     }, { passive: true });
@@ -3881,7 +3887,7 @@ if (productModal) {
 
         if (diff > 150) { // Threshold to close
             closeProductModal();
-        } 
+        }
         // Reset transform
         modalContent.style.transform = '';
         modalTouchStart = 0;
@@ -3896,12 +3902,12 @@ document.addEventListener('click', e => {
         const rect = btn.getBoundingClientRect();
         const x = e.clientX - rect.left;
         const y = e.clientY - rect.top;
-        
+
         const circle = document.createElement('span');
         circle.classList.add('ripple-effect');
         circle.style.left = x + 'px';
         circle.style.top = y + 'px';
-        
+
         btn.appendChild(circle);
         setTimeout(() => circle.remove(), 600);
     }
@@ -3912,19 +3918,19 @@ document.addEventListener('click', e => {
 function toggleUserNotif() {
     if (!currentUser) return showToast("Login to see notifications", "neutral");
     document.getElementById('user-notif-modal').style.display = 'flex';
-    
+
     // Mark all as read when opening
     const badge = document.getElementById('user-notif-badge');
     badge.style.display = 'none';
-    
+
     // Batch update read status (optional, or do it on click)
     db.collection(`users/${currentUser.uid}/notifications`)
-      .where('read', '==', false).get()
-      .then(snap => {
-          const batch = db.batch();
-          snap.forEach(doc => batch.update(doc.ref, { read: true }));
-          batch.commit();
-      });
+        .where('read', '==', false).get()
+        .then(snap => {
+            const batch = db.batch();
+            snap.forEach(doc => batch.update(doc.ref, { read: true }));
+            batch.commit();
+        });
 }
 
 function closeUserNotif() {
@@ -3938,7 +3944,7 @@ function initUserNotifications(uid) {
         .onSnapshot(snap => {
             const list = document.getElementById('user-notif-list');
             const badge = document.getElementById('user-notif-badge');
-            
+
             if (snap.empty) {
                 list.innerHTML = '<div style="text-align:center; padding:30px; color:#999;"><i class="far fa-bell-slash" style="font-size:2rem; margin-bottom:10px;"></i><p>No notifications yet</p></div>';
                 return;
@@ -3951,7 +3957,7 @@ function initUserNotifications(uid) {
                 const n = doc.data();
                 if (!n.read) unread++;
                 const time = n.timestamp ? new Date(n.timestamp.seconds * 1000).toLocaleDateString() : '';
-                
+
                 html += `
                 <div style="padding:15px; border-bottom:1px solid #eee; background:${n.read ? 'white' : '#f0f9ff'}; display:flex; gap:12px;">
                     <div style="background:#fff3e0; width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:var(--primary);">
@@ -3978,7 +3984,7 @@ function initUserNotifications(uid) {
 // ==========================================
 
 document.addEventListener('DOMContentLoaded', () => {
-    
+
     // 1. Close Profile Menu when clicking outside
     document.addEventListener('click', (e) => {
         const profileMenu = document.getElementById('profile-menu');
@@ -4038,11 +4044,11 @@ document.addEventListener('DOMContentLoaded', () => {
             <i class="fas fa-bell" style="font-size: 1.3rem;"></i>
             <span id="user-notif-badge" style="position: absolute; top: -5px; right: -5px; background: red; color: white; border-radius: 50%; width: 16px; height: 16px; font-size: 0.6rem; display: none; align-items: center; justify-content: center; font-weight: bold; border: 2px solid white;">0</span>
         `;
-        
+
         // Insert before Cart Trigger
         const cartTrigger = actions.querySelector('.cart-trigger');
-        if(cartTrigger) actions.insertBefore(bellDiv, cartTrigger);
-        
+        if (cartTrigger) actions.insertBefore(bellDiv, cartTrigger);
+
         // Create Modal
         const modalHtml = `
         <div id="user-notif-modal" class="modal-overlay">
@@ -4064,11 +4070,11 @@ document.addEventListener('DOMContentLoaded', () => {
 function toggleUserNotifModal() {
     if (!currentUser) return showToast("Please login first", "neutral");
     document.getElementById('user-notif-modal').style.display = 'flex';
-    
+
     // Mark visible as read
     const badge = document.getElementById('user-notif-badge');
     badge.style.display = 'none';
-    
+
     db.collection(`users/${currentUser.uid}/notifications`)
         .where('read', '==', false).get()
         .then(snap => {
@@ -4087,7 +4093,7 @@ auth.onAuthStateChanged(user => {
             .onSnapshot(snap => {
                 const list = document.getElementById('user-notif-list');
                 const badge = document.getElementById('user-notif-badge');
-                
+
                 if (snap.empty) {
                     list.innerHTML = '<div style="text-align:center; padding:30px; color:#999;"><i class="far fa-bell-slash" style="font-size:2rem; margin-bottom:10px;"></i><p>No updates yet</p></div>';
                     return;
@@ -4099,7 +4105,7 @@ auth.onAuthStateChanged(user => {
                 snap.forEach(doc => {
                     const n = doc.data();
                     if (!n.read) unread++;
-                    
+
                     html += `
                     <div style="padding:15px; border-bottom:1px solid #eee; background:${n.read ? 'white' : '#f0f9ff'}; display:flex; gap:12px;">
                         <div style="background:#e8f5e9; width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#2ecc71;">
@@ -4126,7 +4132,7 @@ auth.onAuthStateChanged(user => {
 async function openLeaderboard() {
     ensureModalExists('leaderboard-modal');
     document.getElementById('leaderboard-modal').style.display = 'flex';
-    
+
     const container = document.getElementById('lb-list');
     container.innerHTML = '<div style="text-align:center; padding:30px;"><i class="fas fa-spinner fa-spin"></i> Loading Top Snackers...</div>';
 
@@ -4145,11 +4151,11 @@ async function openLeaderboard() {
             const name = u.name || 'Anonymous Snacker';
             const spend = u.totalLifetimeSpend || 0;
             const avatar = u.photoURL || 'logo.jpg';
-            
+
             // Highlight current user
             const isMe = currentUser && currentUser.uid === doc.id;
             const bgStyle = isMe ? 'background:#fff3e0;' : '';
-            
+
             html += `
             <div class="leaderboard-row" style="${bgStyle}">
                 <div class="rank-num rank-${rank}">${rank}</div>
@@ -4180,7 +4186,7 @@ async function openLeaderboard() {
 function toggleChatWidget() {
     const win = document.getElementById('chat-window');
     const btn = document.getElementById('chat-widget-btn');
-    
+
     if (win.style.display === 'flex') {
         win.style.display = 'none';
         btn.style.display = 'flex';
@@ -4219,11 +4225,11 @@ function handleUserMessage() {
     setTimeout(async () => {
         // Remove typing indicator
         const typingEl = document.getElementById(typingId);
-        if(typingEl) typingEl.remove();
+        if (typingEl) typingEl.remove();
 
         const response = await generateBotResponse(text);
         addChatMessage(response, 'bot');
-        
+
     }, 800);
 }
 
@@ -4231,7 +4237,7 @@ function addChatMessage(html, sender, id = null) {
     const container = document.getElementById('chat-messages');
     const div = document.createElement('div');
     div.className = `message ${sender}-msg`;
-    if(id) div.id = id;
+    if (id) div.id = id;
     div.innerHTML = html;
     container.appendChild(div);
     container.scrollTop = container.scrollHeight;
@@ -4244,7 +4250,7 @@ function addChatMessage(html, sender, id = null) {
 
 async function generateBotResponse(input) {
     const text = input.toLowerCase();
-    
+
     // --- HELPER: Random Greeting ---
     const greetings = ["Hello! 👋", "Hi there! 🧡", "Namaste! 🙏", "Welcome to Namo Namkeen!"];
     const randomGreet = greetings[Math.floor(Math.random() * greetings.length)];
@@ -4262,7 +4268,7 @@ async function generateBotResponse(input) {
         if (!currentUser) {
             return `Please <a href="javascript:void(0)" onclick="openLoginChoiceModal()" style="color:var(--primary); text-decoration:underline; font-weight:bold;">Login first</a> to track your orders.`;
         }
-        
+
         try {
             const snap = await db.collection("orders")
                 .where("userId", "==", currentUser.uid)
@@ -4271,14 +4277,14 @@ async function generateBotResponse(input) {
                 .get();
 
             if (snap.empty) return "You haven't placed any orders yet. <br>Try our <b>Ratlami Sev</b>, it's famous! 😋";
-            
+
             const o = snap.docs[0].data();
             const date = o.timestamp ? o.timestamp.toDate().toLocaleDateString() : 'Recent';
-            
+
             let statusMsg = `Your last order <b>#${o.id}</b> is <b>${o.status}</b>.`;
             if (o.status === 'Shipped') statusMsg += "<br>🚚 It's on the way!";
             if (o.status === 'Delivered') statusMsg += "<br>🎉 It was delivered on " + date;
-            
+
             return statusMsg + `<br><button class="btn-primary" style="padding:5px 10px; margin-top:5px; font-size:0.8rem;" onclick="showOrderHistory()">View Details</button>`;
         } catch (e) {
             return "I couldn't load your orders right now. Please check the 'My Orders' section.";
@@ -4302,11 +4308,11 @@ async function generateBotResponse(input) {
     // 4. PRODUCT SEARCH (Dynamic Price/Stock Check)
     // Checks if user asks "Price of Sev" or "Do you have Cookies"
     const productMatch = products.find(p => text.includes(p.name.toLowerCase()) || (p.category && text.includes(p.category.toLowerCase())));
-    
+
     if (productMatch) {
         const price = productMatch.variants && productMatch.variants.length > 0 ? productMatch.variants[0].price : productMatch.price;
         const stockStatus = productMatch.in_stock ? "✅ In Stock" : "❌ Out of Stock";
-        
+
         return `<b>${productMatch.name}</b><br>💰 Price: ₹${price}<br>${stockStatus}<br><br><button class="btn-primary" style="padding:5px 10px; font-size:0.8rem;" onclick="openProductDetail(${productMatch.id})">View Product</button>`;
     }
 
@@ -4369,4 +4375,147 @@ async function generateBotResponse(input) {
     • <b>"My Wallet Balance"</b><br>
     • <b>"Track Order"</b><br><br>
     Or <a href="https://wa.me/${shopConfig.adminPhone}" target="_blank" style="color:#25D366; font-weight:bold;">Chat with Human</a>`;
+}
+
+// ==========================================
+// ⚡ ONE-CLICK EXPRESS CHECKOUT
+// ==========================================
+
+let expressItem = null; // Stores item being bought
+
+function buyNow(id) {
+    // 1. Check Login
+    if (!currentUser) {
+        showToast("Please login for Express Checkout", "neutral");
+        openLoginChoiceModal();
+        return;
+    }
+
+    // 2. Get Product Info
+    const p = products.find(x => x.id === id);
+    if (!p) return;
+
+    // Get selected variant if coming from grid (defaults to first/standard)
+    // Note: To support grid variant selection properly, we'd need to read the specific dropdown.
+    // For simplicity in "One Click", we take the default or first variant.
+    const sel = document.getElementById(`variant-select-${id}`);
+    let v = (p.variants && p.variants.length > 0) ? p.variants[0] : { weight: 'Standard', price: p.price };
+
+    // If user changed dropdown in grid, update 'v' (Advanced)
+    if (sel) v = p.variants[sel.value];
+
+    // 3. Prepare Item
+    expressItem = {
+        productId: p.id,
+        name: p.name,
+        image: p.image,
+        weight: v.weight,
+        price: v.price,
+        qty: 1
+    };
+
+    // 4. Check Address
+    if (!userProfile || !userProfile.address) {
+        // No address? Fallback to standard flow but with item added
+        addToCart(p, v, 1);
+        showToast("Please save an address first", "neutral");
+        openProfileModal(); // Ask to fill details
+        return;
+    }
+
+    // 5. Populate & Open Modal
+    document.getElementById('express-img').src = p.image;
+    document.getElementById('express-name').innerText = p.name;
+    document.getElementById('express-variant').innerText = v.weight;
+    document.getElementById('express-price').innerText = `₹${v.price}`;
+
+    // Address
+    const addr = userProfile.addressDetails ? userProfile.addressDetails.full : userProfile.address;
+    document.getElementById('express-address').innerText = addr.substring(0, 40) + '...';
+
+    // Totals
+    const shipping = (v.price >= (shopConfig.freeShippingThreshold || 250)) ? 0 : (shopConfig.deliveryCharge || 50);
+    document.getElementById('exp-subtotal').innerText = `₹${v.price}`;
+    document.getElementById('exp-shipping').innerText = shipping === 0 ? 'Free' : `₹${shipping}`;
+    document.getElementById('exp-total').innerText = `₹${v.price + shipping}`;
+
+    document.getElementById('express-checkout-modal').style.display = 'flex';
+}
+
+async function processExpressPay() {
+    if (!expressItem) return;
+
+    toggleBtnLoading('btn-express-pay', true);
+
+    // 1. Create a "Virtual Cart" of just this item
+    const virtualCart = [expressItem];
+
+    // 2. Init Payment
+    try {
+        const createPaymentOrder = firebase.functions().httpsCallable('createPaymentOrder');
+        const result = await createPaymentOrder({
+            cart: virtualCart,
+            discount: null // No coupons in express flow
+        });
+
+        const { id: order_id, key: key_id, amount, customerId, userContact, userEmail } = result.data;
+
+        // 3. Open Razorpay (With Saved Cards Enabled)
+        const options = {
+            "key": key_id,
+            "amount": amount,
+            "currency": "INR",
+            "name": "Namo Namkeen",
+            "description": "Express Checkout",
+            "order_id": order_id,
+            "customer_id": customerId, // <--- ENABLES ONE-CLICK SAVED CARDS
+            "prefill": {
+                "contact": userContact,
+                "email": userEmail
+            },
+            "theme": { "color": "#e85d04" },
+            "handler": async function (response) {
+                // Payment Success: Save Order
+                await saveExpressOrder('Online', 'Paid', response.razorpay_payment_id, virtualCart, amount / 100);
+            },
+            "modal": {
+                "ondismiss": function () { toggleBtnLoading('btn-express-pay', false); }
+            }
+        };
+
+        const rzp = new Razorpay(options);
+        rzp.open();
+
+    } catch (e) {
+        console.error(e);
+        showToast("Express Checkout Failed", "error");
+        toggleBtnLoading('btn-express-pay', false);
+    }
+}
+
+async function saveExpressOrder(method, status, txnId, items, total) {
+    const orderId = 'EXP-' + Date.now().toString().slice(-6);
+
+    const orderData = {
+        id: orderId,
+        userId: currentUser.uid,
+        userName: userProfile.name,
+        userPhone: userProfile.phone,
+        userAddress: userProfile.address,
+        items: items,
+        total: total,
+        paymentMethod: method,
+        status: 'Pending',
+        paymentStatus: status,
+        transactionId: txnId,
+        isExpress: true,
+        timestamp: new Date()
+    };
+
+    await db.collection("orders").doc(orderId).set(orderData);
+
+    // UI Cleanup
+    closeModal('express-checkout-modal');
+    toggleBtnLoading('btn-express-pay', false);
+    showSuccessModal(orderId, total, method);
 }

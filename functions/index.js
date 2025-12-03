@@ -192,93 +192,98 @@ exports.sendOrderConfirmation = functions.firestore
 
 // --- FUNCTION 2: Create Secure Payment Order (Razorpay) ---
 // --- SECURE PAYMENT FUNCTION ---
+// --- SECURE PAYMENT FUNCTION (Updated for One-Click) ---
 exports.createPaymentOrder = functions.https.onCall(async (data, context) => {
     if (!context.auth) throw new functions.https.HttpsError("unauthenticated", "Login required.");
 
     const clientCart = data.cart;
     const discountInfo = data.discount;
+    const uid = context.auth.uid;
     
-    // 1. RE-CALCULATE TOTAL FROM DATABASE (Security Fix)
+    // 1. RE-CALCULATE TOTAL (Security)
     let calculatedSubtotal = 0;
-    
-    // Create an array of promises to fetch latest prices
     const productPromises = clientCart.map(item => 
         admin.firestore().collection('products').doc(String(item.productId)).get()
     );
-    
     const productSnapshots = await Promise.all(productPromises);
     
-    // Validate prices
     for (let i = 0; i < clientCart.length; i++) {
         const cartItem = clientCart[i];
         const productDoc = productSnapshots[i];
-        
-        if (!productDoc.exists) {
-             throw new functions.https.HttpsError("invalid-argument", `Product ID ${cartItem.productId} no longer exists.`);
-        }
+        if (!productDoc.exists) throw new functions.https.HttpsError("invalid-argument", "Product not found");
         
         const productData = productDoc.data();
-        let realPrice = productData.price; // Default base price
-        
-        // If variant, find the correct variant price
-        if (productData.variants && productData.variants.length > 0) {
+        let realPrice = productData.price;
+        if (productData.variants) {
             const variant = productData.variants.find(v => v.weight === cartItem.weight);
-            if (variant) {
-                realPrice = variant.price;
-            }
+            if (variant) realPrice = variant.price;
         }
-        
-        // Use the SERVER price, ignore client price
         calculatedSubtotal += (realPrice * cartItem.qty);
     }
 
-    // 2. Recalculate Discount
+    // 2. Discounts & Shipping
     let discountAmount = 0;
     if (discountInfo && discountInfo.value > 0) {
-        if (discountInfo.type === 'percent') {
-            discountAmount = Math.round(calculatedSubtotal * (discountInfo.value / 100));
-        } else if (discountInfo.type === 'flat' || discountInfo.type === 'loyalty') {
-            discountAmount = discountInfo.value;
+        if (discountInfo.type === 'percent') discountAmount = Math.round(calculatedSubtotal * (discountInfo.value / 100));
+        else discountAmount = discountInfo.value;
+    }
+    const finalSubtotal = Math.max(0, calculatedSubtotal - discountAmount);
+    
+    const configDoc = await admin.firestore().collection('settings').doc('config').get();
+    const config = configDoc.data() || {};
+    const shipping = (calculatedSubtotal >= (config.freeShippingThreshold || 250)) ? 0 : (config.deliveryCharge || 50);
+    const finalTotal = finalSubtotal + shipping;
+
+    // 3. RAZORPAY INIT
+    const rzpKeyId = process.env.RAZORPAY_KEY_ID || "YOUR_KEY_ID_HERE"; // Ensure this is set
+    const rzpKeySecret = process.env.RAZORPAY_KEY_SECRET || "YOUR_KEY_SECRET_HERE";
+    const Razorpay = require('razorpay');
+    const razorpay = new Razorpay({ key_id: rzpKeyId, key_secret: rzpKeySecret });
+
+    // 4. CUSTOMER MANAGEMENT (NEW: For Saved Cards)
+    let customerId = null;
+    const userRef = admin.firestore().collection('users').doc(uid);
+    const userDoc = await userRef.get();
+    const userData = userDoc.data();
+
+    if (userData.razorpayCustomerId) {
+        customerId = userData.razorpayCustomerId;
+    } else {
+        try {
+            // Create Customer in Razorpay
+            const customer = await razorpay.customers.create({
+                name: userData.name || 'Namo Customer',
+                contact: userData.phone ? userData.phone.replace('+91', '') : '',
+                email: userData.email || 'guest@namo.com'
+            });
+            customerId = customer.id;
+            // Save ID for future
+            await userRef.update({ razorpayCustomerId: customerId });
+        } catch (e) {
+            console.error("Razorpay Customer Creation Failed", e);
+            // Continue without saving card feature
         }
     }
 
-    // 3. Final Calculation
-    const finalSubtotal = Math.max(0, calculatedSubtotal - discountAmount);
-    
-    // Fetch Config for Shipping (Ensure these match your Firestore config)
-    const configDoc = await admin.firestore().collection('settings').doc('config').get();
-    const config = configDoc.data() || {};
-    const freeShipLimit = config.freeShippingThreshold || 250;
-    const deliveryFee = config.deliveryCharge || 50;
-    
-    const shipping = (calculatedSubtotal >= freeShipLimit) ? 0 : deliveryFee;
-    const finalTotal = finalSubtotal + shipping;
-    const amountPaise = Math.round(finalTotal * 100);
-
-    // 4. Create Razorpay Order
-    const rzpKeyId = razorpayKeyId.value() || process.env.RAZORPAY_KEY_ID;
-    const rzpKeySecret = razorpayKeySecret.value() || process.env.RAZORPAY_KEY_SECRET;
-    
-    if (!rzpKeyId || !rzpKeySecret) throw new functions.https.HttpsError("internal", "Razorpay keys missing.");
-
-    const razorpay = new Razorpay({ key_id: rzpKeyId, key_secret: rzpKeySecret });
-
+    // 5. CREATE ORDER
     try {
         const order = await razorpay.orders.create({
-            amount: amountPaise,
+            amount: Math.round(finalTotal * 100),
             currency: "INR",
-            receipt: "order_" + Date.now(),
+            receipt: "ord_" + Date.now(),
             payment_capture: 1
         });
 
         return {
             id: order.id,
             amount: order.amount,
-            key: rzpKeyId
+            key: rzpKeyId,
+            customerId: customerId, // Send back to client
+            userContact: userData.phone || '',
+            userEmail: userData.email || ''
         };
     } catch (error) {
-        console.error("Razorpay Error:", error);
-        throw new functions.https.HttpsError("internal", "Payment creation failed.");
+        throw new functions.https.HttpsError("internal", error.message);
     }
 });
 

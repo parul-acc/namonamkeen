@@ -3756,6 +3756,76 @@ button { position: relative; overflow: hidden; } /* Ensure buttons contain rippl
     justify-content: center;
 }
 
+/* --- EXPRESS CHECKOUT STYLES --- */
+
+.price-row {
+    gap: 8px; /* Ensure space between buttons */
+}
+
+/* Buy Now Button (Lightning) */
+.buy-now-btn {
+    width: 40px;
+    height: 34px; /* Matches Add button height */
+    background: #fff3e0;
+    border: 1px solid #ffe0b2;
+    color: #e85d04;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: 0.2s;
+}
+.buy-now-btn:hover {
+    background: #e85d04;
+    color: white;
+    transform: scale(1.05);
+}
+
+/* Express Modal */
+.express-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #eee;
+}
+
+.saved-address-card {
+    background: white;
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 5px;
+}
+
+.express-totals {
+    margin: 20px 0;
+    padding: 15px;
+    background: white;
+    border-radius: 8px;
+}
+.express-totals .row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    font-size: 0.9rem;
+    color: #555;
+}
+.express-totals .row.total {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed #ddd;
+    font-weight: bold;
+    color: #333;
+    font-size: 1.1rem;
+}
+
 
 /* FIX: Responsive css for mobile */
 @media (max-width: 768px) {
@@ -4682,7 +4752,7 @@ button { position: relative; overflow: hidden; } /* Ensure buttons contain rippl
         border-radius: 0;
     }
     .chat-widget-btn { bottom: 80px; } /* Adjust for bottom nav */
-    
+
     /* 1. Grid Layout: Force 2 Columns */
     .product-grid {
         display: grid;
