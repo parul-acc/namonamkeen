@@ -939,22 +939,21 @@ function addToCart(p, v, qtyToAdd = 1) {
     vibrate(50);
 }
 
+// --- UPDATED CART UI (Fixes Syntax Error & Mobile Badge) ---
 function updateCartUI() {
     const con = document.getElementById('cart-items');
     if (!con) return;
     con.innerHTML = '';
 
-    // 1. Initialize variables
-    let subtotal = 0, count = 0;
-    let finalDeliveryCost = 0;
-
-    // 2. Get Elements (Declare ONCE at the top)
+    // 1. Elements
     const clearBtn = document.getElementById('clear-cart-btn');
+    const checkoutBtn = document.getElementById('btn-main-checkout');
+    const detailsBlock = document.querySelector('.cart-details-block');
+    const loyaltyContainer = document.getElementById('loyalty-section');
     const promoCodeInput = document.getElementById('promo-code');
     const promoMsg = document.getElementById('promo-msg');
-    const detailsBlock = document.querySelector('.cart-details-block');
-    const checkoutBtn = document.getElementById('btn-main-checkout');
 
+    // 2. Empty Cart Check
     if (cart.length === 0) {
         con.innerHTML = `
             <div class="empty-cart-state">
@@ -967,25 +966,71 @@ function updateCartUI() {
         if (detailsBlock) detailsBlock.style.display = 'none';
         if (checkoutBtn) checkoutBtn.style.display = 'none';
 
+        // Reset Badge & Totals
+        if (document.getElementById('cart-total')) document.getElementById('cart-total').innerText = '₹0';
+        if (document.getElementById('cart-count')) document.getElementById('cart-count').innerText = '0';
+        
+        const bottomBadge = document.getElementById('bottom-cart-count');
+        if (bottomBadge) bottomBadge.style.display = 'none';
+
         appliedDiscount = { type: 'none', value: 0, code: null };
         if (promoCodeInput) promoCodeInput.value = '';
-        finalDeliveryCost = 0;
+        return;
+    }
 
+    // 3. Show Controls
+    if (clearBtn) clearBtn.style.display = 'flex';
+    if (detailsBlock) detailsBlock.style.display = 'block';
+    if (checkoutBtn) checkoutBtn.style.display = 'flex';
+
+    // 4. Calculate Totals (Centralized - Fixes Error)
+    const { subtotal, discountAmount, shipping, finalTotal } = getCartTotals();
+    const count = cart.reduce((sum, i) => sum + i.qty, 0);
+
+    // 5. Render Shipping Meter
+    const freeShipLimit = shopConfig.freeShippingThreshold || 250;
+    if (subtotal >= freeShipLimit) {
+        con.innerHTML += `
+            <div class="shipping-bar-container" style="background: #ecfdf5; border: 1px solid #a7f3d0; padding: 12px; margin-bottom:10px;">
+                <div style="color: #059669; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 0.95rem;">
+                    <i class="fas fa-check-circle"></i> <span>Free Delivery Applied</span>
+                </div>
+            </div>`;
     } else {
-        if (clearBtn) clearBtn.style.display = 'flex';
-        if (detailsBlock) detailsBlock.style.display = 'block';
-        if (checkoutBtn) checkoutBtn.style.display = 'flex';
+        let percent = Math.min(100, (subtotal / freeShipLimit) * 100);
+        con.innerHTML += `
+            <div class="shipping-bar-container">
+                <div class="shipping-text">Add <strong>₹${freeShipLimit - subtotal}</strong> for Free Delivery</div>
+                <div class="progress-track"><div class="progress-fill" style="width: ${percent}%"></div></div>
+            </div>`;
+    }
 
-        // --- LOYALTY LOGIC ---
-        let loyaltyHtml = '';
-        const loyaltyContainer = document.getElementById('loyalty-section');
+    // 6. Render Cart Items
+    cart.forEach(i => {
+        con.innerHTML += `
+        <div class="cart-item">
+            <img src="${i.image}" onerror="this.onerror=null; this.src='logo.jpg';">
+            <div class="item-details" style="flex-grow:1;">
+                <h4>${i.name}</h4>
+                <div style="font-size:0.85rem; color:#666;">${i.weight}</div>
+                <div style="font-weight:bold; color:var(--primary);">₹${i.price}</div>
+                <div class="item-controls">
+                    <button class="qty-btn" onclick="changeQty('${i.cartId}', -1)">-</button>
+                    <span class="qty-val">${i.qty}</span>
+                    <button class="qty-btn" onclick="changeQty('${i.cartId}', 1)">+</button>
+                </div>
+            </div>
+            <button onclick="removeFromCart('${i.cartId}')" style="background:none; border:none; color:#999; cursor:pointer;"><i class="fas fa-trash"></i></button>
+        </div>`;
+    });
 
+    // 7. Loyalty Section
+    if (loyaltyContainer) {
         if (currentUser && userProfile && userProfile.walletBalance > 0) {
-            let tempTotal = cart.reduce((sum, i) => sum + (i.price * i.qty), 0);
-            const maxRedeemable = Math.min(userProfile.walletBalance, tempTotal);
+            const maxRedeemable = Math.min(userProfile.walletBalance, subtotal);
             const isChecked = (appliedDiscount.type === 'loyalty') ? 'checked' : '';
-
-            loyaltyHtml = `
+            
+            loyaltyContainer.innerHTML = `
             <div style="background:#fff8e1; padding:10px; border-radius:8px; margin-bottom:15px; border:1px dashed #e85d04; display:flex; align-items:center; gap:10px;">
                 <i class="fas fa-coins" style="color:#f1c40f;"></i>
                 <div style="flex:1;">
@@ -994,59 +1039,12 @@ function updateCartUI() {
                 </div>
                 <input type="checkbox" id="use-coins" ${isChecked} onchange="toggleLoyalty(${maxRedeemable})">
             </div>`;
-        }
-        if (loyaltyContainer) loyaltyContainer.innerHTML = loyaltyHtml;
-
-        // --- SHIPPING METER ---
-        const freeShipLimit = shopConfig.freeShippingThreshold || 250;
-        const deliveryFee = shopConfig.deliveryCharge || 0;
-        let currentTotal = cart.reduce((sum, i) => sum + (i.price * i.qty), 0);
-
-        if (currentTotal >= freeShipLimit) {
-            finalDeliveryCost = 0;
-            con.innerHTML += `
-                <div class="shipping-bar-container" style="background: #ecfdf5; border: 1px solid #a7f3d0; padding: 12px;">
-                    <div style="color: #059669; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 0.95rem;">
-                        <i class="fas fa-check-circle"></i> <span>Free Delivery Applied</span> <i class="fas fa-shipping-fast"></i>
-                    </div>
-                </div>`;
         } else {
-            finalDeliveryCost = deliveryFee;
-            let percent = Math.min(100, (currentTotal / freeShipLimit) * 100);
-            con.innerHTML += `
-                <div class="shipping-bar-container">
-                    <div class="shipping-text">Add <strong>₹${freeShipLimit - currentTotal}</strong> for Free Delivery</div>
-                    <div class="progress-track"><div class="progress-fill" style="width: ${percent}%"></div></div>
-                </div>`;
+            loyaltyContainer.innerHTML = '';
         }
-
-        // --- RENDER ITEMS ---
-        cart.forEach(i => {
-            subtotal += i.price * i.qty;
-            count += i.qty;
-            con.innerHTML += `
-            <div class="cart-item">
-                <img src="${i.image}" onerror="this.onerror=null; this.src='logo.jpg';">
-                <div class="item-details" style="flex-grow:1;">
-                    <h4>${i.name}</h4>
-                    <div style="font-size:0.85rem; color:#666;">${i.weight}</div>
-                    <div style="font-weight:bold; color:var(--primary);">₹${i.price}</div>
-                    <div class="item-controls">
-                       <div class="qty-stepper">
-  <button onclick="changeQty('id', -1)">-</button>
-  <span>2</span>
-  <button onclick="changeQty('id', 1)">+</button>
-</div>
-                    </div>
-                </div>
-                <button onclick="removeFromCart('${i.cartId}')" style="background:none; border:none; color:#999; cursor:pointer;"><i class="fas fa-trash"></i></button>
-            </div>`;
-        });
     }
 
-    // --- CALCULATIONS & VALIDATION ---
-
-    // 1. Coupon Validation
+    // 8. Coupon Validation Check
     if (appliedDiscount && appliedDiscount.code && appliedDiscount.type !== 'loyalty') {
         const couponRule = activeCoupons.find(c => c.code === appliedDiscount.code);
         if (couponRule && couponRule.minOrder && subtotal < couponRule.minOrder) {
@@ -1056,56 +1054,44 @@ function updateCartUI() {
                 promoMsg.innerText = `Coupon removed. Min order is ₹${couponRule.minOrder}`;
                 promoMsg.style.color = "red";
             }
-            showToast("Coupon removed: Minimum order not met", "error");
+            // Recalculate totals after removing coupon
+            return updateCartUI();
         }
     }
 
-    // 2. Final Math
-    let discountAmount = 0;
-    if (appliedDiscount.type === 'percent') {
-        discountAmount = Math.round(subtotal * (appliedDiscount.value / 100));
-    } else if (appliedDiscount.type === 'flat' || appliedDiscount.type === 'loyalty') {
-        discountAmount = appliedDiscount.value;
-    }
-    if (discountAmount > subtotal) discountAmount = subtotal;
-
-    const final = (subtotal - discountAmount) + finalDeliveryCost;
-
-    // 3. Min Order Validation
-    const minOrder = shopConfig.minOrderValue || 0;
-    if (cart.length > 0 && final < minOrder) {
-        if (checkoutBtn) {
-            checkoutBtn.disabled = true;
-            checkoutBtn.style.background = '#ccc';
-            checkoutBtn.innerHTML = `Add ₹${minOrder - final} more to order`;
-        }
-    } else {
-        if (checkoutBtn) {
-            checkoutBtn.disabled = false;
-            checkoutBtn.style.background = ''; // Reset CSS
-            togglePaymentUI(); // Restore "Pay Online" or "Place Order" text
-        }
-    }
-
-    // Desktop Header
+    // 9. Update Footer & Badges
     const totalEl = document.getElementById('cart-total');
     if (totalEl) totalEl.innerText = '₹' + finalTotal.toLocaleString('en-IN');
+
     const countEl = document.getElementById('cart-count');
     if (countEl) countEl.innerText = count;
 
-    // --- MOBILE BOTTOM NAV FIX ---
+    // --- MOBILE BADGE FIX ---
     const bottomBadge = document.getElementById('bottom-cart-count');
     if (bottomBadge) {
         bottomBadge.innerText = count;
-        // Hide if 0, Show if > 0
         bottomBadge.style.display = count > 0 ? 'flex' : 'none';
-        
-        // Animation
         bottomBadge.style.transform = "scale(1.2)";
         setTimeout(() => bottomBadge.style.transform = "scale(1)", 200);
     }
 
-    // 5. Share Cart Button
+    // 10. Min Order Logic
+    const minOrder = shopConfig.minOrderValue || 0;
+    if (cart.length > 0 && finalTotal < minOrder) {
+        if (checkoutBtn) {
+            checkoutBtn.disabled = true;
+            checkoutBtn.style.background = '#ccc';
+            checkoutBtn.innerHTML = `Add ₹${minOrder - finalTotal} more`;
+        }
+    } else {
+        if (checkoutBtn) {
+            checkoutBtn.disabled = false;
+            checkoutBtn.style.background = ''; 
+            togglePaymentUI(); 
+        }
+    }
+
+    // 11. Share Button
     const footer = document.querySelector('.cart-footer');
     const oldShare = document.getElementById('share-cart-btn');
     if (oldShare) oldShare.remove();
@@ -1114,7 +1100,7 @@ function updateCartUI() {
         const shareBtn = document.createElement('button');
         shareBtn.id = 'share-cart-btn';
         shareBtn.className = 'share-cart-btn';
-        shareBtn.innerHTML = '<i class="fas fa-share-alt"></i> Share Order with Family';
+        shareBtn.innerHTML = '<i class="fas fa-share-alt"></i> Share Order';
         shareBtn.onclick = shareCartOnWhatsApp;
         footer.insertBefore(shareBtn, checkoutBtn);
     }
@@ -4031,68 +4017,6 @@ window.addEventListener('popstate', (event) => {
 });
 
 
-// 2. Toggle Modal & Mark Read
-function toggleUserNotifModal() {
-    if (!currentUser) return showToast("Please login first", "neutral");
-    document.getElementById('user-notif-modal').style.display = 'flex';
-
-    // Mark visible as read
-    const badge = document.getElementById('user-notif-badge');
-    badge.style.display = 'none';
-
-    db.collection(`users/${currentUser.uid}/notifications`)
-        .where('read', '==', false).get()
-        .then(snap => {
-            const batch = db.batch();
-            snap.forEach(doc => batch.update(doc.ref, { read: true }));
-            batch.commit();
-        });
-}
-
-// 3. Listen for Updates
-auth.onAuthStateChanged(user => {
-    if (user) {
-        db.collection(`users/${user.uid}/notifications`)
-            .orderBy('timestamp', 'desc')
-            .limit(20)
-            .onSnapshot(snap => {
-                const list = document.getElementById('user-notif-list');
-                const badge = document.getElementById('user-notif-badge');
-
-                if (snap.empty) {
-                    list.innerHTML = '<div style="text-align:center; padding:30px; color:#999;"><i class="far fa-bell-slash" style="font-size:2rem; margin-bottom:10px;"></i><p>No updates yet</p></div>';
-                    return;
-                }
-
-                let unread = 0;
-                let html = '';
-
-                snap.forEach(doc => {
-                    const n = doc.data();
-                    if (!n.read) unread++;
-
-                    html += `
-                    <div style="padding:15px; border-bottom:1px solid #eee; background:${n.read ? 'white' : '#f0f9ff'}; display:flex; gap:12px;">
-                        <div style="background:#e8f5e9; width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#2ecc71;">
-                            <i class="fas fa-box"></i>
-                        </div>
-                        <div>
-                            <div style="font-weight:600; font-size:0.95rem; margin-bottom:2px;">${n.title}</div>
-                            <div style="color:#555; font-size:0.85rem; line-height:1.4;">${n.message}</div>
-                        </div>
-                    </div>`;
-                });
-
-                list.innerHTML = html;
-                if (unread > 0) {
-                    badge.textContent = unread;
-                    badge.style.display = 'flex';
-                    vibrate(100); // Haptic feedback
-                }
-            });
-    }
-});
-
 // --- LEADERBOARD LOGIC ---
 async function openLeaderboard() {
     ensureModalExists('leaderboard-modal');
@@ -4562,66 +4486,8 @@ async function saveExpressOrder(method, status, txnId, items, total) {
 
 // ===========================
 // 🔔 USER NOTIFICATION CENTER
-// ===========================
-
-// 1. Insert Bell Icon into Navbar
-document.addEventListener('DOMContentLoaded', () => {
-    const actions = document.querySelector('.nav-actions'); // Desktop
-    // Also consider mobile header if different
-    
-    if (actions) {
-        // Create container if it doesn't exist
-        if (document.querySelector('.user-notif-btn')) return;
-
-        const bellDiv = document.createElement('div');
-        bellDiv.className = 'user-notif-btn';
-        bellDiv.style.cssText = "position: relative; margin-right: 15px; cursor: pointer; color: var(--text-dark); display: inline-block;";
-        bellDiv.onclick = toggleUserNotifModal;
-        bellDiv.innerHTML = `
-            <i class="fas fa-bell" style="font-size: 1.3rem;"></i>
-            <span id="user-notif-badge" style="position: absolute; top: -5px; right: -5px; background: red; color: white; border-radius: 50%; width: 16px; height: 16px; font-size: 0.6rem; display: none; align-items: center; justify-content: center; font-weight: bold; border: 2px solid white;">0</span>
-        `;
-        
-        // Insert before Cart Trigger
-        const cartTrigger = actions.querySelector('.cart-trigger');
-        if(cartTrigger) actions.insertBefore(bellDiv, cartTrigger);
-        
-        // Create Modal HTML
-        const modalHtml = `
-        <div id="user-notif-modal" class="modal-overlay" style="z-index: 5000;">
-            <div class="modal-content mobile-modal">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; padding-bottom:10px; border-bottom:1px solid #eee;">
-                    <h3 style="margin:0;">Your Updates</h3>
-                    <button class="close-modal" onclick="document.getElementById('user-notif-modal').style.display='none'">&times;</button>
-                </div>
-                <div id="user-notif-list" style="max-height: 60vh; overflow-y: auto;">
-                    <p style="text-align:center; color:#999; padding: 20px;">Loading...</p>
-                </div>
-            </div>
-        </div>`;
-        document.body.insertAdjacentHTML('beforeend', modalHtml);
-    }
-});
-
-// 2. Toggle Modal & Mark Read
-function toggleUserNotifModal() {
-    if (!currentUser) return showToast("Please login first", "neutral");
-    document.getElementById('user-notif-modal').style.display = 'flex';
-    
-    // Mark visible as read
-    const badge = document.getElementById('user-notif-badge');
-    badge.style.display = 'none';
-    
-    db.collection(`users/${currentUser.uid}/notifications`)
-        .where('read', '==', false).get()
-        .then(snap => {
-            const batch = db.batch();
-            snap.forEach(doc => batch.update(doc.ref, { read: true }));
-            batch.commit();
-        });
-}
-
-// 3. Listen for Updates (Call this inside your Auth Listener)
+// Note: Bell icon and modal are now defined in index.html (notif-trigger + user-notif-modal)
+// Functions below handle the notification logic
 auth.onAuthStateChanged(user => {
     if (user) {
         db.collection(`users/${user.uid}/notifications`)

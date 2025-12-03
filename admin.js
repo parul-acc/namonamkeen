@@ -22,10 +22,11 @@ db.enablePersistence()
         }
     });
 const auth = firebase.auth();
-const ADMIN_EMAILS = ["parul19.accenture@gmail.com", "namonamkeens@gmail.com", "soramjain2297@gmail.com"];
+const ADMIN_EMAILS = ["parul19.accenture@gmail.com", "namonamkeens@gmail.com", "soramjain2297@gmail.com", "ajmera.nidhishree@gmail.com"];
 
 let previousOrderCount = 0;
-const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+let soundEnabled = false;
+const orderSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
 
 let adminCart = [];
 let ordersUnsubscribe = null;
@@ -49,12 +50,11 @@ let messaging = null;
 try {
     if (firebase.messaging.isSupported()) {
         messaging = firebase.messaging();
+        // Update this block to use orderSound
         messaging.onMessage((payload) => {
-            console.log("Message received. ", payload);
             const { title, body } = payload.notification;
             showToast(`${title}: ${body}`, "success");
-            const audio = new Audio('assets/sounds/notification.mp3');
-            audio.play().catch(e => console.log("Audio play failed"));
+            orderSound.play().catch(e => console.log("Audio play failed")); // Changed from audio.play()
         });
     }
 } catch (e) {
@@ -117,27 +117,27 @@ function initDashboard() {
     const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
     if (isDev) console.log("Initializing Dashboard...");
     // --- ENHANCED POS INPUT VALIDATION ---
-const posPhone = document.getElementById('pos-phone');
-if (posPhone) {
-    posPhone.addEventListener('input', function (e) {
-        // Remove non-numeric characters
-        let clean = this.value.replace(/[^0-9]/g, '');
-        
-        // Prevent typing more than 10 digits
-        if (clean.length > 10) clean = clean.slice(0, 10);
-        
-        this.value = clean;
-    });
+    const posPhone = document.getElementById('pos-phone');
+    if (posPhone) {
+        posPhone.addEventListener('input', function (e) {
+            // Remove non-numeric characters
+            let clean = this.value.replace(/[^0-9]/g, '');
 
-    posPhone.addEventListener('blur', function () {
-        if (this.value.length > 0 && this.value.length < 10) {
-            showToast("⚠️ Phone number should be 10 digits", "error");
-            this.style.borderColor = "#e74c3c"; // Red border warning
-        } else {
-            this.style.borderColor = ""; // Reset
-        }
-    });
-}
+            // Prevent typing more than 10 digits
+            if (clean.length > 10) clean = clean.slice(0, 10);
+
+            this.value = clean;
+        });
+
+        posPhone.addEventListener('blur', function () {
+            if (this.value.length > 0 && this.value.length < 10) {
+                showToast("⚠️ Phone number should be 10 digits", "error");
+                this.style.borderColor = "#e74c3c"; // Red border warning
+            } else {
+                this.style.borderColor = ""; // Reset
+            }
+        });
+    }
     // Listener for Blog Image Upload
     document.addEventListener('change', function (e) {
         if (e.target && e.target.id === 'blog-image-file') {
@@ -335,11 +335,11 @@ function loadCustomers() {
 function showTableSkeleton(tbodyId, cols = 5, rows = 5) {
     const tbody = document.getElementById(tbodyId);
     if (!tbody) return;
-    
+
     let html = '';
-    for(let i=0; i<rows; i++) {
+    for (let i = 0; i < rows; i++) {
         let tds = '';
-        for(let j=0; j<cols; j++) {
+        for (let j = 0; j < cols; j++) {
             // Randomize widths for realistic effect
             const widthClass = Math.random() > 0.5 ? 'medium' : 'short';
             tds += `<td><div class="skeleton-bar ${widthClass}"></div></td>`;
@@ -357,13 +357,13 @@ function renderCustomerRows(tbody, items) {
         <p style="font-size: 0.9rem;">Try adjusting your filters or search.</p>
     </div>
 `;
-   if (items.length === 0) { tbody.innerHTML = `<tr><td colspan="100%">${emptyStateHTML}</td></tr>`; return; }
+    if (items.length === 0) { tbody.innerHTML = `<tr><td colspan="100%">${emptyStateHTML}</td></tr>`; return; }
 
     items.forEach(u => {
         const name = u.name || 'Guest';
         const email = u.email || '';
         const phone = u.phone || '-';
-        
+
         let address = '-';
         if (u.address) {
             address = String(u.address);
@@ -375,9 +375,9 @@ function renderCustomerRows(tbody, items) {
         // --- NEW: SEGMENT LOGIC ---
         const segment = u.segment || 'Regular';
         let segClass = 'seg-regular';
-        if(segment === 'Gold') segClass = 'seg-gold';
-        if(segment === 'Silver') segClass = 'seg-silver';
-        
+        if (segment === 'Gold') segClass = 'seg-gold';
+        if (segment === 'Silver') segClass = 'seg-silver';
+
         const segmentHtml = `<span class="segment-badge ${segClass}">${segment}</span>`;
 
         // WhatsApp Button
@@ -1256,7 +1256,7 @@ function saveProduct() {
         price: basePrice,
         isFeatured: document.getElementById('p-featured').checked
     }, { merge: true })
-    .then(() => {
+        .then(() => {
             closeModal('product-modal');
             showToast("Product Saved", "success");
         })
@@ -1832,9 +1832,6 @@ function saveLayoutConfig() {
         .then(() => showToast("Layout Updated", "success"));
 }
 
-let soundEnabled = false;
-const orderSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
-
 function enableSound() {
     // Attempt to play and immediately pause to unlock AudioContext
     orderSound.play().then(() => {
@@ -2256,11 +2253,11 @@ function loadFinance() {
         .then(snap => {
             let revenue = 0;
             snap.forEach(d => revenue += (d.data().total || 0));
-            
+
             // Update UI
             const revEl = document.getElementById('fin-revenue');
             if (revEl) revEl.innerText = '₹' + revenue.toLocaleString('en-IN');
-            
+
             // Recalculate Profit
             calculateProfit(revenue, null);
         })
@@ -2268,11 +2265,11 @@ function loadFinance() {
 
     // 2. Load Expenses (Real-time Listener)
     if (expensesUnsubscribe) expensesUnsubscribe();
-    
+
     expensesUnsubscribe = db.collection("expenses").orderBy("date", "desc").onSnapshot(snap => {
         let totalExpense = 0;
         const tbody = document.getElementById('expense-body');
-        
+
         if (tbody) tbody.innerHTML = ''; // Clear table
 
         if (snap.empty && tbody) {
@@ -2326,7 +2323,7 @@ function calculateProfit(rev, exp) {
     if (profitEl) {
         profitEl.innerText = '₹' + profit.toLocaleString('en-IN');
         // Green for profit, Red for loss
-        profitEl.style.color = profit >= 0 ? '#27ae60' : '#e74c3c'; 
+        profitEl.style.color = profit >= 0 ? '#27ae60' : '#e74c3c';
     }
 }
 
@@ -2344,7 +2341,7 @@ function saveExpense() {
 
     // Disable button to prevent double-click
     const btn = document.querySelector('#expense-modal .btn-primary');
-    if(btn) { btn.disabled = true; btn.innerHTML = "Saving..."; }
+    if (btn) { btn.disabled = true; btn.innerHTML = "Saving..."; }
 
     db.collection("expenses").add({
         desc: desc,
@@ -2355,17 +2352,17 @@ function saveExpense() {
     }).then(() => {
         closeModal('expense-modal');
         showToast("Expense Added Successfully", "success");
-        
+
         // Clear inputs
         descInput.value = '';
         amtInput.value = '';
-        
+
     }).catch(err => {
         console.error("Save Error:", err);
         showToast("Failed to save: " + err.message, "error");
     }).finally(() => {
         // Re-enable button
-        if(btn) { btn.disabled = false; btn.innerText = "Save"; }
+        if (btn) { btn.disabled = false; btn.innerText = "Save"; }
     });
 }
 
@@ -2374,7 +2371,7 @@ async function calculateSegments() {
     if (!await showConfirm("Recalculate Loyalty Tiers & Leaderboard?")) return;
 
     showToast("Calculating loyalty scores...", "neutral");
-    
+
     try {
         const usersSnap = await db.collection("users").get();
         const batch = db.batch();
@@ -2382,15 +2379,15 @@ async function calculateSegments() {
 
         const updates = usersSnap.docs.map(async (doc) => {
             const u = doc.data();
-            
+
             // 1. Calculate Lifetime Spend
             const ordersSnap = await db.collection("orders")
                 .where("userId", "==", doc.id)
                 .get();
-                
+
             let totalSpend = 0;
             let orderCount = 0;
-            
+
             ordersSnap.forEach(o => {
                 if (o.data().status !== 'Cancelled') {
                     totalSpend += (o.data().total || 0);
@@ -2406,7 +2403,7 @@ async function calculateSegments() {
 
             // 3. Assign Badges
             let badges = u.badges || [];
-            const addBadge = (id) => { if(!badges.includes(id)) badges.push(id); };
+            const addBadge = (id) => { if (!badges.includes(id)) badges.push(id); };
 
             if (orderCount >= 1) addBadge('newbie');      // First Order
             if (orderCount >= 5) addBadge('foodie');      // 5+ Orders
@@ -2415,7 +2412,7 @@ async function calculateSegments() {
             if (u.walletBalance > 500) addBadge('saver'); // High Wallet Balance
 
             // 4. Update User Doc
-            batch.update(doc.ref, { 
+            batch.update(doc.ref, {
                 segment: tier, // Used for Admin Table
                 loyaltyTier: tier, // Used for User App
                 totalLifetimeSpend: totalSpend,
@@ -2531,7 +2528,7 @@ document.addEventListener('DOMContentLoaded', () => {
         wrapper.className = 'notif-wrapper';
         wrapper.style.position = 'relative';
         wrapper.style.marginLeft = '15px';
-        
+
         wrapper.innerHTML = `
             <button class="icon-btn" onclick="toggleNotifDropdown()" style="position:relative; background:white; color:#555; border:1px solid #ddd;">
                 <i class="fas fa-bell"></i>
@@ -2547,10 +2544,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
             </div>
         `;
-        
+
         // Insert after the menu toggle
         const toggle = header.querySelector('.toggle-menu');
-        if(toggle) toggle.after(wrapper);
+        if (toggle) toggle.after(wrapper);
         else header.appendChild(wrapper);
 
         listenToAdminNotifications();
@@ -2569,7 +2566,7 @@ function listenToAdminNotifications() {
         .onSnapshot(snap => {
             const list = document.getElementById('admin-notif-list');
             const badge = document.getElementById('admin-notif-badge');
-            
+
             if (snap.empty) {
                 list.innerHTML = '<p style="padding:20px; text-align:center; color:#999;">No notifications</p>';
                 badge.style.display = 'none';
@@ -2583,8 +2580,8 @@ function listenToAdminNotifications() {
                 const n = doc.data();
                 if (!n.read) unread++;
                 const bg = n.read ? 'white' : '#f0f9ff';
-                const time = n.timestamp ? new Date(n.timestamp.seconds * 1000).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '';
-                
+                const time = n.timestamp ? new Date(n.timestamp.seconds * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+
                 html += `
                 <div onclick="readAndNav('${doc.id}', '${n.link}')" style="padding:12px 15px; border-bottom:1px solid #eee; background:${bg}; cursor:pointer; display:flex; gap:10px;">
                     <div style="color:#2ecc71; margin-top:2px;"><i class="fas fa-shopping-bag"></i></div>
@@ -2608,7 +2605,7 @@ function listenToAdminNotifications() {
 
 function readAndNav(id, link) {
     db.collection('admin_notifications').doc(id).update({ read: true });
-    if(link) switchView(link);
+    if (link) switchView(link);
     document.getElementById('admin-notif-dropdown').style.display = 'none';
 }
 
@@ -2654,7 +2651,7 @@ function renderReportUI(data) {
     // 1. KPI Cards
     document.getElementById('rep-revenue').innerText = '₹' + data.financials.revenue.toLocaleString();
     document.getElementById('rep-expense').innerText = '₹' + data.financials.totalExpenses.toLocaleString();
-    
+
     const profitEl = document.getElementById('rep-profit');
     profitEl.innerText = '₹' + data.financials.netProfit.toLocaleString();
     profitEl.style.color = data.financials.netProfit >= 0 ? '#27ae60' : '#e74c3c';
@@ -2672,14 +2669,14 @@ function renderReportUI(data) {
     if (data.meta.type === 'inventory') {
         document.getElementById('rep-table-title').innerText = "Top Selling Products (Velocity)";
         thead.innerHTML = '<tr><th>Product Name</th><th>Units Sold</th><th>Est. Revenue</th></tr>';
-        
+
         data.inventory.topProducts.forEach(([name, qty]) => {
             tbody.innerHTML += `<tr><td>${name}</td><td>${qty}</td><td>-</td></tr>`;
         });
     } else {
         document.getElementById('rep-table-title').innerText = "Expense Breakdown";
         thead.innerHTML = '<tr><th>Category</th><th>Amount</th><th>% of Total</th></tr>';
-        
+
         Object.entries(data.financials.expenses).forEach(([cat, amt]) => {
             if (amt > 0) {
                 const pct = Math.round((amt / data.financials.totalExpenses) * 100) || 0;
