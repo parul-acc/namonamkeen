@@ -131,6 +131,28 @@ function logout() {
 function initDashboard() {
     const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
     if (isDev) console.log("Initializing Dashboard...");
+    // --- ENHANCED POS INPUT VALIDATION ---
+const posPhone = document.getElementById('pos-phone');
+if (posPhone) {
+    posPhone.addEventListener('input', function (e) {
+        // Remove non-numeric characters
+        let clean = this.value.replace(/[^0-9]/g, '');
+        
+        // Prevent typing more than 10 digits
+        if (clean.length > 10) clean = clean.slice(0, 10);
+        
+        this.value = clean;
+    });
+
+    posPhone.addEventListener('blur', function () {
+        if (this.value.length > 0 && this.value.length < 10) {
+            showToast("⚠️ Phone number should be 10 digits", "error");
+            this.style.borderColor = "#e74c3c"; // Red border warning
+        } else {
+            this.style.borderColor = ""; // Reset
+        }
+    });
+}
     // Listener for Blog Image Upload
     document.addEventListener('change', function (e) {
         if (e.target && e.target.id === 'blog-image-file') {
@@ -324,19 +346,39 @@ function loadCustomers() {
     });
 }
 
-function renderCustomerRows(tbody, items) {
-    if (items.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">No customers found</td></tr>';
-        return;
+// Helper to show skeleton rows while data loads
+function showTableSkeleton(tbodyId, cols = 5, rows = 5) {
+    const tbody = document.getElementById(tbodyId);
+    if (!tbody) return;
+    
+    let html = '';
+    for(let i=0; i<rows; i++) {
+        let tds = '';
+        for(let j=0; j<cols; j++) {
+            // Randomize widths for realistic effect
+            const widthClass = Math.random() > 0.5 ? 'medium' : 'short';
+            tds += `<td><div class="skeleton-bar ${widthClass}"></div></td>`;
+        }
+        html += `<tr class="skeleton-row">${tds}</tr>`;
     }
+    tbody.innerHTML = html;
+}
+
+function renderCustomerRows(tbody, items) {
+    const emptyStateHTML = `
+    <div style="text-align: center; padding: 40px 20px; color: #9ca3af;">
+        <div style="font-size: 3rem; margin-bottom: 15px; opacity: 0.5;">📭</div>
+        <h4 style="margin: 0; color: #374151;">No records found</h4>
+        <p style="font-size: 0.9rem;">Try adjusting your filters or search.</p>
+    </div>
+`;
+   if (items.length === 0) { tbody.innerHTML = `<tr><td colspan="100%">${emptyStateHTML}</td></tr>`; return; }
 
     items.forEach(u => {
-        // Safe access with fallbacks
         const name = u.name || 'Guest';
         const email = u.email || '';
         const phone = u.phone || '-';
-
-        // Fix Address truncation safely
+        
         let address = '-';
         if (u.address) {
             address = String(u.address);
@@ -345,7 +387,15 @@ function renderCustomerRows(tbody, items) {
 
         const date = u.displayDate || '-';
 
-        // WhatsApp Button Logic
+        // --- NEW: SEGMENT LOGIC ---
+        const segment = u.segment || 'Regular';
+        let segClass = 'seg-regular';
+        if(segment === 'Gold') segClass = 'seg-gold';
+        if(segment === 'Silver') segClass = 'seg-silver';
+        
+        const segmentHtml = `<span class="segment-badge ${segClass}">${segment}</span>`;
+
+        // WhatsApp Button
         let waBtn = '';
         if (u.phone && u.phone.length >= 10) {
             const cleanPhone = String(u.phone).replace(/\D/g, '');
@@ -354,19 +404,17 @@ function renderCustomerRows(tbody, items) {
             waBtn = `<button class="icon-btn" style="background:#ccc; cursor:not-allowed;"><i class="fab fa-whatsapp"></i></button>`;
         }
 
-        // --- THE FIX IS HERE ---
-        // Ensure we don't accidentally print 'undefined'
-        const safeEmail = email ? `<br><small>${email}</small>` : '';
+        const safeEmail = email ? `<br><small>${escapeHtml(String(email))}</small>` : '';
 
         tbody.innerHTML += `
             <tr>
-               <td>
-    <strong>${escapeHtml(String(name))}</strong>
-    ${email ? `<br><small>${escapeHtml(String(email))}</small>` : ''} 
-</td>
+                <td>
+                    <strong>${escapeHtml(String(name))}</strong>
+                    ${safeEmail}
+                </td>
                 <td>${escapeHtml(String(phone))}</td>
                 <td>${escapeHtml(String(address))}</td>
-                <td>${escapeHtml(String(date))}</td>
+                <td>${segmentHtml}</td> <td>${escapeHtml(String(date))}</td>
                 <td>
                     <button class="icon-btn btn-blue" onclick="viewCustomer('${escapeHtml(String(u.uid))}')" title="View History"><i class="fas fa-history"></i></button>
                     ${waBtn}
@@ -551,6 +599,7 @@ function updateCharts(salesMap, prodMap, timeframe, paymentStats) {
 // --- INVENTORY ---
 function loadInventory() {
     if (inventoryUnsubscribe) inventoryUnsubscribe();
+    showTableSkeleton('orders-body', 6);
     inventoryUnsubscribe = db.collection("products").orderBy("id").onSnapshot(snap => {
         let total = 0, inStock = 0, outStock = 0;
         state.inventory.data = [];
@@ -668,6 +717,7 @@ function loadOrders() {
         ordersUnsubscribe();
     }
 
+    showTableSkeleton('orders-body', 6);
     const query = db.collection("orders").orderBy("timestamp", "desc").limit(100);
 
     // 2. Assign the new listener to the global variable
@@ -1186,6 +1236,7 @@ function addVariantRow(w = '', p = '', inStock = true) {
 }
 
 function saveProduct() {
+    setBtnLoading('btn-save-product', true); // START LOADING (Add ID to your HTML button)
     const id = document.getElementById('p-id').value || Date.now().toString();
     const vs = [];
     document.querySelectorAll('.variant-row').forEach(r => {
@@ -1218,7 +1269,15 @@ function saveProduct() {
         variants: vs,
         price: basePrice,
         isFeatured: document.getElementById('p-featured').checked
-    }, { merge: true }).then(() => closeModal('product-modal'));
+    }, { merge: true })
+    .then(() => {
+            closeModal('product-modal');
+            showToast("Product Saved", "success");
+        })
+        .catch(err => showToast("Error: " + err.message, "error"))
+        .finally(() => {
+            setBtnLoading('btn-save-product', false); // STOP LOADING
+        });
 }
 
 function handleFileUpload(input) {
@@ -2197,56 +2256,130 @@ async function deleteBlog(id) {
     }
 }
 
-function loadFinance() {
-    // 1. Calculate Revenue (From Orders)
-    // Note: In a real app, optimize this to not read ALL orders every time.
-    db.collection("orders").where("status", "!=", "Cancelled").get().then(snap => {
-        let revenue = 0;
-        snap.forEach(d => revenue += d.data().total);
-        document.getElementById('fin-revenue').innerText = '₹' + revenue.toLocaleString();
-        calculateProfit(revenue);
-    });
+// ===========================
+// FINANCE & EXPENSE LOGIC
+// ===========================
 
-    // 2. Load Expenses
+let globalRev = 0;
+let globalExp = 0;
+
+function loadFinance() {
+    // 1. Calculate Revenue (One-time fetch from Orders)
+    // Note: In a live app, consider a listener for orders too if you want real-time revenue updates here.
+    db.collection("orders").where("status", "!=", "Cancelled").get()
+        .then(snap => {
+            let revenue = 0;
+            snap.forEach(d => revenue += (d.data().total || 0));
+            
+            // Update UI
+            const revEl = document.getElementById('fin-revenue');
+            if (revEl) revEl.innerText = '₹' + revenue.toLocaleString('en-IN');
+            
+            // Recalculate Profit
+            calculateProfit(revenue, null);
+        })
+        .catch(err => console.error("Revenue Load Error:", err));
+
+    // 2. Load Expenses (Real-time Listener)
     if (expensesUnsubscribe) expensesUnsubscribe();
+    
     expensesUnsubscribe = db.collection("expenses").orderBy("date", "desc").onSnapshot(snap => {
-        let expense = 0;
+        let totalExpense = 0;
         const tbody = document.getElementById('expense-body');
-        tbody.innerHTML = '';
+        
+        if (tbody) tbody.innerHTML = ''; // Clear table
+
+        if (snap.empty && tbody) {
+            tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:#999;">No expenses recorded</td></tr>';
+        }
 
         snap.forEach(doc => {
             const e = doc.data();
-            expense += parseFloat(e.amount);
-            tbody.innerHTML += `<tr><td>${e.date.toDate().toLocaleDateString()}</td><td>${escapeHtml(String(e.desc))}</td><td>${escapeHtml(String(e.category))}</td><td style="color:red">-₹${e.amount}</td></tr>`;
+            const amount = parseFloat(e.amount) || 0;
+            totalExpense += amount;
+
+            // Safe Date Handling (Prevents crash if date is missing/invalid)
+            let dateStr = '-';
+            if (e.date && typeof e.date.toDate === 'function') {
+                dateStr = e.date.toDate().toLocaleDateString('en-IN');
+            } else if (e.date) {
+                dateStr = new Date(e.date).toLocaleDateString('en-IN');
+            }
+
+            if (tbody) {
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${dateStr}</td>
+                        <td>${escapeHtml(String(e.desc || ''))}</td>
+                        <td>${escapeHtml(String(e.category || 'Other'))}</td>
+                        <td style="color:#e74c3c; font-weight:600;">-₹${amount.toLocaleString('en-IN')}</td>
+                    </tr>`;
+            }
         });
 
-        document.getElementById('fin-expense').innerText = '₹' + expense.toLocaleString();
-        calculateProfit(null, expense);
+        // Update Total Expense UI
+        const expEl = document.getElementById('fin-expense');
+        if (expEl) expEl.innerText = '₹' + totalExpense.toLocaleString('en-IN');
+
+        // Recalculate Profit with new Expense total
+        calculateProfit(null, totalExpense);
+    }, (error) => {
+        console.error("Expense Listener Error:", error);
+        showToast("Error loading expenses", "error");
     });
 }
 
-let globalRev = 0, globalExp = 0;
 function calculateProfit(rev, exp) {
+    // Update globals only if a new value is provided
     if (rev !== null) globalRev = rev;
     if (exp !== null) globalExp = exp;
+
     const profit = globalRev - globalExp;
-    const el = document.getElementById('fin-profit');
-    el.innerText = '₹' + profit.toLocaleString();
-    el.style.color = profit >= 0 ? 'green' : 'red';
+    const profitEl = document.getElementById('fin-profit');
+
+    if (profitEl) {
+        profitEl.innerText = '₹' + profit.toLocaleString('en-IN');
+        // Green for profit, Red for loss
+        profitEl.style.color = profit >= 0 ? '#27ae60' : '#e74c3c'; 
+    }
 }
 
 function saveExpense() {
-    const desc = document.getElementById('exp-desc').value;
-    const cat = document.getElementById('exp-cat').value;
-    const amt = parseFloat(document.getElementById('exp-amt').value);
+    const descInput = document.getElementById('exp-desc');
+    const catInput = document.getElementById('exp-cat');
+    const amtInput = document.getElementById('exp-amt');
 
-    if (!desc || !amt) return showToast("Invalid Data", "error");
+    const desc = descInput.value.trim();
+    const cat = catInput.value;
+    const amt = parseFloat(amtInput.value);
+
+    if (!desc) return showToast("Please enter a description", "error");
+    if (isNaN(amt) || amt <= 0) return showToast("Please enter a valid amount", "error");
+
+    // Disable button to prevent double-click
+    const btn = document.querySelector('#expense-modal .btn-primary');
+    if(btn) { btn.disabled = true; btn.innerHTML = "Saving..."; }
 
     db.collection("expenses").add({
-        desc, category: cat, amount: amt, date: new Date()
+        desc: desc,
+        category: cat,
+        amount: amt,
+        date: new Date(), // Server Timestamp is better, but local Date is fine for now
+        addedBy: auth.currentUser ? auth.currentUser.email : 'Admin'
     }).then(() => {
         closeModal('expense-modal');
-        showToast("Expense Added", "success");
+        showToast("Expense Added Successfully", "success");
+        
+        // Clear inputs
+        descInput.value = '';
+        amtInput.value = '';
+        
+    }).catch(err => {
+        console.error("Save Error:", err);
+        showToast("Failed to save: " + err.message, "error");
+    }).finally(() => {
+        // Re-enable button
+        if(btn) { btn.disabled = false; btn.innerText = "Save"; }
     });
 }
 
@@ -2282,7 +2415,6 @@ async function calculateSegments() {
     loadCustomers(); // Refresh table
 }
 
-// --- PWA INSTALLATION LOGIC (Admin Side) ---
 // --- PWA INSTALLATION LOGIC (Admin Side) ---
 let adminPrompt;
 
@@ -2342,6 +2474,23 @@ function enableAdminNotifications() {
             showToast("VAPID Key not set in Settings!", "error");
         }
     });
+}
+
+// Helper to toggle button state
+function setBtnLoading(btnId, isLoading) {
+    const btn = document.getElementById(btnId);
+    if (!btn) return;
+
+    if (isLoading) {
+        btn.dataset.originalText = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Processing...';
+        btn.disabled = true;
+        btn.style.opacity = "0.7";
+    } else {
+        btn.innerHTML = btn.dataset.originalText || 'Submit';
+        btn.disabled = false;
+        btn.style.opacity = "1";
+    }
 }
 
 registerAdminServiceWorker();

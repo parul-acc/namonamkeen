@@ -351,35 +351,33 @@
                     <h1 id="cust-active">0</h1>
                 </div>
             </div>
-            <div class="card">
-                <div class="card-header">
-                    <h3>Database</h3>
-                    <div class="header-actions">
-                        <input type="text" id="custSearch" onkeyup="filterCustomers()" placeholder="Search..."
-                            class="search-input">
-                        <button class="btn btn-green" onclick="exportCustomersToCSV()">Export</button>
-                    </div>
-                </div>
-                <div class="table-responsive">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Name</th>
-                                <th>Phone</th>
-                                <th>Address</th>
-                                <th>Active</th>
-                                <th>Chat</th>
-                            </tr>
-                        </thead>
-                        <tbody id="customers-body"></tbody>
-                    </table>
-                </div>
-                <div class="pagination">
-                    <button class="page-btn" onclick="changePage('customers', -1)">Prev</button>
-                    <span class="page-info" id="customers-page-info">Page 1</span>
-                    <button class="page-btn" onclick="changePage('customers', 1)">Next</button>
-                </div>
-            </div>
+<div class="card">
+    <div class="card-header">
+        <h3>Database</h3>
+        <div class="header-actions">
+            <button class="btn btn-outline" onclick="calculateSegments()" title="Recalculate customer tiers">
+                <i class="fas fa-sync"></i> Update Segments
+            </button>
+            
+            <input type="text" id="custSearch" onkeyup="filterCustomers()" placeholder="Search..." class="search-input">
+            <button class="btn btn-green" onclick="exportCustomersToCSV()">Export</button>
+        </div>
+    </div>
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Phone</th>
+                    <th>Address</th>
+                    <th>Segment</th> <th>Active</th>
+                    <th>Chat</th>
+                </tr>
+            </thead>
+            <tbody id="customers-body"></tbody>
+        </table>
+    </div>
+    </div>
         </div>
 
         <div id="view-coupons" class="view-section">
@@ -697,6 +695,8 @@
             <button class="btn btn-primary full-width" onclick="saveExpense()" style="margin-top:15px;">Save</button>
         </div>
     </div>
+
+    <div id="toast-container"></div>
 
     <script src="admin.js"></script>
     <script scr="js/analytics-dashboard.js"></script>
