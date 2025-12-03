@@ -105,22 +105,17 @@ body {
 .brand {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    /* Pushes the X button to the far right */
-    padding: 20px 25px;
-    /* Comfortable spacing */
-    background: rgba(255, 255, 255, 0.03);
-    /* Subtle backdrop */
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-    /* Separator line */
+    justify-content: space-between; /* Pushes the X button to the far right */
+    padding: 20px 25px; /* Comfortable spacing */
+    background: rgba(255, 255, 255, 0.03); /* Subtle backdrop */
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05); /* Separator line */
 }
 
 /* 2. Logo & "Admin" Text Group */
 .brand-left {
     display: flex;
     align-items: center;
-    gap: 12px;
-    /* Spacing between logo and text */
+    gap: 12px; /* Spacing between logo and text */
 }
 
 .brand img {
@@ -141,34 +136,27 @@ body {
 
 /* 3. Professional Close Button (The 'X') */
 .close-sidebar {
-    background: transparent;
-    /* Removes the ugly gray box */
+    background: transparent; /* Removes the ugly gray box */
     border: none;
-    color: rgba(255, 255, 255, 0.5);
-    /* Muted white color */
-    font-size: 2rem;
-    /* Larger, clearer icon */
+    color: rgba(255, 255, 255, 0.5); /* Muted white color */
+    font-size: 2rem; /* Larger, clearer icon */
     line-height: 1;
     cursor: pointer;
     width: 40px;
     height: 40px;
-    display: none;
-    /* Hidden on Desktop by default */
+    display: none; /* Hidden on Desktop by default */
     align-items: center;
     justify-content: center;
-    border-radius: 50%;
-    /* Circular touch target */
+    border-radius: 50%; /* Circular touch target */
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* Hover/Active Effects */
 .close-sidebar:hover,
 .close-sidebar:active {
-    color: var(--primary);
-    /* Glows orange on touch */
+    color: var(--primary); /* Glows orange on touch */
     background: rgba(255, 255, 255, 0.1);
-    transform: rotate(90deg);
-    /* Smooth rotation effect */
+    transform: rotate(90deg); /* Smooth rotation effect */
 }
 
 /* --- SIDEBAR --- */
@@ -276,13 +264,10 @@ body {
 
 .toggle-menu {
     cursor: pointer;
-    color: #e85d04;
-    /* Orange Color (or var(--primary)) */
+    color: #e85d04; /* Orange Color (or var(--primary)) */
     margin-right: 15px;
-    display: block;
-    /* Ensure it's not hidden */
-    min-width: 28px;
-    /* Prevent crushing */
+    display: block; /* Ensure it's not hidden */
+    min-width: 28px; /* Prevent crushing */
     min-height: 28px;
     transition: transform 0.2s ease;
 }
@@ -411,7 +396,7 @@ body {
 .pos-card {
     background: white;
     border-radius: 12px;
-    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
+    box-shadow: 0 4px 14px rgba(0,0,0,0.06);
     overflow: hidden;
     cursor: pointer;
     display: flex;
@@ -923,15 +908,13 @@ body.loading .main-content {
 
 /* --- Warning Button (For Featured Toggle) --- */
 .btn-warning {
-    background: #f59e0b;
-    /* Amber/Orange */
+    background: #f59e0b; /* Amber/Orange */
     color: white;
     border: 1px solid #f59e0b;
 }
 
 .btn-warning:hover {
-    background: #d97706;
-    /* Darker Amber */
+    background: #d97706; /* Darker Amber */
     color: white;
     transform: translateY(-2px);
     box-shadow: 0 4px 6px rgba(245, 158, 11, 0.3);
@@ -981,150 +964,31 @@ body.loading .main-content {
     width: 100%;
 }
 
-.skeleton-bar.short {
-    width: 40%;
-}
-
-.skeleton-bar.medium {
-    width: 70%;
-}
+.skeleton-bar.short { width: 40%; }
+.skeleton-bar.medium { width: 70%; }
 
 @keyframes shimmer {
-    0% {
-        background-position: 200% 0;
-    }
-
-    100% {
-        background-position: -200% 0;
-    }
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
 }
 
 /* Notification Center Styles */
-.notif-wrapper {
-    position: relative;
-    margin-left: 15px;
-}
-
-.notif-btn {
-    background: white;
-    border: 1px solid #ddd;
-    color: #555;
-    position: relative;
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.1rem;
-    transition: 0.2s;
-}
-
-.notif-btn:hover {
-    background: #f3f4f6;
-    color: var(--primary);
-}
-
-.notif-badge {
-    position: absolute;
-    top: -2px;
-    right: -2px;
-    background: red;
-    color: white;
-    border-radius: 50%;
-    width: 18px;
-    height: 18px;
-    font-size: 0.7rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: bold;
-    border: 2px solid white;
-    display: none;
-}
-
-.notif-dropdown {
-    position: absolute;
-    top: 50px;
-    right: 0;
-    width: 320px;
-    background: white;
-    border-radius: 12px;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
-    border: 1px solid #eee;
-    display: none;
-    z-index: 1000;
-    overflow: hidden;
-    animation: slideDown 0.2s ease;
-}
-
-.notif-dropdown.active {
-    display: block;
-}
-
-.notif-header {
-    padding: 15px;
-    border-bottom: 1px solid #eee;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background: #f9fafb;
-}
-
-.notif-header h4 {
-    margin: 0;
-    font-size: 0.95rem;
-    color: #333;
-}
-
-.notif-list {
-    max-height: 350px;
-    overflow-y: auto;
-}
-
-.notif-item {
-    padding: 15px;
-    border-bottom: 1px solid #f0f0f0;
-    cursor: pointer;
-    transition: 0.2s;
-    display: flex;
-    gap: 10px;
-    align-items: start;
-}
-
-.notif-item:hover {
-    background: #fff8e1;
-}
-
-.notif-item.unread {
-    background: #f0f9ff;
-}
-
-.notif-item.unread:hover {
-    background: #e0f2fe;
-}
-
-.notif-content p {
-    margin: 0;
-    font-size: 0.85rem;
-    color: #444;
-    line-height: 1.4;
-}
-
-.notif-content small {
-    color: #999;
-    font-size: 0.75rem;
-    margin-top: 4px;
-    display: block;
-}
-
-.notif-empty {
-    padding: 30px;
-    text-align: center;
-    color: #999;
-    font-size: 0.9rem;
-}
+.notif-wrapper { position: relative; margin-left: 15px; }
+.notif-btn { background: white; border: 1px solid #ddd; color: #555; position: relative; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; transition: 0.2s; }
+.notif-btn:hover { background: #f3f4f6; color: var(--primary); }
+.notif-badge { position: absolute; top: -2px; right: -2px; background: red; color: white; border-radius: 50%; width: 18px; height: 18px; font-size: 0.7rem; display: flex; align-items: center; justify-content: center; font-weight: bold; border: 2px solid white; display: none; }
+.notif-dropdown { position: absolute; top: 50px; right: 0; width: 320px; background: white; border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.15); border: 1px solid #eee; display: none; z-index: 1000; overflow: hidden; animation: slideDown 0.2s ease; }
+.notif-dropdown.active { display: block; }
+.notif-header { padding: 15px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; background: #f9fafb; }
+.notif-header h4 { margin: 0; font-size: 0.95rem; color: #333; }
+.notif-list { max-height: 350px; overflow-y: auto; }
+.notif-item { padding: 15px; border-bottom: 1px solid #f0f0f0; cursor: pointer; transition: 0.2s; display: flex; gap: 10px; align-items: start; }
+.notif-item:hover { background: #fff8e1; }
+.notif-item.unread { background: #f0f9ff; }
+.notif-item.unread:hover { background: #e0f2fe; }
+.notif-content p { margin: 0; font-size: 0.85rem; color: #444; line-height: 1.4; }
+.notif-content small { color: #999; font-size: 0.75rem; margin-top: 4px; display: block; }
+.notif-empty { padding: 30px; text-align: center; color: #999; font-size: 0.9rem; }
 
 /* ========================================= */
 /* PROFESSIONAL MOBILE OPTIMIZATIONS      */
@@ -1153,18 +1017,15 @@ body.loading .main-content {
     /* Force 2 columns even on small screens to avoid "long scroll" */
     .stats-grid {
         grid-template-columns: repeat(2, 1fr) !important;
-        gap: 8px;
-        /* Tighter gap */
+        gap: 8px; /* Tighter gap */
     }
 
     .stat-card {
-        padding: 12px;
-        /* Smaller padding */
+        padding: 12px; /* Smaller padding */
     }
 
     .stat-card h1 {
-        font-size: 1.3rem;
-        /* Resize text to fit */
+        font-size: 1.3rem; /* Resize text to fit */
     }
 
     .stat-card h3 {
@@ -1176,10 +1037,8 @@ body.loading .main-content {
 
     /* --- 2. POS SCREEN REFINEMENTS --- */
     /* Ensure inputs don't feel cramped */
-    #pos-name,
-    #pos-phone {
-        width: 100% !important;
-        /* Stack inputs on very small screens for easier typing */
+    #pos-name, #pos-phone {
+        width: 100% !important; /* Stack inputs on very small screens for easier typing */
         margin-left: 0 !important;
         margin-bottom: 8px !important;
     }
@@ -1191,8 +1050,7 @@ body.loading .main-content {
     }
 
     .pos-card-img-wrap {
-        height: 80px !important;
-        /* Even smaller images */
+        height: 80px !important; /* Even smaller images */
     }
 
     .pos-card h4 {
@@ -1229,15 +1087,15 @@ body.loading .main-content {
 
     /* --- 1. GLOBAL LAYOUT ADJUSTMENTS --- */
     .main-content {
-        overflow-y: auto !important;
-        height: 100vh;
-        -webkit-overflow-scrolling: touch;
+        margin-left: 0;
+        width: 100%;
+        padding: 15px 10px; /* Tighter padding */
+        padding-bottom: 80px; /* Space for bottom elements */
     }
 
     .top-bar {
         padding: 10px 15px;
-        border-radius: 0 0 15px 15px;
-        /* Rounded bottom only */
+        border-radius: 0 0 15px 15px; /* Rounded bottom only */
         position: sticky;
         top: 0;
         z-index: 90;
@@ -1251,7 +1109,7 @@ body.loading .main-content {
     .stat-card {
         padding: 15px;
         border-radius: 12px;
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
     }
 
     .stat-card h3 {
@@ -1260,8 +1118,7 @@ body.loading .main-content {
     }
 
     .stat-card h1 {
-        font-size: 1.5rem;
-        /* Smaller numbers to fit */
+        font-size: 1.5rem; /* Smaller numbers to fit */
     }
 
     /* Charts stack vertically */
@@ -1270,14 +1127,13 @@ body.loading .main-content {
     }
 
     .chart-box {
-        height: 250px;
-        /* Reduce chart height */
+        height: 250px; /* Reduce chart height */
     }
 
     /* --- 3. PROFESSIONAL POS LAYOUT --- */
     /* This fixes the "messed up" POS screen */
-
-
+    
+   
 
     /* --- 4. TABLES & LISTS --- */
     /* Enable horizontal scroll for data tables */
@@ -1288,31 +1144,27 @@ body.loading .main-content {
         border-radius: 8px;
     }
 
-    table th,
-    table td {
+    table th, table td {
         padding: 10px;
         font-size: 0.85rem;
-        white-space: nowrap;
-        /* Prevent wrapping */
+        white-space: nowrap; /* Prevent wrapping */
     }
 
     /* --- 5. INVENTORY CARDS --- */
     /* If you have inventory cards, ensure they follow the stats grid rule */
     #view-inventory .stats-grid {
-        grid-template-columns: repeat(3, 1fr) !important;
-        /* 3 tiny cards for inventory count */
+        grid-template-columns: repeat(3, 1fr) !important; /* 3 tiny cards for inventory count */
     }
-
+    
     #view-inventory .stats-grid h3 {
-        display: none;
-        /* Hide label on tiny screens, show only number */
+        display: none; /* Hide label on tiny screens, show only number */
     }
-
+    
     #view-inventory .stats-grid h1 {
         font-size: 1.2rem;
         margin-bottom: 0;
     }
-
+    
     /* Add labels back as small text */
     #view-inventory .stats-grid .stat-card::after {
         content: 'Items';
@@ -1320,14 +1172,8 @@ body.loading .main-content {
         color: #888;
         display: block;
     }
-
-    #view-inventory .stats-grid .border-green::after {
-        content: 'In Stock';
-    }
-
-    #view-inventory .stats-grid .border-red::after {
-        content: 'Out Stock';
-    }
+    #view-inventory .stats-grid .border-green::after { content: 'In Stock'; }
+    #view-inventory .stats-grid .border-red::after { content: 'Out Stock'; }
 
     /* --- 6. MODALS --- */
     .modal-content {
@@ -1338,12 +1184,8 @@ body.loading .main-content {
 
     /* --- 1. PREVENT IPHONE ZOOM & IMPROVE TYPING --- */
     /* If font-size is < 16px, iPhones zoom in, breaking the layout. This fixes it. */
-    input,
-    select,
-    textarea,
-    .form-control,
-    .search-input {
-        font-size: 16px !important;
+    input, select, textarea, .form-control, .search-input {
+        font-size: 16px !important; 
     }
 
     /* --- 2. FIX TOAST NOTIFICATION POSITION --- */
@@ -1361,11 +1203,9 @@ body.loading .main-content {
     th {
         position: sticky;
         top: 0;
-        background: #f9fafc;
-        /* Matches your theme */
+        background: #f9fafc; /* Matches your theme */
         z-index: 5;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-        /* Subtle shadow line */
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1); /* Subtle shadow line */
     }
 
     /* --- 4. LARGER TOUCH TARGETS --- */
@@ -1382,56 +1222,48 @@ body.loading .main-content {
         display: block !important;
     }
 
-    .close-sidebar {
-        display: flex;
-        /* Only show the X on mobile */
+     .close-sidebar {
+        display: flex; /* Only show the X on mobile */
     }
-
+    
     .brand {
-        padding: 15px 20px;
-        /* Slightly tighter on mobile */
+        padding: 15px 20px; /* Slightly tighter on mobile */
     }
 
     /* 1. POS MAIN LAYOUT */
     .pos-layout {
         display: flex;
-        flex-direction: column !important;
-        height: auto !important;
-        min-height: 100%;
-        /* Ensure it fills space */
-        padding-bottom: 150px !important;
-        /* HUGE padding so inputs aren't hidden behind the button */
+        flex-direction: column !important; /* Stack vertical */
+        height: auto !important; /* Allow scroll */
+        padding-bottom: 80px; /* Space for bottom bar */
+        gap: 15px;
     }
 
-    /* 3. PRODUCTS GRID (Fixed Height, Scrollable internally) */
+    /* 2. PRODUCTS SECTION (Move to Top) */
     .pos-left {
-        order: 1;
-        flex: 0 0 auto;
-        /* Don't grow */
+        order: 1; /* Show Products FIRST */
+        width: 100%;
+        background: transparent;
+        border: none;
+        box-shadow: none;
+        padding: 0;
     }
 
     .pos-left .card-header {
-        padding: 10px 5px;
-        /* Tighter header */
+        padding: 10px 5px; /* Tighter header */
     }
-
+    
     /* Hide search label to save space */
-    .pos-left h3 {
-        font-size: 1rem;
-        margin: 0;
-    }
+    .pos-left h3 { font-size: 1rem; margin: 0; }
 
     /* THE GRID: 3 Columns for Density */
     .pos-product-grid {
         display: grid !important;
-        grid-template-columns: repeat(3, 1fr) !important;
-        gap: 6px !important;
-        max-height: 40vh;
-        /* Limit height so inputs are visible without scrolling miles */
+        grid-template-columns: repeat(3, 1fr) !important; 
+        gap: 6px !important; /* Tight gap */
+        padding: 2px;
+        max-height: 55vh; /* Scrollable area for products */
         overflow-y: auto;
-        border-bottom: 2px solid #eee;
-        padding-bottom: 10px;
-        margin-bottom: 10px;
     }
 
     /* 3. COMPACT PRODUCT CARD */
@@ -1442,13 +1274,12 @@ body.loading .main-content {
         border-radius: 6px;
         background: white;
         overflow: hidden;
-        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        box-shadow: 0 1px 2px rgba(0,0,0,0.05);
     }
 
     .pos-card-img-wrap {
         width: 100%;
-        height: 70px !important;
-        /* Fixed small height */
+        height: 70px !important; /* Fixed small height */
         background: #f4f4f4;
     }
 
@@ -1468,7 +1299,7 @@ body.loading .main-content {
         font-size: 0.7rem !important;
         margin: 0 0 3px 0;
         line-height: 1.1;
-        height: 2.2em;
+        height: 2.2em; 
         overflow: hidden;
         display: -webkit-box;
         -webkit-line-clamp: 2;
@@ -1495,56 +1326,25 @@ body.loading .main-content {
     .pos-price {
         font-size: 0.75rem;
         font-weight: bold;
-        color: #e85d04;
-        /* Primary Color */
+        color: #e85d04; /* Primary Color */
     }
 
     /* 4. CUSTOMER FORM (Bottom) */
     .pos-right {
-        order: 2;
-        padding: 10px 5px;
-        background: white;
-        margin-bottom: 20px;
-        /* Extra space */
-    }
-
-    .pos-right input.form-control {
-        height: 45px;
-        /* Taller inputs */
-        font-size: 16px !important;
-        /* Prevent zoom */
-        margin-bottom: 12px !important;
+        order: 2; /* Show Form SECOND */
+        width: 100%;
+        border-top: 2px dashed #eee;
+        padding-top: 15px;
     }
 
     /* Side-by-Side Name & Phone */
-    #pos-name {
-        width: 49%;
-        display: inline-block;
-        margin-right: 2%;
-        margin-bottom: 8px;
-    }
-
-    #pos-phone {
-        width: 49%;
-        display: inline-block;
-        margin-bottom: 8px;
-    }
-
+    #pos-name { width: 49%; display: inline-block; margin-right: 2%; margin-bottom: 8px; }
+    #pos-phone { width: 49%; display: inline-block; margin-bottom: 8px; }
+    
     /* Compact Address Fields */
-    #pos-addr-street {
-        margin-bottom: 8px;
-    }
-
-    #pos-addr-city {
-        width: 59%;
-        display: inline-block;
-        margin-right: 2%;
-    }
-
-    #pos-addr-pin {
-        width: 39%;
-        display: inline-block;
-    }
+    #pos-addr-street { margin-bottom: 8px; }
+    #pos-addr-city { width: 59%; display: inline-block; margin-right: 2%; }
+    #pos-addr-pin { width: 39%; display: inline-block; }
 
     /* Compact Cart List */
     .pos-cart-list {
@@ -1565,16 +1365,15 @@ body.loading .main-content {
 
     /* 5. TOTAL & ACTION BAR (Sticky Bottom) */
     .pos-total-section {
-        position: fixed;
-        /* Forced fixed */
+        position: sticky;
         bottom: 0;
         left: 0;
         width: 100%;
         background: white;
-        z-index: 9999;
         padding: 10px 15px;
-        border-top: 1px solid #ccc;
-        box-shadow: 0 -5px 15px rgba(0, 0, 0, 0.1);
+        border-top: 2px solid #e85d04;
+        box-shadow: 0 -4px 10px rgba(0,0,0,0.1);
+        z-index: 999;
     }
 
     .pos-total-section button {
@@ -1588,39 +1387,19 @@ body.loading .main-content {
         grid-template-columns: repeat(2, 1fr) !important;
         gap: 10px;
     }
-
-    .sidebar {
-        transform: translateX(-100%);
-    }
-
-    .sidebar.active {
-        transform: translateX(0);
-    }
+    
+    .sidebar { transform: translateX(-100%); }
+    .sidebar.active { transform: translateX(0); }
 }
 
 /* Very Small Screens (iPhone SE, etc) */
 @media (max-width: 380px) {
     .stats-grid {
-        grid-template-columns: 1fr !important;
-        /* Back to 1 column for very small screens */
+        grid-template-columns: 1fr !important; /* Back to 1 column for very small screens */
     }
-
-    #pos-name,
-    #pos-phone {
+    
+    #pos-name, #pos-phone {
         width: 100%;
         margin-left: 0;
-    }
-}
-
-@media (max-width: 360px) {
-    .pos-product-grid {
-        grid-template-columns: repeat(2, 1fr) !important;
-        /* Drop to 2 columns */
-    }
-
-    #pos-name,
-    #pos-phone {
-        width: 100%;
-        margin-right: 0;
     }
 }
