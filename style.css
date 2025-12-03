@@ -3938,6 +3938,13 @@ button { position: relative; overflow: hidden; } /* Ensure buttons contain rippl
     display: none !important;
 }
 
+/* --- FIX: PROFILE MODAL STACKING --- */
+/* Ensure Profile Modal appears ON TOP of Express Checkout */
+#profile-modal {
+    z-index: 7010 !important; /* Higher than standard .modal-overlay (7002) */
+    background: rgba(0, 0, 0, 0.6) !important; /* Ensure dimming works */
+}
+
 
 /* FIX: Responsive css for mobile */
 @media (max-width: 768px) {

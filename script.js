@@ -9,6 +9,10 @@ const firebaseConfig = {
     measurementId: "G-8HJJ8YW1YH"
 };
 
+// --- DEBUG HELPER ---
+// Set `window.DEBUG = true` in the console to enable debug logs locally.
+window.DEBUG = window.DEBUG === true || false;
+function dbg(...args) { if (window.DEBUG) console.log(...args); }
 if (typeof firebase !== 'undefined' && !firebase.apps.length) {
     firebase.initializeApp(firebaseConfig);
 }
@@ -16,9 +20,9 @@ const db = firebase.firestore();
 db.enablePersistence()
     .catch((err) => {
         if (err.code == 'failed-precondition') {
-            console.log('Persistence failed: Multiple tabs open');
+            dbg('Persistence failed: Multiple tabs open');
         } else if (err.code == 'unimplemented') {
-            console.log('Persistence not supported by browser');
+            dbg('Persistence not supported by browser');
         }
     });
 const auth = firebase.auth();
@@ -2111,8 +2115,8 @@ function registerServiceWorker() {
     // Only register if supported AND running on http/https (not file://)
     if ('serviceWorker' in navigator && (window.location.protocol === 'http:' || window.location.protocol === 'https:')) {
         navigator.serviceWorker.register('sw.js')
-            .then(reg => console.log("Service Worker Registered"))
-            .catch(err => console.log("SW Registration Failed:", err));
+            .then(reg => dbg("Service Worker Registered"))
+            .catch(err => dbg("SW Registration Failed:", err));
     }
 }
 
@@ -2199,8 +2203,8 @@ function openSecureRazorpay(orderId, keyId, amount, userPhone) {
         "description": "Secure Payment",
         "image": "logo.jpg",
         "order_id": orderId, // Critical: Links to the secure server order
-        "handler": function (response) {
-            console.log("Payment Success:", response);
+            "handler": function (response) {
+            dbg("Payment Success:", response);
             // Verify signature here if needed, or trust the success for basic flow
             saveOrderToFirebase('Online', 'Paid', response.razorpay_payment_id);
         },
@@ -2571,7 +2575,7 @@ function updateSchema(p) {
 
 // Optional: Analytics to track if app was installed successfully
 window.addEventListener('appinstalled', () => {
-    console.log('PWA was installed');
+    dbg('PWA was installed');
     // You could save this event to Firestore to track how many users installed the app
 });
 
@@ -2584,7 +2588,7 @@ function saveCartLocal() {
         db.collection("users").doc(currentUser.uid).update({
             cart: cart,
             lastCartUpdate: new Date() // Useful for Abandoned Cart feature
-        }).catch(err => console.log("Cart Sync Error", err));
+        }).catch(err => dbg("Cart Sync Error", err));
     }
 }
 
@@ -3207,7 +3211,7 @@ function setupRecaptcha() {
             'size': 'invisible',
             'callback': (response) => {
                 // reCAPTCHA solved, allow signInWithPhoneNumber.
-                console.log("Recaptcha Verified");
+                dbg("Recaptcha Verified");
             }
         });
     }
@@ -3340,7 +3344,7 @@ window.addEventListener('beforeinstallprompt', (e) => {
     const installBtn = document.getElementById('pwa-install-btn');
     if (installBtn) {
         installBtn.style.display = 'block'; // Make it visible
-        console.log("PWA Ready to Install (User)");
+        dbg("PWA Ready to Install (User)");
 
         installBtn.addEventListener('click', () => {
             // Hide the button
@@ -3350,9 +3354,9 @@ window.addEventListener('beforeinstallprompt', (e) => {
             // Wait for the user to respond to the prompt
             deferredPrompt.userChoice.then((choiceResult) => {
                 if (choiceResult.outcome === 'accepted') {
-                    console.log('User accepted the A2HS prompt');
+                    dbg('User accepted the A2HS prompt');
                 } else {
-                    console.log('User dismissed the A2HS prompt');
+                    dbg('User dismissed the A2HS prompt');
                 }
                 deferredPrompt = null;
             });
@@ -3386,7 +3390,7 @@ function toggleGlobalLoading(show) {
 function requestUserNotifications() {
     // Check if key is loaded
     if (!shopConfig.vapidKey) {
-        console.log("VAPID Key missing from config");
+        dbg("VAPID Key missing from config");
         return;
     }
 
@@ -3398,7 +3402,7 @@ function requestUserNotifications() {
                         fcmToken: currentToken
                     });
                 }
-            }).catch(err => console.log("Token Error", err));
+            }).catch(err => dbg("Token Error", err));
         }
     });
 }
@@ -4393,16 +4397,43 @@ function buyNow(id) {
     document.getElementById('express-checkout-modal').style.display = 'flex';
 }
 
+function toggleExpressPayUI() {
+    const method = document.querySelector('input[name="expressPaymentMethod"]:checked').value;
+    const btn = document.getElementById('btn-express-pay');
+    
+    if (method === 'COD') {
+        btn.innerHTML = 'Place Order <i class="fas fa-check"></i>';
+        btn.style.background = "var(--primary)"; // Orange
+    } else {
+        btn.innerHTML = 'Pay Securely <i class="fas fa-bolt"></i>';
+        btn.style.background = "linear-gradient(45deg, #25D366, #128C7E)"; // Greenish
+    }
+}
+
 async function processExpressPay() {
     if (!expressItem) return;
 
+    // 1. Get Selected Payment Method
+    const methodElem = document.querySelector('input[name="expressPaymentMethod"]:checked');
+    const paymentMethod = methodElem ? methodElem.value : 'Online';
+
     toggleBtnLoading('btn-express-pay', true);
-
-    // 1. Create a "Virtual Cart" of just this item
+    
+    // 2. Create Virtual Cart & Calculate Total
     const virtualCart = [expressItem];
+    const subtotal = expressItem.price;
+    const shipping = (subtotal >= (shopConfig.freeShippingThreshold || 250)) ? 0 : (shopConfig.deliveryCharge || 50);
+    const finalTotal = subtotal + shipping;
 
-    // 2. Init Payment
     try {
+        // --- OPTION A: CASH ON DELIVERY ---
+        if (paymentMethod === 'COD') {
+           // Save directly
+            await saveExpressOrder('COD', 'Pending', null, virtualCart, finalTotal);
+            return; 
+        }
+
+        // --- OPTION B: ONLINE PAYMENT (Razorpay) ---
         const createPaymentOrder = firebase.functions().httpsCallable('createPaymentOrder');
         const result = await createPaymentOrder({
             cart: virtualCart,
@@ -4411,7 +4442,6 @@ async function processExpressPay() {
 
         const { id: order_id, key: key_id, amount, customerId, userContact, userEmail } = result.data;
 
-        // 3. Open Razorpay (With Saved Cards Enabled)
         const options = {
             "key": key_id,
             "amount": amount,
@@ -4419,18 +4449,17 @@ async function processExpressPay() {
             "name": "Namo Namkeen",
             "description": "Express Checkout",
             "order_id": order_id,
-            "customer_id": customerId, // <--- ENABLES ONE-CLICK SAVED CARDS
+            "customer_id": customerId,
             "prefill": {
                 "contact": userContact,
                 "email": userEmail
             },
             "theme": { "color": "#e85d04" },
             "handler": async function (response) {
-                // Payment Success: Save Order
-                await saveExpressOrder('Online', 'Paid', response.razorpay_payment_id, virtualCart, amount / 100);
+                await saveExpressOrder('Online', 'Paid', response.razorpay_payment_id, virtualCart, amount/100);
             },
             "modal": {
-                "ondismiss": function () { toggleBtnLoading('btn-express-pay', false); }
+                "ondismiss": function() { toggleBtnLoading('btn-express-pay', false); }
             }
         };
 
@@ -4439,7 +4468,7 @@ async function processExpressPay() {
 
     } catch (e) {
         console.error(e);
-        showToast("Express Checkout Failed", "error");
+        showToast("Order Failed: " + e.message, "error");
         toggleBtnLoading('btn-express-pay', false);
     }
 }

@@ -766,6 +766,28 @@
             </div>
         </div>
 
+        <div class="express-payment-options" style="margin-top: 15px;">
+    <label style="font-size:0.85rem; font-weight:600; color:#555; margin-bottom:8px; display:block;">Payment Method</label>
+    
+    <div class="compact-radio-group">
+        <label class="compact-radio">
+            <input type="radio" name="expressPaymentMethod" value="COD" onchange="toggleExpressPayUI()">
+            <span class="radio-design"></span>
+            <span class="radio-text">
+                <i class="fas fa-money-bill-wave" style="color: #27ae60;"></i> COD
+            </span>
+        </label>
+
+        <label class="compact-radio">
+            <input type="radio" name="expressPaymentMethod" value="Online" checked onchange="toggleExpressPayUI()">
+            <span class="radio-design"></span>
+            <span class="radio-text">
+                <i class="fas fa-bolt" style="color: #e85d04;"></i> Pay Now
+            </span>
+        </label>
+    </div>
+</div>
+
         <div class="express-totals">
             <div class="row"><span>Item Total</span><span id="exp-subtotal">₹0</span></div>
             <div class="row"><span>Delivery</span><span id="exp-shipping">₹0</span></div>

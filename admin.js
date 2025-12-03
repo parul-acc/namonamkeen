@@ -16,12 +16,16 @@ db.enablePersistence()
     .catch((err) => {
         const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
         if (err.code == 'failed-precondition') {
-            if (isDev) console.log('Persistence failed: Multiple tabs open');
+            if (isDev) dbg('Persistence failed: Multiple tabs open');
         } else if (err.code == 'unimplemented') {
-            if (isDev) console.log('Persistence not supported by browser');
+            if (isDev) dbg('Persistence not supported by browser');
         }
     });
 const auth = firebase.auth();
+// Debug helper: enable logging on localhost or when `window.DEBUG = true` is set
+const IS_DEV = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+window.DEBUG = (window.DEBUG === true) || IS_DEV;
+function dbg(...args) { if (window.DEBUG) console.log(...args); }
 const ADMIN_EMAILS = ["parul19.accenture@gmail.com", "namonamkeens@gmail.com", "soramjain2297@gmail.com", "ajmera.nidhishree@gmail.com"];
 
 let previousOrderCount = 0;
@@ -51,21 +55,21 @@ try {
     if (firebase.messaging.isSupported()) {
         messaging = firebase.messaging();
         // Update this block to use orderSound
-        messaging.onMessage((payload) => {
+            messaging.onMessage((payload) => {
             const { title, body } = payload.notification;
             showToast(`${title}: ${body}`, "success");
-            orderSound.play().catch(e => console.log("Audio play failed")); // Changed from audio.play()
+            orderSound.play().catch(e => dbg("Audio play failed", e));
         });
     }
 } catch (e) {
-    console.log("Messaging skipped (not supported):", e);
+    dbg("Messaging skipped (not supported):", e);
 }
 
 // Listener for foreground messages (while you are on the page)
 messaging.onMessage((payload) => {
     const { title, body } = payload.notification;
     showToast(`${title}: ${body}`, "success");
-    audio.play();
+    try { audio.play(); } catch (e) { dbg('Audio play error in foreground message', e); }
 });
 
 // --- AUTHENTICATION ---
@@ -78,7 +82,7 @@ if (window.location.pathname.endsWith('admin-local.html')) {
 } else {
     auth.onAuthStateChanged(user => {
         const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-        if (isDev) console.log("Auth State Changed:", user ? user.email : "No User");
+        if (isDev) dbg("Auth State Changed:", user ? user.email : "No User");
         if (user && ADMIN_EMAILS.includes(user.email)) {
             document.getElementById('login-overlay').style.display = 'none';
             document.getElementById('admin-user-info').innerText = user.displayName;
@@ -91,10 +95,10 @@ if (window.location.pathname.endsWith('admin-local.html')) {
 }
 
 function adminLogin() {
-    console.log("Attempting login..."); // Add this to debug
+    dbg("Attempting login..."); // Add this to debug
     auth.signInWithPopup(new firebase.auth.GoogleAuthProvider())
         .then((result) => {
-            console.log("Login success:", result.user.email);
+            dbg("Login success:", result.user.email);
         })
         .catch((error) => {
             console.error("Login failed:", error);
@@ -115,7 +119,7 @@ function logout() {
 
 function initDashboard() {
     const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-    if (isDev) console.log("Initializing Dashboard...");
+    if (isDev) dbg("Initializing Dashboard...");
     // --- ENHANCED POS INPUT VALIDATION ---
     const posPhone = document.getElementById('pos-phone');
     if (posPhone) {
@@ -713,7 +717,7 @@ function loadOrders() {
         if (previousOrderCount > 0 && snap.size > previousOrderCount) {
             if (soundEnabled) {
                 const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-                orderSound.play().catch(e => { if (isDev) console.log("Sound blocked:", e); });
+                orderSound.play().catch(e => { if (isDev) dbg("Sound blocked:", e); });
             }
             showToast("New Order Received!", "success");
             vibrate(200);
@@ -1102,6 +1106,7 @@ function loadSettings() {
             if (document.getElementById('setting-announce')) {
                 document.getElementById('setting-announce').value = data.text || '';
                 document.getElementById('setting-announce-active').value = data.active ? 'true' : 'false';
+                dbg('Settings loaded successfully');
             }
         }
     });
@@ -1129,7 +1134,7 @@ function toggleSidebar() {
     }
 }
 function switchView(v) {
-    console.log("Switching view to:", v);
+    dbg("Switching view to:", v);
     // 1. Hide all sections
     document.querySelectorAll('.view-section').forEach(e => {
         e.style.display = 'none';
@@ -1375,7 +1380,7 @@ function openExpenseModal() {
 function registerAdminServiceWorker() {
     if ('serviceWorker' in navigator && (window.location.protocol === 'http:' || window.location.protocol === 'https:')) {
         navigator.serviceWorker.register('/admin-sw.js').then(reg => {
-            console.log('Admin SW Registered');
+            dbg('Admin SW Registered');
             reg.onupdatefound = () => {
                 const newWorker = reg.installing;
                 newWorker.onstatechange = () => {
@@ -1384,7 +1389,7 @@ function registerAdminServiceWorker() {
                     }
                 };
             };
-        }).catch(err => console.log("Admin SW Failed:", err));
+        }).catch(err => console.error("Admin SW Failed:", err));
     }
 }
 
@@ -1766,7 +1771,7 @@ function loadStoreConfig() {
             if (data.minOrderValue) document.getElementById('conf-min-order').value = data.minOrderValue;
             if (data.vapidKey) document.getElementById('conf-vapid').value = data.vapidKey;
         }
-    }).catch(err => console.log("Config load error (first run?):", err));
+    }).catch(err => console.error("Config load error (first run?):", err));
 
     // 2. Load Layout/Banner Config
     db.collection("settings").doc("layout").get().then(doc => {
@@ -1850,7 +1855,7 @@ function enableSound() {
         }
         showToast("Order Notifications Enabled", "success");
     }).catch(e => {
-        console.log("Audio unlock failed", e);
+        dbg("Audio unlock failed", e);
         showToast("Could not enable sound", "error");
     });
 }
@@ -2439,7 +2444,7 @@ async function calculateSegments() {
 let adminPrompt;
 
 window.addEventListener('beforeinstallprompt', (e) => {
-    console.log("✅ PWA Event Fired! App is installable."); // Debug Log
+    dbg("✅ PWA Event Fired! App is installable."); // Debug Log
     e.preventDefault();
     adminPrompt = e;
 
@@ -2447,11 +2452,11 @@ window.addEventListener('beforeinstallprompt', (e) => {
     if (btn) {
         btn.style.display = 'flex'; // Make it visible
 
-        btn.onclick = () => {
+            btn.onclick = () => {
             btn.style.display = 'none';
             adminPrompt.prompt();
             adminPrompt.userChoice.then((r) => {
-                if (r.outcome === 'accepted') console.log('Admin App Installed');
+                if (r.outcome === 'accepted') dbg('Admin App Installed');
                 adminPrompt = null;
             });
         };
@@ -2461,7 +2466,7 @@ window.addEventListener('beforeinstallprompt', (e) => {
 });
 
 window.addEventListener('appinstalled', () => {
-    console.log("🎉 App was successfully installed.");
+    dbg("🎉 App was successfully installed.");
 });
 
 function enableAdminNotifications() {

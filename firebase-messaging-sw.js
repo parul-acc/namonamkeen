@@ -12,8 +12,11 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
+// Service Worker debug flag (set to true manually in developer tools if needed)
+self.DEBUG = self.DEBUG === true || false;
+
 messaging.onBackgroundMessage(function(payload) {
-  console.log('[firebase-messaging-sw.js] Received background message ', payload);
+  if (self.DEBUG) console.log('[firebase-messaging-sw.js] Received background message ', payload);
   const notificationTitle = payload.notification.title;
   const notificationOptions = {
     body: payload.notification.body,

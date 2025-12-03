@@ -233,7 +233,7 @@
             document.getElementById('login-overlay').style.display = 'none';
             document.body.classList.remove('loading');
             document.getElementById('admin-user-info').textContent = currentUser.displayName || 'Admin';
-            console.log('✓ Local dev session started');
+            if (typeof DEBUG !== 'undefined' && DEBUG) console.log('✓ Local dev session started');
         }
 
         // Check for existing session on page load
@@ -285,7 +285,7 @@
         }
 
         // Stub functions for compatibility - will be extended by admin.js
-        function enableSound() { console.log('Sound enabled'); }
+        function enableSound() { if (typeof DEBUG !== 'undefined' && DEBUG) console.log('Sound enabled'); }
         function openProductModal() { alert('Product modal - Not implemented in local mode'); }
         function saveCoupon() { alert('Save coupon - Not implemented in local mode'); }
         function openExpenseModal() { alert('Expense modal - Not implemented in local mode'); }
@@ -315,13 +315,13 @@
         function updateDashboardFilter() {}
 
         // Setup message
-        console.log('🔧 Admin Local Dev Mode Initialized');
-        console.log('✓ Firebase not required for local testing');
-        console.log('💡 Use dev login with any password to access the dashboard');
+        if (typeof DEBUG !== 'undefined' && DEBUG) console.log('🔧 Admin Local Dev Mode Initialized');
+        if (typeof DEBUG !== 'undefined' && DEBUG) console.log('✓ Firebase not required for local testing');
+        if (typeof DEBUG !== 'undefined' && DEBUG) console.log('💡 Use dev login with any password to access the dashboard');
     </script>
 
     <!-- Optional: Load admin.js if available (production features) -->
-    <script src="admin.js" onerror="console.log('ℹ admin.js not loaded - local mode only')"></script>
+    <script src="admin.js" onerror="if (typeof DEBUG !== 'undefined' && DEBUG) console.log('ℹ admin.js not loaded - local mode only')"></script>
 </body>
 
 </html>

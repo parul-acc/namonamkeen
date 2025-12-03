@@ -12,9 +12,12 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
+// Service Worker debug flag (set to true manually in developer tools if needed)
+self.DEBUG = self.DEBUG === true || false;
+
 // 1. Background Handler
 messaging.onBackgroundMessage(function (payload) {
-  console.log('[firebase-messaging-sw.js] Received background message ', payload);
+  if (self.DEBUG) console.log('[firebase-messaging-sw.js] Received background message ', payload);
   // Customize notification here
   const notificationTitle = payload.notification.title;
   const notificationOptions = {
@@ -27,7 +30,7 @@ messaging.onBackgroundMessage(function (payload) {
   self.registration.showNotification(notificationTitle, notificationOptions);
 });
 
-const CACHE_NAME = 'namo-v21'; // Increment Version
+const CACHE_NAME = 'namo-v22'; // Increment Version
 const urlsToCache = [
   '/',
   '/index.html',
@@ -78,7 +81,7 @@ self.addEventListener('fetch', event => {
 
 // 5. Notification Click Handler (THE FIX)
 self.addEventListener('notificationclick', function(event) {
-  console.log('[Service Worker] Notification click Received.');
+  if (self.DEBUG) console.log('[Service Worker] Notification click Received.');
 
   event.notification.close(); // Close the notification
 

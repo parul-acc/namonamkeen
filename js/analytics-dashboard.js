@@ -29,8 +29,8 @@ async function loadEnhancedDashboard() {
             clvElement.textContent = `₹${avgCLV.toLocaleString('en-IN')}`;
         }
 
-        console.log(`📊 Analytics: ${customerCount} customers, Avg CLV: ₹${avgCLV}`);
-        console.log('Segments:', segmentCounts);
+        if (typeof DEBUG !== 'undefined' && DEBUG) console.log(`📊 Analytics: ${customerCount} customers, Avg CLV: ₹${avgCLV}`);
+        if (typeof DEBUG !== 'undefined' && DEBUG) console.log('Segments:', segmentCounts);
 
     } catch (error) {
         console.error('Error loading enhanced dashboard:', error);
