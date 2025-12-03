@@ -89,7 +89,7 @@ document.addEventListener('DOMContentLoaded', () => {
         updateUserUI(!!user);
 
         if (user) {
-            // Fetch profile and auto-fill checkout if data exists
+            initUserNotifications(user.uid);
             fetchUserProfile(user.uid);
         } else {
             userProfile = null;
@@ -397,11 +397,21 @@ function renderMenu() {
     if (!grid) return;
     grid.innerHTML = '';
 
-    const filtered = products.filter(p => {
+   const filtered = products.filter(p => {
         const name = (p.name + (p.nameHi || '')).toLowerCase();
         const matchesCat = currentCategory === 'all' || p.category === currentCategory;
         const matchesSearch = name.includes(searchQuery.toLowerCase());
-        return matchesCat && matchesSearch;
+        
+        // --- NEW QUICK FILTER LOGIC ---
+        // Ensure quickFilters object exists (defined in new JS above)
+        const qf = (typeof quickFilters !== 'undefined') ? quickFilters : { bestseller:false, featured:false, stock:false };
+        
+        const matchesQuick = 
+            (!qf.bestseller || p.bestseller) &&
+            (!qf.featured || p.isFeatured) &&
+            (!qf.stock || p.in_stock);
+
+        return matchesCat && matchesSearch && matchesQuick;
     });
 
     filtered.sort((a, b) => {
@@ -3638,3 +3648,302 @@ window.addEventListener('popstate', (event) => {
 function pushModalState() {
     window.history.pushState({ modal: true }, "");
 }
+
+// ==========================================
+// MOBILE EXPERIENCE ENHANCEMENTS
+// ==========================================
+
+// --- 1. SMART BOTTOM NAV (Hide on Scroll) ---
+let lastScrollTop = 0;
+const bottomNav = document.querySelector('.bottom-nav');
+
+window.addEventListener('scroll', function() {
+    const st = window.pageYOffset || document.documentElement.scrollTop;
+    if (!bottomNav) return;
+    
+    // Only trigger if scrolled past 100px
+    if (st > 100) {
+        if (st > lastScrollTop) {
+            // Scroll Down - Hide
+            bottomNav.classList.add('nav-hidden');
+        } else {
+            // Scroll Up - Show
+            bottomNav.classList.remove('nav-hidden');
+        }
+    }
+    lastScrollTop = st <= 0 ? 0 : st;
+}, { passive: true });
+
+
+// --- 2. PULL TO REFRESH ---
+let touchStartY = 0;
+const ptrSpinner = document.getElementById('ptr-spinner');
+
+document.addEventListener('touchstart', e => {
+    // Only if at top of page
+    if (window.scrollY === 0) {
+        touchStartY = e.touches[0].clientY;
+    }
+}, { passive: true });
+
+document.addEventListener('touchmove', e => {
+    if (window.scrollY === 0 && touchStartY > 0) {
+        const touchY = e.touches[0].clientY;
+        const diff = touchY - touchStartY;
+        
+        // Dragging down logic
+        if (diff > 50 && diff < 200) {
+            // Visual feedback could go here (e.g. rotate icon)
+        }
+    }
+}, { passive: true });
+
+document.addEventListener('touchend', async e => {
+    if (window.scrollY === 0 && touchStartY > 0) {
+        const touchEndY = e.changedTouches[0].clientY;
+        if (touchEndY - touchStartY > 100) { // Threshold to trigger
+            performRefresh();
+        }
+    }
+    touchStartY = 0;
+});
+
+async function performRefresh() {
+    if(!ptrSpinner) return;
+    ptrSpinner.classList.add('loading');
+    vibrate(20); // Haptic feedback
+    
+    // Reload Data
+    await fetchData(); 
+    
+    setTimeout(() => {
+        ptrSpinner.classList.remove('loading');
+        showToast("Refreshed! 🚀", "success");
+    }, 1000);
+}
+
+
+// --- 3. FILTER BOTTOM SHEET ---
+let quickFilters = {
+    bestseller: false,
+    featured: false,
+    stock: false
+};
+
+function openFilterSheet() {
+    document.getElementById('filter-sheet').classList.add('active');
+    document.getElementById('filter-sheet-overlay').classList.add('active');
+}
+
+function closeFilterSheet() {
+    document.getElementById('filter-sheet').classList.remove('active');
+    document.getElementById('filter-sheet-overlay').classList.remove('active');
+}
+
+function applySort(sortVal, btn) {
+    // UI Update
+    const parent = btn.parentElement;
+    parent.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+    btn.classList.add('active');
+    
+    // Logic
+    currentSort = sortVal;
+    renderMenu(); // Re-render grid
+}
+
+function toggleQuickFilter(type, btn) {
+    quickFilters[type] = !quickFilters[type];
+    btn.classList.toggle('active');
+    
+    // Apply logic inside existing renderMenu or create new filter wrapper
+    // For now, we'll re-render and patch renderMenu logic below
+    renderMenu(); 
+}
+
+// --- PATCH: Update renderMenu to use Quick Filters ---
+// NOTE: You must update your existing renderMenu() function in script.js
+// Add this logic inside the filter loop:
+/*
+    const matchesQuick = 
+        (!quickFilters.bestseller || p.bestseller) &&
+        (!quickFilters.featured || p.isFeatured) &&
+        (!quickFilters.stock || p.in_stock);
+        
+    // Update return statement:
+    return matchesCat && matchesSearch && matchesQuick;
+*/
+
+
+// --- 4. SWIPE TO CLOSE MODAL ---
+let modalTouchStart = 0;
+const productModal = document.getElementById('product-modal');
+
+if (productModal) {
+    productModal.addEventListener('touchstart', e => {
+        // Only track if touching the modal content area (not the overlay)
+        if(e.target.closest('.modal-content')) {
+            modalTouchStart = e.touches[0].clientY;
+        }
+    }, { passive: true });
+
+    productModal.addEventListener('touchmove', e => {
+        if (modalTouchStart > 0) {
+            const currentY = e.touches[0].clientY;
+            const modalContent = productModal.querySelector('.modal-content');
+            const diff = currentY - modalTouchStart;
+
+            // Only allow dragging DOWN and if content is scrolled to top
+            if (diff > 0 && modalContent.scrollTop <= 0) {
+                e.preventDefault(); // Prevent page scroll
+                modalContent.style.transform = `translateY(${diff}px)`;
+            }
+        }
+    }, { passive: false });
+
+    productModal.addEventListener('touchend', e => {
+        const modalContent = productModal.querySelector('.modal-content');
+        const currentY = e.changedTouches[0].clientY;
+        const diff = currentY - modalTouchStart;
+
+        if (diff > 150) { // Threshold to close
+            closeProductModal();
+        } 
+        // Reset transform
+        modalContent.style.transform = '';
+        modalTouchStart = 0;
+    });
+}
+
+
+// --- 5. BUTTON RIPPLE EFFECT ---
+document.addEventListener('click', e => {
+    const btn = e.target.closest('button') || e.target.closest('.btn-primary');
+    if (btn) {
+        const rect = btn.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        
+        const circle = document.createElement('span');
+        circle.classList.add('ripple-effect');
+        circle.style.left = x + 'px';
+        circle.style.top = y + 'px';
+        
+        btn.appendChild(circle);
+        setTimeout(() => circle.remove(), 600);
+    }
+});
+
+// --- USER NOTIFICATIONS ---
+
+function toggleUserNotif() {
+    if (!currentUser) return showToast("Login to see notifications", "neutral");
+    document.getElementById('user-notif-modal').style.display = 'flex';
+    
+    // Mark all as read when opening
+    const badge = document.getElementById('user-notif-badge');
+    badge.style.display = 'none';
+    
+    // Batch update read status (optional, or do it on click)
+    db.collection(`users/${currentUser.uid}/notifications`)
+      .where('read', '==', false).get()
+      .then(snap => {
+          const batch = db.batch();
+          snap.forEach(doc => batch.update(doc.ref, { read: true }));
+          batch.commit();
+      });
+}
+
+function closeUserNotif() {
+    document.getElementById('user-notif-modal').style.display = 'none';
+}
+
+function initUserNotifications(uid) {
+    db.collection(`users/${uid}/notifications`)
+        .orderBy('timestamp', 'desc')
+        .limit(20)
+        .onSnapshot(snap => {
+            const list = document.getElementById('user-notif-list');
+            const badge = document.getElementById('user-notif-badge');
+            
+            if (snap.empty) {
+                list.innerHTML = '<div style="text-align:center; padding:30px; color:#999;"><i class="far fa-bell-slash" style="font-size:2rem; margin-bottom:10px;"></i><p>No notifications yet</p></div>';
+                return;
+            }
+
+            let unread = 0;
+            let html = '';
+
+            snap.forEach(doc => {
+                const n = doc.data();
+                if (!n.read) unread++;
+                const time = n.timestamp ? new Date(n.timestamp.seconds * 1000).toLocaleDateString() : '';
+                
+                html += `
+                <div style="padding:15px; border-bottom:1px solid #eee; background:${n.read ? 'white' : '#f0f9ff'}; display:flex; gap:12px;">
+                    <div style="background:#fff3e0; width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:var(--primary);">
+                        <i class="fas ${n.type === 'status' ? 'fa-box' : 'fa-info'}"></i>
+                    </div>
+                    <div>
+                        <div style="font-weight:600; font-size:0.95rem; margin-bottom:2px;">${n.title}</div>
+                        <div style="color:#555; font-size:0.85rem; line-height:1.4;">${n.message}</div>
+                        <small style="color:#999; display:block; margin-top:5px;">${time}</small>
+                    </div>
+                </div>`;
+            });
+
+            list.innerHTML = html;
+            if (unread > 0) {
+                badge.textContent = unread;
+                badge.style.display = 'flex';
+            }
+        });
+}
+
+// ==========================================
+// FIX: AUTO-CLOSE PROFILE MENU
+// ==========================================
+
+document.addEventListener('DOMContentLoaded', () => {
+    
+    // 1. Close Profile Menu when clicking outside
+    document.addEventListener('click', (e) => {
+        const profileMenu = document.getElementById('profile-menu');
+        const userPic = document.getElementById('user-pic');
+
+        if (profileMenu && profileMenu.classList.contains('active')) {
+            // If click is NOT inside the menu AND NOT on the profile picture
+            if (!profileMenu.contains(e.target) && e.target !== userPic) {
+                profileMenu.classList.remove('active');
+            }
+        }
+    });
+
+    // 2. Close Profile Menu when clicking any Navigation Link
+    const navLinks = document.querySelectorAll('.nav-link, .mobile-nav a');
+    navLinks.forEach(link => {
+        link.addEventListener('click', () => {
+            const profileMenu = document.getElementById('profile-menu');
+            if (profileMenu) profileMenu.classList.remove('active');
+        });
+    });
+
+});
+
+// 3. Update Back Button Handling (Existing popstate listener)
+// Find your existing window.addEventListener('popstate', ...) and UPDATE it to this:
+
+window.addEventListener('popstate', (event) => {
+    // Check for open elements
+    const openModal = document.querySelector('.modal-overlay[style*="display: flex"]');
+    const sidebar = document.getElementById('cart-sidebar');
+    const profileMenu = document.getElementById('profile-menu');
+
+    if (openModal) {
+        openModal.style.display = 'none';
+    } else if (sidebar && sidebar.classList.contains('active')) {
+        toggleCart();
+    } else if (profileMenu && profileMenu.classList.contains('active')) {
+        // FIX: Close profile menu on Back button
+        profileMenu.classList.remove('active');
+    }
+});

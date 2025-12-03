@@ -74,6 +74,23 @@
                     </div>
                 </div>
 
+                <div class="notif-trigger" onclick="toggleUserNotif()" style="position: relative; margin-right: 15px; cursor: pointer; color: var(--text-dark);">
+    <i class="fas fa-bell" style="font-size: 1.3rem;"></i>
+    <span id="user-notif-badge" style="position: absolute; top: -5px; right: -5px; background: red; color: white; border-radius: 50%; width: 16px; height: 16px; font-size: 0.6rem; display: none; align-items: center; justify-content: center; font-weight: bold; border: 2px solid white;">0</span>
+</div>
+
+<div id="user-notif-modal" class="modal-overlay">
+    <div class="modal-content mobile-modal">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; padding-bottom:10px; border-bottom:1px solid #eee;">
+            <h3 style="margin:0;">Your Updates</h3>
+            <button class="close-modal" onclick="closeUserNotif()">&times;</button>
+        </div>
+        <div id="user-notif-list" style="max-height: 60vh; overflow-y: auto;">
+            <p style="text-align:center; color:#999;">Loading...</p>
+        </div>
+    </div>
+</div>
+
                 <div class="cart-trigger" onclick="toggleCart()">
                     <i class="fas fa-shopping-bag"></i>
                     <span id="cart-count" class="cart-count">0</span>
@@ -150,13 +167,9 @@
             <div class="search-container">
                 <i class="fas fa-search"></i>
                 <input type="search" id="menu-search" placeholder="Search for Sev, Mixture..." enterkeyhint="search">
-                <select id="sort-select" onchange="sortMenu(this.value)"
-                    style="position: absolute; right: 5px; top: 50%; transform: translateY(-50%); border: none; background: transparent; color: var(--primary); font-weight: 600; font-size: 0.9rem; cursor: pointer; outline: none; padding: 5px;">
-                    <option value="default">Sort</option>
-                    <option value="price-low">Low Price</option>
-                    <option value="price-high">High Price</option>
-                    <option value="rating">Top Rated</option>
-                </select>
+               <button class="filter-trigger-btn" onclick="openFilterSheet()">
+    <i class="fas fa-sliders-h"></i>
+</button>
                 <div id="search-suggestions" class="search-suggestions"></div>
             </div>
             <div class="category-slider">
@@ -826,6 +839,40 @@
             <span>Profile</span>
         </a>
     </div>
+
+    <div id="ptr-spinner" class="ptr-spinner">
+    <i class="fas fa-circle-notch fa-spin"></i>
+</div>
+
+<div id="filter-sheet-overlay" class="modal-overlay" onclick="closeFilterSheet()"></div>
+<div id="filter-sheet" class="bottom-sheet">
+    <div class="sheet-header">
+        <h3>Sort & Filter</h3>
+        <button onclick="closeFilterSheet()">&times;</button>
+    </div>
+    <div class="sheet-content">
+        <div class="filter-group">
+            <label>Sort By</label>
+            <div class="chip-group">
+                <button class="filter-chip active" onclick="applySort('default', this)">Recommended</button>
+                <button class="filter-chip" onclick="applySort('price-low', this)">Price: Low to High</button>
+                <button class="filter-chip" onclick="applySort('price-high', this)">Price: High to Low</button>
+                <button class="filter-chip" onclick="applySort('rating', this)">Top Rated</button>
+            </div>
+        </div>
+        <div class="filter-group">
+            <label>Quick Filters</label>
+            <div class="chip-group">
+                <button class="filter-chip" onclick="toggleQuickFilter('bestseller', this)">🔥 Bestsellers</button>
+                <button class="filter-chip" onclick="toggleQuickFilter('featured', this)">⭐ Featured</button>
+                <button class="filter-chip" onclick="toggleQuickFilter('stock', this)">📦 In Stock Only</button>
+            </div>
+        </div>
+    </div>
+    <div class="sheet-footer">
+        <button class="btn-primary full-width" onclick="closeFilterSheet()">Apply Filters</button>
+    </div>
+</div>
 
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>

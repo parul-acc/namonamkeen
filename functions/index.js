@@ -191,44 +191,77 @@ exports.sendOrderConfirmation = functions.firestore
     });
 
 // --- FUNCTION 2: Create Secure Payment Order (Razorpay) ---
+// --- SECURE PAYMENT FUNCTION ---
 exports.createPaymentOrder = functions.https.onCall(async (data, context) => {
     if (!context.auth) throw new functions.https.HttpsError("unauthenticated", "Login required.");
 
-    // Use keys from params or fallback to process.env if needed
-    const rzpKeyId = razorpayKeyId.value() || process.env.RAZORPAY_KEY_ID;
-    const rzpKeySecret = razorpayKeySecret.value() || process.env.RAZORPAY_KEY_SECRET;
-
-    if (!rzpKeyId || !rzpKeySecret) {
-        throw new functions.https.HttpsError("internal", "Razorpay keys not configured.");
+    const clientCart = data.cart;
+    const discountInfo = data.discount;
+    
+    // 1. RE-CALCULATE TOTAL FROM DATABASE (Security Fix)
+    let calculatedSubtotal = 0;
+    
+    // Create an array of promises to fetch latest prices
+    const productPromises = clientCart.map(item => 
+        admin.firestore().collection('products').doc(String(item.productId)).get()
+    );
+    
+    const productSnapshots = await Promise.all(productPromises);
+    
+    // Validate prices
+    for (let i = 0; i < clientCart.length; i++) {
+        const cartItem = clientCart[i];
+        const productDoc = productSnapshots[i];
+        
+        if (!productDoc.exists) {
+             throw new functions.https.HttpsError("invalid-argument", `Product ID ${cartItem.productId} no longer exists.`);
+        }
+        
+        const productData = productDoc.data();
+        let realPrice = productData.price; // Default base price
+        
+        // If variant, find the correct variant price
+        if (productData.variants && productData.variants.length > 0) {
+            const variant = productData.variants.find(v => v.weight === cartItem.weight);
+            if (variant) {
+                realPrice = variant.price;
+            }
+        }
+        
+        // Use the SERVER price, ignore client price
+        calculatedSubtotal += (realPrice * cartItem.qty);
     }
 
-    const razorpay = new Razorpay({ key_id: rzpKeyId, key_secret: rzpKeySecret });
-
-    const cart = data.cart;
-    const discountInfo = data.discount;
-
-    // Server-side calculation
-    const subtotal = cart.reduce((sum, i) => sum + (i.price * i.qty), 0);
+    // 2. Recalculate Discount
     let discountAmount = 0;
-
     if (discountInfo && discountInfo.value > 0) {
         if (discountInfo.type === 'percent') {
-            discountAmount = Math.round(subtotal * (discountInfo.value / 100));
+            discountAmount = Math.round(calculatedSubtotal * (discountInfo.value / 100));
         } else if (discountInfo.type === 'flat' || discountInfo.type === 'loyalty') {
             discountAmount = discountInfo.value;
         }
     }
 
-    // Prevent negative total
-    const finalSubtotal = Math.max(0, subtotal - discountAmount);
-
-    // Delivery Logic
-    const freeShipLimit = 250;
-    const deliveryFee = 50;
-    const shipping = (subtotal >= freeShipLimit) ? 0 : deliveryFee;
-
+    // 3. Final Calculation
+    const finalSubtotal = Math.max(0, calculatedSubtotal - discountAmount);
+    
+    // Fetch Config for Shipping (Ensure these match your Firestore config)
+    const configDoc = await admin.firestore().collection('settings').doc('config').get();
+    const config = configDoc.data() || {};
+    const freeShipLimit = config.freeShippingThreshold || 250;
+    const deliveryFee = config.deliveryCharge || 50;
+    
+    const shipping = (calculatedSubtotal >= freeShipLimit) ? 0 : deliveryFee;
     const finalTotal = finalSubtotal + shipping;
     const amountPaise = Math.round(finalTotal * 100);
+
+    // 4. Create Razorpay Order
+    const rzpKeyId = razorpayKeyId.value() || process.env.RAZORPAY_KEY_ID;
+    const rzpKeySecret = razorpayKeySecret.value() || process.env.RAZORPAY_KEY_SECRET;
+    
+    if (!rzpKeyId || !rzpKeySecret) throw new functions.https.HttpsError("internal", "Razorpay keys missing.");
+
+    const razorpay = new Razorpay({ key_id: rzpKeyId, key_secret: rzpKeySecret });
 
     try {
         const order = await razorpay.orders.create({
@@ -766,4 +799,113 @@ exports.dailyProductAnalytics = functions.pubsub
         console.log(`✅ Product analytics updated for ${processedCount} products`);
 
         return null;
+    });
+
+    // =====================================================
+// PUSH NOTIFICATION SYSTEM
+// =====================================================
+
+// Helper: Send Push & Save to DB
+async function sendNotification(target, payload, dbData) {
+    try {
+        // 1. Send Push if token exists
+        if (target.tokens && target.tokens.length > 0) {
+            await admin.messaging().sendMulticast({
+                tokens: target.tokens,
+                notification: payload.notification,
+                data: payload.data || {}
+            });
+        }
+
+        // 2. Save to Firestore for Notification Center UI
+        if (dbData.collection) {
+            await admin.firestore().collection(dbData.collection).add({
+                ...dbData.content,
+                read: false,
+                timestamp: admin.firestore.FieldValue.serverTimestamp()
+            });
+        }
+    } catch (error) {
+        console.error("Notification Error:", error);
+    }
+}
+
+// 1. Notify Admin on New Order
+exports.notifyAdminNewOrder = functions.firestore
+    .document('orders/{orderId}')
+    .onCreate(async (snap, context) => {
+        const order = snap.data();
+        
+        // Fetch all admin tokens
+        const tokensSnap = await admin.firestore().collection('admin_tokens').get();
+        const tokens = tokensSnap.docs.map(doc => doc.data().token).filter(t => t);
+
+        if (tokens.length === 0) return;
+
+        const payload = {
+            notification: {
+                title: "🚀 New Order Received!",
+                body: `Order #${order.id} for ₹${order.total} by ${order.userName}`
+            },
+            data: { url: '/admin.html#orders' }
+        };
+
+        // Save to 'admin_notifications' collection
+        await sendNotification({ tokens }, payload, {
+            collection: 'admin_notifications',
+            content: {
+                title: payload.notification.title,
+                message: payload.notification.body,
+                type: 'order',
+                link: '#nav-orders'
+            }
+        });
+    });
+
+// 2. Notify User on Status Change
+exports.notifyUserStatusChange = functions.firestore
+    .document('orders/{orderId}')
+    .onUpdate(async (change, context) => {
+        const newData = change.after.data();
+        const oldData = change.before.data();
+
+        // Only if status changed
+        if (newData.status === oldData.status) return;
+
+        const userId = newData.userId;
+        if (!userId || userId.startsWith('guest')) return;
+
+        // Get User Token
+        const userDoc = await admin.firestore().collection('users').doc(userId).get();
+        const fcmToken = userDoc.data()?.fcmToken;
+
+        if (!fcmToken) return;
+
+        const messages = {
+            'Packed': '📦 Your order has been packed and is ready for dispatch!',
+            'Shipped': '🚚 Your order is on the way!',
+            'Delivered': '🎉 Your order has been delivered. Enjoy!',
+            'Cancelled': '❌ Your order has been cancelled.'
+        };
+
+        const message = messages[newData.status] || `Your order status is now ${newData.status}`;
+
+        const payload = {
+            notification: {
+                title: `Order Update #${newData.id}`,
+                body: message
+            },
+            data: { url: '/index.html#history-modal' }
+        };
+
+        // Save to user's subcollection
+        await sendNotification({ tokens: [fcmToken] }, payload, {
+            collection: `users/${userId}/notifications`,
+            content: {
+                title: payload.notification.title,
+                message: payload.notification.body,
+                type: 'status',
+                orderId: newData.id
+            }
+        });
     });

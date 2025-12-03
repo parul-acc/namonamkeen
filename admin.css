@@ -922,6 +922,24 @@ body.loading .main-content {
     100% { background-position: -200% 0; }
 }
 
+/* Notification Center Styles */
+.notif-wrapper { position: relative; margin-left: 15px; }
+.notif-btn { background: white; border: 1px solid #ddd; color: #555; position: relative; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; transition: 0.2s; }
+.notif-btn:hover { background: #f3f4f6; color: var(--primary); }
+.notif-badge { position: absolute; top: -2px; right: -2px; background: red; color: white; border-radius: 50%; width: 18px; height: 18px; font-size: 0.7rem; display: flex; align-items: center; justify-content: center; font-weight: bold; border: 2px solid white; display: none; }
+.notif-dropdown { position: absolute; top: 50px; right: 0; width: 320px; background: white; border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.15); border: 1px solid #eee; display: none; z-index: 1000; overflow: hidden; animation: slideDown 0.2s ease; }
+.notif-dropdown.active { display: block; }
+.notif-header { padding: 15px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; background: #f9fafb; }
+.notif-header h4 { margin: 0; font-size: 0.95rem; color: #333; }
+.notif-list { max-height: 350px; overflow-y: auto; }
+.notif-item { padding: 15px; border-bottom: 1px solid #f0f0f0; cursor: pointer; transition: 0.2s; display: flex; gap: 10px; align-items: start; }
+.notif-item:hover { background: #fff8e1; }
+.notif-item.unread { background: #f0f9ff; }
+.notif-item.unread:hover { background: #e0f2fe; }
+.notif-content p { margin: 0; font-size: 0.85rem; color: #444; line-height: 1.4; }
+.notif-content small { color: #999; font-size: 0.75rem; margin-top: 4px; display: block; }
+.notif-empty { padding: 30px; text-align: center; color: #999; font-size: 0.9rem; }
+
 /* ========================================= */
 /* PROFESSIONAL MOBILE OPTIMIZATIONS      */
 /* ========================================= */
