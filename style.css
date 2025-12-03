@@ -4528,3 +4528,209 @@ button { position: relative; overflow: hidden; } /* Ensure buttons contain rippl
         line-height: 1.1;
     }
 }
+
+/* ========================================= */
+/* 📱 PROFESSIONAL MOBILE OPTIMIZATIONS     */
+/* ========================================= */
+
+@media (max-width: 900px) {
+
+    /* --- 1. LAYOUT & TYPOGRAPHY --- */
+    body {
+        padding-bottom: 80px; /* Space for Bottom Nav */
+    }
+
+    .container {
+        width: 94%; /* More width on mobile */
+    }
+
+    .section-pad {
+        padding: 30px 0;
+    }
+
+    /* Prevent iPhone Zoom on Inputs */
+    input, select, textarea, .form-control {
+        font-size: 16px !important; 
+    }
+
+    /* --- 2. NAVIGATION --- */
+    .nav-menu, .nav-actions {
+        display: none; /* Hide desktop nav elements */
+    }
+
+    .navbar {
+        padding: 10px 0;
+        height: 60px;
+        display: flex;
+        align-items: center;
+    }
+
+    .logo-img {
+        width: 40px;
+        height: 40px;
+    }
+
+    .logo-text {
+        font-size: 1.2rem;
+    }
+
+    /* Hamburger & Cart Mobile Positioning */
+    .nav-container {
+        position: relative;
+    }
+
+    .hamburger {
+        display: block;
+        position: absolute;
+        right: 0;
+        top: 50%;
+        transform: translateY(-50%);
+    }
+
+    .cart-trigger {
+        display: block;
+        position: absolute;
+        right: 50px; /* Left of hamburger */
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 1.3rem;
+    }
+
+    /* --- 3. PRODUCT GRID (DENSITY FIX) --- */
+    /* Force 2 Columns with perfect spacing */
+    .product-grid {
+        display: grid !important;
+        grid-template-columns: repeat(2, 1fr) !important; 
+        gap: 12px !important;
+        padding: 5px;
+    }
+
+    .product-card {
+        height: auto;
+        min-height: 260px; /* Uniform height */
+    }
+
+    .product-img {
+        height: 140px !important; /* Fixed height for images */
+        object-fit: cover;
+    }
+
+    .product-info {
+        padding: 12px 10px;
+    }
+
+    .product-info h3 {
+        font-size: 0.9rem;
+        margin-bottom: 5px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .product-desc {
+        display: none; /* Hide description on mobile to save space */
+    }
+
+    .price-row {
+        margin-top: 8px;
+        flex-wrap: nowrap;
+    }
+
+    .price {
+        font-size: 1rem;
+    }
+
+    .add-btn {
+        padding: 6px 12px;
+        font-size: 0.8rem;
+    }
+
+    /* --- 4. VIDEO TESTIMONIALS (FIX) --- */
+    /* Was 3 columns (too small), now horizontal scroll */
+    .video-grid {
+        display: flex !important;
+        overflow-x: auto;
+        gap: 15px;
+        padding-bottom: 20px;
+        scroll-snap-type: x mandatory;
+    }
+
+    .video-card {
+        min-width: 280px; /* Fixed width card */
+        scroll-snap-align: center;
+    }
+
+    .video-wrapper {
+        height: 350px; /* Taller for better viewing */
+    }
+
+    /* --- 5. HAMPER BUILDER --- */
+    .hamper-grid {
+        grid-template-columns: repeat(3, 1fr) !important; /* 3 per row is good here */
+        gap: 10px;
+    }
+
+    .hamper-option img {
+        width: 50px;
+        height: 50px;
+    }
+
+    .hamper-option h4 {
+        font-size: 0.7rem;
+    }
+
+    /* --- 6. TOAST NOTIFICATIONS --- */
+    /* Move to top to avoid colliding with Bottom Nav */
+    #toast-container {
+        bottom: auto !important;
+        top: 80px !important; /* Below navbar */
+        left: 50% !important;
+        transform: translateX(-50%) !important;
+        width: 90%;
+    }
+
+    /* --- 7. MODAL FIXES --- */
+    .modal-content {
+        width: 95%;
+        max-height: 85vh;
+        padding: 20px;
+    }
+
+    /* Product Modal Specifics */
+    .pm-grid {
+        flex-direction: column;
+    }
+
+    .pm-image-container {
+        height: 250px;
+    }
+    
+    .pm-controls {
+        position: sticky;
+        bottom: -20px; /* Stick to bottom of modal */
+        background: white;
+        padding-top: 15px;
+        border-top: 1px solid #eee;
+        margin-top: 20px;
+        z-index: 10;
+    }
+
+    /* --- 8. FLOATING BUTTONS --- */
+    /* Move above bottom nav */
+    .float-wa {
+        bottom: 80px !important; 
+        width: 50px;
+        height: 50px;
+        font-size: 28px;
+    }
+
+    #scrollTopBtn {
+        bottom: 140px !important;
+    }
+}
+
+/* Very Small Screens */
+@media (max-width: 360px) {
+    .product-img { height: 120px !important; }
+    .product-info h3 { font-size: 0.85rem; }
+}

@@ -44,21 +44,6 @@ let state = {
     customers: { data: [], filteredData: null, page: 1 }
 };
 
-// Add Button to Header on Load
-document.addEventListener('DOMContentLoaded', () => {
-    // Add a Bell icon to the header
-    const header = document.querySelector('.top-bar-left');
-    if (header) {
-        const btn = document.createElement('button');
-        btn.id = "notif-btn";
-        btn.className = "icon-btn btn-outline";
-        btn.style.marginLeft = "10px";
-        btn.innerHTML = '<i class="fas fa-bell"></i> Enable Alerts';
-        btn.onclick = enableAdminNotifications;
-        header.appendChild(btn);
-    }
-});
-
 // SAFE MESSAGING INIT
 let messaging = null;
 try {
