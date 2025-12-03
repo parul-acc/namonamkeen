@@ -493,6 +493,8 @@ h4 {
     /* Auto-fit ensures they space out evenly */
     gap: 20px;
     text-align: center;
+    justify-items: center;
+    align-items: center;
 }
 
 .badge-item i {
@@ -4721,11 +4723,14 @@ button { position: relative; overflow: hidden; } /* Ensure buttons contain rippl
         gap: 10px;
         /* Smaller gap */
         justify-content: center;
+        justify-items: center;
+        align-items: center;
     }
 
     .badge-item {
         margin-bottom: 0;
         /* Remove extra margin if any */
+        text-align: center;
     }
 
     /* Reduce icon and text size to fit */

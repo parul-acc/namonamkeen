@@ -4028,43 +4028,6 @@ window.addEventListener('popstate', (event) => {
     }
 });
 
-// ===========================
-// 🔔 USER NOTIFICATION CENTER
-// ===========================
-
-// 1. Insert Bell Icon into Navbar
-document.addEventListener('DOMContentLoaded', () => {
-    const actions = document.querySelector('.nav-actions');
-    if (actions) {
-        const bellDiv = document.createElement('div');
-        bellDiv.className = 'notif-trigger';
-        bellDiv.style.cssText = "position: relative; margin-right: 15px; cursor: pointer; color: var(--text-dark);";
-        bellDiv.onclick = toggleUserNotifModal;
-        bellDiv.innerHTML = `
-            <i class="fas fa-bell" style="font-size: 1.3rem;"></i>
-            <span id="user-notif-badge" style="position: absolute; top: -5px; right: -5px; background: red; color: white; border-radius: 50%; width: 16px; height: 16px; font-size: 0.6rem; display: none; align-items: center; justify-content: center; font-weight: bold; border: 2px solid white;">0</span>
-        `;
-
-        // Insert before Cart Trigger
-        const cartTrigger = actions.querySelector('.cart-trigger');
-        if (cartTrigger) actions.insertBefore(bellDiv, cartTrigger);
-
-        // Create Modal
-        const modalHtml = `
-        <div id="user-notif-modal" class="modal-overlay">
-            <div class="modal-content mobile-modal">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; padding-bottom:10px; border-bottom:1px solid #eee;">
-                    <h3 style="margin:0;">Updates</h3>
-                    <button class="close-modal" onclick="document.getElementById('user-notif-modal').style.display='none'">&times;</button>
-                </div>
-                <div id="user-notif-list" style="max-height: 60vh; overflow-y: auto;">
-                    <p style="text-align:center; color:#999;">Loading...</p>
-                </div>
-            </div>
-        </div>`;
-        document.body.insertAdjacentHTML('beforeend', modalHtml);
-    }
-});
 
 // 2. Toggle Modal & Mark Read
 function toggleUserNotifModal() {
