@@ -179,7 +179,8 @@ body {
     position: fixed;
     height: 100%;
     transition: 0.3s;
-    z-index: 100;
+    z-index: 1001;
+    /* Increased Z-Index to sit above top-bar */
     /* Ensure this is lower than login-overlay (9999) but higher than content */
 
     /* ADD THIS: Ensures clicks on the sidebar don't pass through to content */

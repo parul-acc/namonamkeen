@@ -66,11 +66,13 @@ try {
 }
 
 // Listener for foreground messages (while you are on the page)
-messaging.onMessage((payload) => {
-    const { title, body } = payload.notification;
-    showToast(`${title}: ${body}`, "success");
-    try { audio.play(); } catch (e) { dbg('Audio play error in foreground message', e); }
-});
+if (messaging) {
+    messaging.onMessage((payload) => {
+        const { title, body } = payload.notification;
+        showToast(`${title}: ${body}`, "success");
+        try { orderSound.play(); } catch (e) { dbg('Audio play error in foreground message', e); }
+    });
+}
 
 // --- AUTHENTICATION ---
 if (window.location.pathname.endsWith('admin-local.html')) {
@@ -95,7 +97,7 @@ if (window.location.pathname.endsWith('admin-local.html')) {
 }
 
 function adminLogin() {
-    dbg("Attempting login..."); // Add this to debug
+    dbg("Attempting login...");
     auth.signInWithPopup(new firebase.auth.GoogleAuthProvider())
         .then((result) => {
             dbg("Login success:", result.user.email);
@@ -211,7 +213,7 @@ function changePage(type, diff) {
     }
 }
 
-// --- REVIEW MANAGEMENT (FIXED: Added missing function) ---
+// --- REVIEW MANAGEMENT ---
 function loadReviews() {
     if (reviewsUnsubscribe) reviewsUnsubscribe();
     reviewsUnsubscribe = db.collection("reviews").orderBy("timestamp", "desc").limit(50).onSnapshot(snap => {
@@ -424,8 +426,6 @@ function filterCustomers() {
     renderTable('customers');
 }
 
-// In admin.js inside exportCustomersToCSV()
-
 function exportCustomersToCSV() {
     const dataToExport = state.customers.filteredData || state.customers.data;
     if (!dataToExport || dataToExport.length === 0) return showToast("No data to export", "error");
@@ -480,8 +480,6 @@ function loadDashboardData(timeframe = 'All') {
         let rev = 0, count = 0, pending = 0;
         let salesMap = {}, prodMap = {};
         let paymentStats = { 'Online': 0, 'COD': 0 };
-
-
 
         // Init last 30 days with 0
         for (let i = 29; i >= 0; i--) {
@@ -1516,32 +1514,6 @@ function addToAdminCart(id, name, price, weight, image) {
     } else {
         adminCart.push({
             uniqueKey: uniqueKey, // Store the key
-            productId: id,
-            name: name,
-            price: parseInt(price),
-            weight: weight,
-            image: image,
-            qty: 1
-        });
-        showToast(`Added: ${displayName}`, "success");
-    }
-
-    renderAdminCart();
-}
-
-function addToAdminCart(id, name, price, weight, image) {
-    // decode name passed from encoded attribute
-    name = decodeURIComponent(name || '');
-    const displayName = escapeHtml(String(name));
-
-    vibrate(50); // <--- TACTILE FEEDBACK
-
-    const existing = adminCart.find(i => i.productId == id);
-    if (existing) {
-        existing.qty++;
-        showToast(`Updated: ${displayName} (+1)`, "success"); // Optional: Small toast
-    } else {
-        adminCart.push({
             productId: id,
             name: name,
             price: parseInt(price),

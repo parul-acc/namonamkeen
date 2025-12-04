@@ -72,15 +72,16 @@
     <div class="main-content">
         <header class="top-bar">
             <div class="top-bar-left">
-              <svg class="toggle-menu" onclick="toggleSidebar()" viewBox="0 0 24 24" width="28" height="28" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
-    <line x1="3" y1="12" x2="21" y2="12"></line>
-    <line x1="3" y1="6" x2="21" y2="6"></line>
-    <line x1="3" y1="18" x2="21" y2="18"></line>
-</svg>
+                <svg class="toggle-menu" onclick="toggleSidebar()" viewBox="0 0 24 24" width="28" height="28"
+                    stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="3" y1="12" x2="21" y2="12"></line>
+                    <line x1="3" y1="6" x2="21" y2="6"></line>
+                    <line x1="3" y1="18" x2="21" y2="18"></line>
+                </svg>
                 <h3 id="page-title">Dashboard</h3>
             </div>
-            <button id="sound-btn" class="btn btn-outline btn-sm" onclick="enableSound()" style="margin-right: 15px;">
-                <i class="fas fa-volume-mute"></i> Enable Sound
+            <button id="sound-btn" class="btn btn-green btn-sm" onclick="enableSound()" style="margin-right: 15px;">
+                <i class="fas fa-volume-up"></i> Sound On
             </button>
             <div id="admin-user-info">Admin</div>
         </header>
@@ -366,8 +367,8 @@
                             <i class="fas fa-sync"></i> Update Segments
                         </button>
                         <button class="btn btn-blue" onclick="viewLeaderboard()" title="View Top Spenders">
-    <i class="fas fa-trophy"></i> Top 20
-</button>
+                            <i class="fas fa-trophy"></i> Top 20
+                        </button>
 
                         <input type="text" id="custSearch" onkeyup="filterCustomers()" placeholder="Search..."
                             class="search-input">
@@ -605,192 +606,197 @@
         </div>
 
         <div id="view-reports" class="view-section">
-    <div class="card">
-        <div class="card-header">
-            <h3>Custom Report Builder</h3>
+            <div class="card">
+                <div class="card-header">
+                    <h3>Custom Report Builder</h3>
+                </div>
+                <div
+                    style="padding: 20px; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; align-items: end;">
+                    <div>
+                        <label class="form-label">Start Date</label>
+                        <input type="date" id="report-start" class="form-control">
+                    </div>
+                    <div>
+                        <label class="form-label">End Date</label>
+                        <input type="date" id="report-end" class="form-control">
+                    </div>
+                    <div>
+                        <label class="form-label">Report Type</label>
+                        <select id="report-type" class="form-control">
+                            <option value="pnl">Profit & Loss Statement</option>
+                            <option value="cac">Marketing & CAC Analysis</option>
+                            <option value="inventory">Inventory Turnover</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-primary" onclick="generateReport()" id="btn-gen-report">
+                        <i class="fas fa-bolt"></i> Generate Report
+                    </button>
+                </div>
+            </div>
+
+            <div id="report-results" style="display: none;">
+
+                <div class="stats-grid">
+                    <div class="stat-card border-green">
+                        <h3>Total Revenue</h3>
+                        <h1 id="rep-revenue">₹0</h1>
+                    </div>
+                    <div class="stat-card border-red">
+                        <h3>Total Expenses</h3>
+                        <h1 id="rep-expense">₹0</h1>
+                    </div>
+                    <div class="stat-card border-purple">
+                        <h3>Net Profit</h3>
+                        <h1 id="rep-profit">₹0</h1>
+                    </div>
+                    <div class="stat-card border-blue">
+                        <h3>CAC / User</h3>
+                        <h1 id="rep-cac">₹0</h1>
+                    </div>
+                </div>
+
+                <div class="charts-grid" style="grid-template-columns: 2fr 1fr;">
+                    <div class="chart-box">
+                        <canvas id="reportTrendChart"></canvas>
+                    </div>
+                    <div class="chart-box">
+                        <canvas id="reportExpenseChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3 id="rep-table-title">Details</h3>
+                    </div>
+                    <div class="table-responsive">
+                        <table id="rep-table">
+                            <thead id="rep-thead"></thead>
+                            <tbody id="rep-tbody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
         </div>
-        <div style="padding: 20px; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; align-items: end;">
-            <div>
-                <label class="form-label">Start Date</label>
-                <input type="date" id="report-start" class="form-control">
-            </div>
-            <div>
-                <label class="form-label">End Date</label>
-                <input type="date" id="report-end" class="form-control">
-            </div>
-            <div>
-                <label class="form-label">Report Type</label>
-                <select id="report-type" class="form-control">
-                    <option value="pnl">Profit & Loss Statement</option>
-                    <option value="cac">Marketing & CAC Analysis</option>
-                    <option value="inventory">Inventory Turnover</option>
+        <div id="product-modal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Edit Product</h3>
+                    <button onclick="closeModal('product-modal')" class="close-btn">&times;</button>
+                </div>
+                <input type="hidden" id="p-id">
+                <input id="p-name" class="form-control" placeholder="Name (English)">
+                <input id="p-nameHi" class="form-control" placeholder="Name (Hindi)">
+                <select id="p-category" class="form-control">
+                    <option value="spicy">Spicy Namkeen</option>
+                    <option value="sweet">Sweet / Mix</option>
+                    <option value="premium">Premium Selection</option>
                 </select>
-            </div>
-            <button class="btn btn-primary" onclick="generateReport()" id="btn-gen-report">
-                <i class="fas fa-bolt"></i> Generate Report
-            </button>
-        </div>
-    </div>
+                <input id="p-image" class="form-control" placeholder="Image URL (assets/...)">
 
-    <div id="report-results" style="display: none;">
-        
-        <div class="stats-grid">
-            <div class="stat-card border-green">
-                <h3>Total Revenue</h3>
-                <h1 id="rep-revenue">₹0</h1>
-            </div>
-            <div class="stat-card border-red">
-                <h3>Total Expenses</h3>
-                <h1 id="rep-expense">₹0</h1>
-            </div>
-            <div class="stat-card border-purple">
-                <h3>Net Profit</h3>
-                <h1 id="rep-profit">₹0</h1>
-            </div>
-            <div class="stat-card border-blue">
-                <h3>CAC / User</h3>
-                <h1 id="rep-cac">₹0</h1>
+                <div class="variant-section">
+                    <label style="font-weight:600; display:flex; justify-content:space-between;">
+                        Variants <a onclick="addVariantRow()" class="add-variant-link">+ Add Size</a>
+                    </label>
+                    <div id="variant-container"></div>
+                </div>
+
+                <div class="checkbox-group">
+                    <label><input type="checkbox" id="p-bestseller"> Bestseller</label>
+                </div>
+                <button class="btn btn-primary full-width" onclick="saveProduct()">Save Product</button>
             </div>
         </div>
 
-        <div class="charts-grid" style="grid-template-columns: 2fr 1fr;">
-            <div class="chart-box">
-                <canvas id="reportTrendChart"></canvas>
-            </div>
-            <div class="chart-box">
-                <canvas id="reportExpenseChart"></canvas>
+        <div id="leaderboard-modal" class="modal">
+            <div class="modal-content" style="max-width: 500px;">
+                <div class="modal-header">
+                    <h3 style="color:var(--dark);"><i class="fas fa-crown" style="color:#ffd700;"></i> Top Customers
+                    </h3>
+                    <button class="close-btn" onclick="closeModal('leaderboard-modal')">&times;</button>
+                </div>
+                <div class="leaderboard-header"
+                    style="display:flex; justify-content:space-between; padding:10px; background:#f8f9fa; border-radius:8px; margin-bottom:10px; font-weight:600; font-size:0.85rem;">
+                    <span>Rank & User</span>
+                    <span>Lifetime Spend</span>
+                </div>
+                <div id="lb-admin-list" style="max-height:400px; overflow-y:auto;">
+                    <p style="text-align:center; padding:20px;">Loading...</p>
+                </div>
             </div>
         </div>
 
-        <div class="card">
-            <div class="card-header">
-                <h3 id="rep-table-title">Details</h3>
-            </div>
-            <div class="table-responsive">
-                <table id="rep-table">
-                    <thead id="rep-thead"></thead>
-                    <tbody id="rep-tbody"></tbody>
-                </table>
+        <div id="logs-modal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Inventory Logs</h3><button class="close-btn" onclick="closeModal('logs-modal')">&times;</button>
+                </div>
+                <div id="logs-body" style="max-height:400px; overflow-y:auto;"></div>
             </div>
         </div>
-    </div>
-</div>
-     <div id="product-modal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Edit Product</h3>
-                <button onclick="closeModal('product-modal')" class="close-btn">&times;</button>
-            </div>
-            <input type="hidden" id="p-id">
-            <input id="p-name" class="form-control" placeholder="Name (English)">
-            <input id="p-nameHi" class="form-control" placeholder="Name (Hindi)">
-            <select id="p-category" class="form-control">
-                <option value="spicy">Spicy Namkeen</option>
-                <option value="sweet">Sweet / Mix</option>
-                <option value="premium">Premium Selection</option>
-            </select>
-            <input id="p-image" class="form-control" placeholder="Image URL (assets/...)">
 
-            <div class="variant-section">
-                <label style="font-weight:600; display:flex; justify-content:space-between;">
-                    Variants <a onclick="addVariantRow()" class="add-variant-link">+ Add Size</a>
-                </label>
-                <div id="variant-container"></div>
+        <div id="order-modal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Order Details</h3>
+                    <button onclick="closeModal('order-modal')" class="close-btn">&times;</button>
+                </div>
+                <div id="order-detail-content"></div>
             </div>
+        </div>
 
-            <div class="checkbox-group">
-                <label><input type="checkbox" id="p-bestseller"> Bestseller</label>
+        <div id="customer-modal" class="modal">
+            <div class="modal-content" style="max-width: 700px;">
+                <div class="modal-header">
+                    <h3>Customer Profile</h3>
+                    <button class="close-btn" onclick="closeModal('customer-modal')">&times;</button>
+                </div>
+                <div id="cust-profile-content"></div>
             </div>
-            <button class="btn btn-primary full-width" onclick="saveProduct()">Save Product</button>
         </div>
-    </div>
 
-    <div id="leaderboard-modal" class="modal">
-    <div class="modal-content" style="max-width: 500px;">
-        <div class="modal-header">
-            <h3 style="color:var(--dark);"><i class="fas fa-crown" style="color:#ffd700;"></i> Top Customers</h3>
-            <button class="close-btn" onclick="closeModal('leaderboard-modal')">&times;</button>
-        </div>
-        <div class="leaderboard-header" style="display:flex; justify-content:space-between; padding:10px; background:#f8f9fa; border-radius:8px; margin-bottom:10px; font-weight:600; font-size:0.85rem;">
-            <span>Rank & User</span>
-            <span>Lifetime Spend</span>
-        </div>
-        <div id="lb-admin-list" style="max-height:400px; overflow-y:auto;">
-            <p style="text-align:center; padding:20px;">Loading...</p>
-        </div>
-    </div>
-</div>
-
-    <div id="logs-modal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Inventory Logs</h3><button class="close-btn" onclick="closeModal('logs-modal')">&times;</button>
+        <div id="blog-editor-modal" class="modal">
+            <div class="modal-content" style="width:700px;">
+                <div class="modal-header">
+                    <h3>Edit Post</h3><button class="close-btn"
+                        onclick="closeModal('blog-editor-modal')">&times;</button>
+                </div>
+                <input type="hidden" id="blog-id">
+                <input id="blog-title" class="form-control" placeholder="Post Title" style="margin-bottom:10px;">
+                <div style="margin-bottom:10px;">
+                    <label class="form-label">Cover Image</label>
+                    <input type="file" id="blog-image-file" class="form-control" accept="image/*">
+                    <input type="hidden" id="blog-image-base64"> <small style="color:#666;">Leave empty to keep existing
+                        image</small>
+                </div>
+                <textarea id="blog-content" class="form-control" rows="10"
+                    placeholder="HTML Content (Use <p>, <b>, etc.)"></textarea>
+                <button class="btn btn-primary full-width" onclick="saveBlogPost()"
+                    style="margin-top:15px;">Publish</button>
             </div>
-            <div id="logs-body" style="max-height:400px; overflow-y:auto;"></div>
         </div>
-    </div>
 
-    <div id="order-modal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Order Details</h3>
-                <button onclick="closeModal('order-modal')" class="close-btn">&times;</button>
+        <div id="expense-modal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Log Expense</h3><button class="close-btn" onclick="closeModal('expense-modal')">&times;</button>
+                </div>
+                <input id="exp-desc" class="form-control" placeholder="Description (e.g. Packaging)"
+                    style="margin-bottom:10px;">
+                <select id="exp-cat" class="form-control" style="margin-bottom:10px;">
+                    <option>Raw Material</option>
+                    <option>Packaging</option>
+                    <option>Delivery/Fuel</option>
+                    <option>Salary</option>
+                    <option>Marketing</option>
+                    <option>Other</option>
+                </select>
+                <input type="number" id="exp-amt" class="form-control" placeholder="Amount (₹)">
+                <button class="btn btn-primary full-width" onclick="saveExpense()"
+                    style="margin-top:15px;">Save</button>
             </div>
-            <div id="order-detail-content"></div>
         </div>
-    </div>
 
-    <div id="customer-modal" class="modal">
-        <div class="modal-content" style="max-width: 700px;">
-            <div class="modal-header">
-                <h3>Customer Profile</h3>
-                <button class="close-btn" onclick="closeModal('customer-modal')">&times;</button>
-            </div>
-            <div id="cust-profile-content"></div>
-        </div>
-    </div>
-
-    <div id="blog-editor-modal" class="modal">
-        <div class="modal-content" style="width:700px;">
-            <div class="modal-header">
-                <h3>Edit Post</h3><button class="close-btn" onclick="closeModal('blog-editor-modal')">&times;</button>
-            </div>
-            <input type="hidden" id="blog-id">
-            <input id="blog-title" class="form-control" placeholder="Post Title" style="margin-bottom:10px;">
-            <div style="margin-bottom:10px;">
-                <label class="form-label">Cover Image</label>
-                <input type="file" id="blog-image-file" class="form-control" accept="image/*">
-                <input type="hidden" id="blog-image-base64"> <small style="color:#666;">Leave empty to keep existing
-                    image</small>
-            </div>
-            <textarea id="blog-content" class="form-control" rows="10"
-                placeholder="HTML Content (Use <p>, <b>, etc.)"></textarea>
-            <button class="btn btn-primary full-width" onclick="saveBlogPost()"
-                style="margin-top:15px;">Publish</button>
-        </div>
-    </div>
-
-    <div id="expense-modal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Log Expense</h3><button class="close-btn" onclick="closeModal('expense-modal')">&times;</button>
-            </div>
-            <input id="exp-desc" class="form-control" placeholder="Description (e.g. Packaging)"
-                style="margin-bottom:10px;">
-            <select id="exp-cat" class="form-control" style="margin-bottom:10px;">
-                <option>Raw Material</option>
-                <option>Packaging</option>
-                <option>Delivery/Fuel</option>
-                <option>Salary</option>
-                <option>Marketing</option>
-                <option>Other</option>
-            </select>
-            <input type="number" id="exp-amt" class="form-control" placeholder="Amount (₹)">
-            <button class="btn btn-primary full-width" onclick="saveExpense()" style="margin-top:15px;">Save</button>
-        </div>
-    </div>
-
-    <div id="toast-container"></div>
+        <div id="toast-container"></div>
 
         <footer class="admin-footer">
             © 2025 Namo Namkeen Admin Panel. Designed by Parul Gangwal.

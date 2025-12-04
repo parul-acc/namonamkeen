@@ -3946,14 +3946,30 @@ function toggleUserNotif() {
     const badge = document.getElementById('user-notif-badge');
     badge.style.display = 'none';
 
-    // Batch update read status (optional, or do it on click)
+    // Batch update read status (Chunks of 500 to prevent crash)
     db.collection(`users/${currentUser.uid}/notifications`)
-        .where('read', '==', false).get()
-        .then(snap => {
-            const batch = db.batch();
-            snap.forEach(doc => batch.update(doc.ref, { read: true }));
-            batch.commit();
-        });
+        .where('read', '==', false)
+        .get()
+        .then(async snap => {
+            if (snap.empty) return;
+
+            // Process in chunks of 500
+            const chunkSize = 500;
+            const chunks = [];
+            const docs = snap.docs;
+
+            for (let i = 0; i < docs.length; i += chunkSize) {
+                chunks.push(docs.slice(i, i + chunkSize));
+            }
+
+            // Commit batches
+            for (const chunk of chunks) {
+                const batch = db.batch();
+                chunk.forEach(doc => batch.update(doc.ref, { read: true }));
+                await batch.commit();
+            }
+        })
+        .catch(err => console.error("Error clearing notifications:", err));
 }
 
 function closeUserNotif() {
