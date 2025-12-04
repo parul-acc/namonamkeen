@@ -604,21 +604,25 @@ exports.notifyAdminNewOrder = functions.firestore
     });
 
 // 10. Notify User on Status Change
+// In functions/index.js
+
 exports.notifyUserStatusChange = functions.firestore
     .document('orders/{orderId}')
     .onUpdate(async (change, context) => {
         const newData = change.after.data();
         const oldData = change.before.data();
 
-        // Only if status changed
         if (newData.status === oldData.status) return;
 
         const userId = newData.userId;
         if (!userId || userId.startsWith('guest')) return;
 
-        // Get User FCM Token
+        // Get User Token
         const userDoc = await admin.firestore().collection('users').doc(userId).get();
         const fcmToken = userDoc.data()?.fcmToken;
+
+        // --- REMOVED THE BLOCKING LINE BELOW ---
+        // if (!fcmToken) return; 
 
         const messages = {
             'Packed': '📦 Your order has been packed and is ready for dispatch!',
@@ -637,11 +641,11 @@ exports.notifyUserStatusChange = functions.firestore
             data: { url: '/index.html#history-modal' }
         };
 
-        // Prepare target (Push Token if available)
+        // Only add token if it exists
         const target = {};
         if (fcmToken) target.tokens = [fcmToken];
 
-        // Send Notification (Saves to DB even if no token)
+        // Send Notification (This helper handles DB saving even if tokens are empty)
         await sendNotification(target, payload, {
             collection: `users/${userId}/notifications`,
             content: {

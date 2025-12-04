@@ -3942,27 +3942,25 @@ function toggleUserNotif() {
     if (!currentUser) return showToast("Login to see notifications", "neutral");
     document.getElementById('user-notif-modal').style.display = 'flex';
 
-    // Mark all as read when opening
+    // Visual update immediately
     const badge = document.getElementById('user-notif-badge');
-    badge.style.display = 'none';
+    if (badge) badge.style.display = 'none';
 
-    // Batch update read status (Chunks of 500 to prevent crash)
+    // --- FIX: Handle Batch Limits (Chunking) ---
     db.collection(`users/${currentUser.uid}/notifications`)
         .where('read', '==', false)
         .get()
         .then(async snap => {
             if (snap.empty) return;
 
-            // Process in chunks of 500
-            const chunkSize = 500;
+            // Firestore batch limit is 500 operations. We chunk it to be safe.
+            const chunkSize = 400; 
             const chunks = [];
-            const docs = snap.docs;
-
-            for (let i = 0; i < docs.length; i += chunkSize) {
-                chunks.push(docs.slice(i, i + chunkSize));
+            
+            for (let i = 0; i < snap.docs.length; i += chunkSize) {
+                chunks.push(snap.docs.slice(i, i + chunkSize));
             }
 
-            // Commit batches
             for (const chunk of chunks) {
                 const batch = db.batch();
                 chunk.forEach(doc => batch.update(doc.ref, { read: true }));
@@ -3986,6 +3984,7 @@ function initUserNotifications(uid) {
 
             if (snap.empty) {
                 list.innerHTML = '<div style="text-align:center; padding:30px; color:#999;"><i class="far fa-bell-slash" style="font-size:2rem; margin-bottom:10px;"></i><p>No notifications yet</p></div>';
+                if (badge) badge.style.display = 'none'; // Hide badge if empty
                 return;
             }
 
@@ -3999,7 +3998,7 @@ function initUserNotifications(uid) {
 
                 html += `
                 <div style="padding:15px; border-bottom:1px solid #eee; background:${n.read ? 'white' : '#f0f9ff'}; display:flex; gap:12px;">
-                    <div style="background:#fff3e0; width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:var(--primary);">
+                    <div style="background:#e8f5e9; width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#2ecc71;">
                         <i class="fas ${n.type === 'status' ? 'fa-box' : 'fa-info'}"></i>
                     </div>
                     <div>
@@ -4011,9 +4010,15 @@ function initUserNotifications(uid) {
             });
 
             list.innerHTML = html;
-            if (unread > 0) {
-                badge.textContent = unread;
-                badge.style.display = 'flex';
+            
+            // --- FIX: Properly Toggle Badge Visibility ---
+            if (badge) {
+                if (unread > 0) {
+                    badge.textContent = unread;
+                    badge.style.display = 'flex';
+                } else {
+                    badge.style.display = 'none';
+                }
             }
         });
 }
