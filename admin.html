@@ -702,8 +702,22 @@
 
                 <div class="checkbox-group">
                     <label><input type="checkbox" id="p-bestseller"> Bestseller</label>
+                    <label style="margin-left: 15px;"><input type="checkbox" id="p-featured"> Featured ⭐</label>
                 </div>
                 <button class="btn btn-primary full-width" onclick="saveProduct()">Save Product</button>
+            </div>
+        </div>
+
+        <!-- Quick Stock Modal -->
+        <div id="stock-modal" class="modal">
+            <div class="modal-content" style="max-width:400px;">
+                <div class="modal-header">
+                    <h3>Update Stock</h3>
+                    <button class="close-btn" onclick="closeModal('stock-modal')">&times;</button>
+                </div>
+                <input type="hidden" id="stock-pid">
+                <div id="stock-variants-list" style="max-height:300px; overflow-y:auto; margin-bottom:15px;"></div>
+                <button class="btn btn-primary full-width" onclick="saveStockUpdate()">Update Stock</button>
             </div>
         </div>
 

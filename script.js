@@ -3974,54 +3974,6 @@ function closeUserNotif() {
     document.getElementById('user-notif-modal').style.display = 'none';
 }
 
-function initUserNotifications(uid) {
-    db.collection(`users/${uid}/notifications`)
-        .orderBy('timestamp', 'desc')
-        .limit(20)
-        .onSnapshot(snap => {
-            const list = document.getElementById('user-notif-list');
-            const badge = document.getElementById('user-notif-badge');
-
-            if (snap.empty) {
-                list.innerHTML = '<div style="text-align:center; padding:30px; color:#999;"><i class="far fa-bell-slash" style="font-size:2rem; margin-bottom:10px;"></i><p>No notifications yet</p></div>';
-                if (badge) badge.style.display = 'none'; // Hide badge if empty
-                return;
-            }
-
-            let unread = 0;
-            let html = '';
-
-            snap.forEach(doc => {
-                const n = doc.data();
-                if (!n.read) unread++;
-                const time = n.timestamp ? new Date(n.timestamp.seconds * 1000).toLocaleDateString() : '';
-
-                html += `
-                <div style="padding:15px; border-bottom:1px solid #eee; background:${n.read ? 'white' : '#f0f9ff'}; display:flex; gap:12px;">
-                    <div style="background:#e8f5e9; width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#2ecc71;">
-                        <i class="fas ${n.type === 'status' ? 'fa-box' : 'fa-info'}"></i>
-                    </div>
-                    <div>
-                        <div style="font-weight:600; font-size:0.95rem; margin-bottom:2px;">${n.title}</div>
-                        <div style="color:#555; font-size:0.85rem; line-height:1.4;">${n.message}</div>
-                        <small style="color:#999; display:block; margin-top:5px;">${time}</small>
-                    </div>
-                </div>`;
-            });
-
-            list.innerHTML = html;
-            
-            // --- FIX: Properly Toggle Badge Visibility ---
-            if (badge) {
-                if (unread > 0) {
-                    badge.textContent = unread;
-                    badge.style.display = 'flex';
-                } else {
-                    badge.style.display = 'none';
-                }
-            }
-        });
-}
 
 // ==========================================
 // FIX: AUTO-CLOSE PROFILE MENU
@@ -4567,58 +4519,90 @@ async function saveExpressOrder(method, status, txnId, items, total) {
 
 // ===========================
 // 🔔 USER NOTIFICATION CENTER
-// Note: Bell icon and modal are now defined in index.html (notif-trigger + user-notif-modal)
-// Functions below handle the notification logic
-auth.onAuthStateChanged(user => {
-    if (user) {
-        db.collection(`users/${user.uid}/notifications`)
-            .orderBy('timestamp', 'desc')
-            .limit(20)
-            .onSnapshot(snap => {
-                const list = document.getElementById('user-notif-list');
-                const badge = document.getElementById('user-notif-badge');
+// Note: Bell icon and modal are now defined in index.html
+// ===========================
 
-                if (!list || !badge) return;
+// [REMOVED DUPLICATE auth.onAuthStateChanged BLOCK HERE]
 
-                if (snap.empty) {
-                    list.innerHTML = '<div style="text-align:center; padding:30px; color:#999;"><i class="far fa-bell-slash" style="font-size:2rem; margin-bottom:10px;"></i><p>No updates yet</p></div>';
-                    return;
-                }
+function requestUserNotifications() {
+    if (!shopConfig.vapidKey) return;
 
-                let unread = 0;
-                let html = '';
-
-                snap.forEach(doc => {
-                    const n = doc.data();
-                    if (!n.read) unread++;
-                    const time = n.timestamp ? new Date(n.timestamp.seconds * 1000).toLocaleDateString() : '';
-
-                    html += `
-                    <div style="padding:15px; border-bottom:1px solid #eee; background:${n.read ? 'white' : '#f0f9ff'}; display:flex; gap:12px;">
-                        <div style="background:#e8f5e9; width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#2ecc71;">
-                            <i class="fas fa-box"></i>
-                        </div>
-                        <div>
-                            <div style="font-weight:600; font-size:0.95rem; margin-bottom:2px;">${n.title}</div>
-                            <div style="color:#555; font-size:0.85rem; line-height:1.4;">${n.message}</div>
-                            <small style="color:#999;">${time}</small>
-                        </div>
-                    </div>`;
-                });
-
-                list.innerHTML = html;
-                if (unread > 0) {
-                    badge.innerText = unread;
-                    badge.style.display = 'flex';
-                }
+    Notification.requestPermission().then(permission => {
+        if (permission === 'granted') {
+            navigator.serviceWorker.ready.then((registration) => {
+                messaging.getToken({ 
+                    vapidKey: shopConfig.vapidKey, 
+                    serviceWorkerRegistration: registration 
+                }).then((currentToken) => {
+                    if (currentToken && currentUser) {
+                        db.collection("users").doc(currentUser.uid).update({
+                            fcmToken: currentToken
+                        });
+                    }
+                }).catch(err => console.log("Token Error", err));
             });
-    }
-});
+        }
+    });
+}
+
+function initUserNotifications(uid) {
+    // Clean up previous listener if needed (optional, but good practice)
+    // For now, we rely on the fact that this is called once per login.
+
+    db.collection(`users/${uid}/notifications`)
+        .orderBy('timestamp', 'desc')
+        .limit(20)
+        .onSnapshot(snap => {
+            const list = document.getElementById('user-notif-list');
+            const badge = document.getElementById('user-notif-badge');
+
+            if (!list || !badge) return;
+
+            if (snap.empty) {
+                list.innerHTML = '<div style="text-align:center; padding:30px; color:#999;"><i class="far fa-bell-slash" style="font-size:2rem; margin-bottom:10px;"></i><p>No updates yet</p></div>';
+                badge.style.display = 'none'; // FIX: Ensure badge is hidden if empty
+                return;
+            }
+
+            let unread = 0;
+            let html = '';
+
+            snap.forEach(doc => {
+                const n = doc.data();
+                if (!n.read) unread++;
+                const time = n.timestamp ? new Date(n.timestamp.seconds * 1000).toLocaleDateString() : '';
+
+                // Added sanitizeHTML to prevent potential display issues
+                html += `
+                <div style="padding:15px; border-bottom:1px solid #eee; background:${n.read ? 'white' : '#f0f9ff'}; display:flex; gap:12px;">
+                    <div style="background:#e8f5e9; width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#2ecc71;">
+                        <i class="fas ${n.type === 'status' ? 'fa-box' : 'fa-info'}"></i>
+                    </div>
+                    <div>
+                        <div style="font-weight:600; font-size:0.95rem; margin-bottom:2px;">${sanitizeHTML(n.title)}</div>
+                        <div style="color:#555; font-size:0.85rem; line-height:1.4;">${sanitizeHTML(n.message)}</div>
+                        <small style="color:#999; display:block; margin-top:5px;">${time}</small>
+                    </div>
+                </div>`;
+            });
+
+            list.innerHTML = html;
+            
+            // Logic to toggle badge visibility
+            if (unread > 0) {
+                badge.textContent = unread;
+                badge.style.display = 'flex';
+            } else {
+                badge.style.display = 'none';
+            }
+        }, error => {
+            console.error("Notification listener error:", error);
+        });
+}
 
 // 2. Install Function (Called by Button)
 async function installPWA() {
     if (!deferredPrompt) {
-        // Fallback for iOS or if prompt is missing
         if (navigator.userAgent.match(/(iPhone|iPad|iPod)/)) {
             showToast("Tap 'Share' -> 'Add to Home Screen' 📲", "neutral");
         } else {
@@ -4626,23 +4610,19 @@ async function installPWA() {
         }
         return;
     }
-
-    // Show the prompt
     deferredPrompt.prompt();
-
-    // Wait for the user to respond to the prompt
     const { outcome } = await deferredPrompt.userChoice;
-
     if (outcome === 'accepted') {
         showToast("Installing App... 🚀", "success");
-        if (installBtn) installBtn.style.display = 'none'; // Hide button after install
+        const installBtn = document.getElementById('pwa-install-btn');
+        if (installBtn) installBtn.style.display = 'none';
     }
-
     deferredPrompt = null;
 }
 
-// 3. Check if already installed (Standalone Mode)
+// 3. Check if already installed
 window.addEventListener('appinstalled', () => {
     showToast("Thank you for installing Namo Namkeen! 🎉", "success");
+    const installBtn = document.getElementById('pwa-install-btn');
     if (installBtn) installBtn.style.display = 'none';
 });

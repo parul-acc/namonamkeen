@@ -122,25 +122,22 @@ function logout() {
 function initDashboard() {
     const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
     if (isDev) dbg("Initializing Dashboard...");
-    // --- ENHANCED POS INPUT VALIDATION ---
+    
     const posPhone = document.getElementById('pos-phone');
     if (posPhone) {
         posPhone.addEventListener('input', function (e) {
             // Remove non-numeric characters
             let clean = this.value.replace(/[^0-9]/g, '');
-
-            // Prevent typing more than 10 digits
             if (clean.length > 10) clean = clean.slice(0, 10);
-
             this.value = clean;
         });
 
         posPhone.addEventListener('blur', function () {
             if (this.value.length > 0 && this.value.length < 10) {
                 showToast("⚠️ Phone number should be 10 digits", "error");
-                this.style.borderColor = "#e74c3c"; // Red border warning
+                this.style.borderColor = "#e74c3c";
             } else {
-                this.style.borderColor = ""; // Reset
+                this.style.borderColor = ""; 
             }
         });
     }
@@ -151,14 +148,13 @@ function initDashboard() {
             if (file) {
                 const reader = new FileReader();
                 reader.onload = function (evt) {
-                    // Save the Base64 string to the hidden input
                     document.getElementById('blog-image-base64').value = evt.target.result;
                 };
                 reader.readAsDataURL(file);
             }
         }
     });
-    // FIX: Reveal the UI now that we know the user is an Admin
+    
     document.body.classList.remove('loading');
     loadDashboardData('All');
     loadInventory();
@@ -166,9 +162,122 @@ function initDashboard() {
     loadCustomers();
     loadSettings();
     loadCoupons();
-    // FIX: Ensure this function is defined below
     if (typeof loadReviews === 'function') loadReviews();
     loadStoreConfig();
+    
+    // FIX: Mark All Read Fix
+    const mkBtn = document.querySelector('#admin-notif-dropdown span[onclick="markAllAdminRead()"]');
+    if(mkBtn) {
+        // Ensure function is accessible
+    }
+}
+
+function renderInventoryRows(tbody, items) {
+    items.forEach(p => {
+        const vs = p.variants ? p.variants.map(v => `${v.weight}: ₹${v.price}`).join(' ') : '₹' + p.price;
+        const rowClass = !p.in_stock ? 'row-out-stock' : '';
+        const totalStock = p.variants ? p.variants.reduce((sum, v) => sum + (v.stock || 0), 0) : 0;
+        
+        const isFeat = p.isFeatured === true;
+        const featuredIcon = isFeat ? 'fas' : 'far';
+        const featuredStyle = isFeat
+            ? 'background: #f1c40f; color: white;'
+            : 'background: white; color: #f1c40f; border: 1px solid #f1c40f;';
+            
+        const stockLabel = totalStock > 0 ? `${totalStock} Units` : 'Out of Stock';
+        const stockClass = totalStock > 0 ? 'stock-in' : 'stock-out';
+        
+        tbody.innerHTML += `
+            <tr class="${rowClass}">
+                <td>
+                    <img src="${sanitizeUrl(p.image)}" width="40" height="40" style="border-radius:5px; object-fit:cover;" onerror="this.onerror=null; this.src='logo.jpg';">
+                </td>
+                <td>
+                    <strong>${escapeHtml(String(p.name))}</strong><br>
+                    <small>${escapeHtml(String(p.category))}</small>
+                </td>
+                <td><small>${vs}</small></td>
+                <td>
+                <span class="stock-tag ${stockClass}" onclick="openStockModal('${p.docId}')" style="cursor:pointer; min-width:80px; text-align:center; display:inline-block;">
+                    ${stockLabel} <i class="fas fa-pen" style="font-size:0.6rem; margin-left:4px; opacity:0.5;"></i>
+                </span>
+                </td>
+                <td>
+                    <button class="icon-btn" onclick="toggleFeatured('${p.docId}', ${!isFeat})" title="Toggle Featured" style="${featuredStyle}">
+                        <i class="${featuredIcon} fa-star"></i>
+                    </button>
+                    
+                    <button class="icon-btn btn-blue" onclick="editProduct('${p.docId}')"><i class="fas fa-edit"></i></button>
+                    <button class="icon-btn btn-danger" onclick="delProduct('${p.docId}')"><i class="fas fa-trash"></i></button>
+                </td>
+            </tr>`;
+    });
+}
+
+// --- QUICK STOCK MODAL LOGIC ---
+function openStockModal(id) {
+    const p = state.inventory.data.find(x => x.docId === id);
+    if(!p) return;
+    
+    document.getElementById('stock-pid').value = id;
+    const list = document.getElementById('stock-variants-list');
+    list.innerHTML = '';
+    
+    if(p.variants && p.variants.length > 0) {
+        p.variants.forEach((v, idx) => {
+            list.innerHTML += `
+                <div class="stock-row" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; padding:10px; background:#f9f9f9; border-radius:5px; border:1px solid #eee;">
+                    <strong style="flex:1; font-size:0.9rem;">${escapeHtml(v.weight)}</strong>
+                    <div style="display:flex; align-items:center; gap:5px;">
+                        <input type="number" class="form-control stock-input" data-idx="${idx}" value="${v.stock || 0}" style="width:100px; padding:8px; text-align:center;">
+                    </div>
+                </div>
+            `;
+        });
+    } else {
+        list.innerHTML = `<p style="text-align:center; color:#888;">No variants found. Use full edit.</p>`;
+    }
+    document.getElementById('stock-modal').style.display = 'flex';
+}
+
+function saveStockUpdate() {
+    const id = document.getElementById('stock-pid').value;
+    const p = state.inventory.data.find(x => x.docId === id);
+    if(!p) return;
+
+    const inputs = document.querySelectorAll('.stock-input');
+    let newVariants = JSON.parse(JSON.stringify(p.variants)); // Deep copy
+
+    inputs.forEach(inp => {
+        const idx = parseInt(inp.getAttribute('data-idx'));
+        const val = parseInt(inp.value) || 0;
+        if(newVariants[idx]) {
+            newVariants[idx].stock = val;
+            newVariants[idx].inStock = val > 0;
+        }
+    });
+
+    const globalInStock = newVariants.some(v => v.stock > 0);
+
+    db.collection("products").doc(id).update({
+        variants: newVariants,
+        in_stock: globalInStock
+    }).then(() => {
+        showToast("Stock Updated Successfully", "success");
+        closeModal('stock-modal');
+        
+        // Log the update
+        db.collection("inventory_logs").add({
+            productId: id,
+            productName: p.name,
+            action: 'Quick Stock Update',
+            updatedBy: auth.currentUser ? auth.currentUser.email : 'Admin',
+            timestamp: new Date()
+        });
+    }).catch(err => {
+        console.error(err);
+        showToast("Update failed: " + err.message, "error");
+    });
 }
 
 // --- PAGINATION & RENDERING ---
@@ -341,14 +450,11 @@ function loadCustomers() {
 function showTableSkeleton(tbodyId, cols = 5, rows = 5) {
     const tbody = document.getElementById(tbodyId);
     if (!tbody) return;
-
     let html = '';
     for (let i = 0; i < rows; i++) {
         let tds = '';
         for (let j = 0; j < cols; j++) {
-            // Randomize widths for realistic effect
-            const widthClass = Math.random() > 0.5 ? 'medium' : 'short';
-            tds += `<td><div class="skeleton-bar ${widthClass}"></div></td>`;
+            tds += `<td><div class="skeleton-bar medium"></div></td>`;
         }
         html += `<tr class="skeleton-row">${tds}</tr>`;
     }
@@ -586,7 +692,7 @@ function updateCharts(salesMap, prodMap, timeframe, paymentStats) {
 // --- INVENTORY ---
 function loadInventory() {
     if (inventoryUnsubscribe) inventoryUnsubscribe();
-    showTableSkeleton('orders-body', 6);
+    showTableSkeleton('inventory-body', 6); // Fix: passed correct ID
     inventoryUnsubscribe = db.collection("products").orderBy("id").onSnapshot(snap => {
         let total = 0, inStock = 0, outStock = 0;
         state.inventory.data = [];
@@ -595,6 +701,11 @@ function loadInventory() {
         snap.forEach(doc => {
             const p = doc.data(); p.docId = doc.id;
             total++;
+            
+            // Calculate actual stock status based on variants
+            const totalQty = p.variants ? p.variants.reduce((acc, v) => acc + (v.stock || 0), 0) : 0;
+            p.in_stock = totalQty > 0; // Local override for display logic consistency
+
             if (p.in_stock) {
                 inStock++;
             } else {
@@ -626,55 +737,10 @@ function updateLowStockUI(items) {
     }
 }
 
-function renderInventoryRows(tbody, items) {
-    items.forEach(p => {
-        // Existing Logic for Variants & Stock Class
-        const vs = p.variants ? p.variants.map(v => `${v.weight}: ₹${v.price}`).join(' ') : '₹' + p.price;
-        const rowClass = !p.in_stock ? 'row-out-stock' : '';
-        const totalStock = p.variants ? p.variants.reduce((sum, v) => sum + (v.stock || 0), 0) : 0;
-        // --- NEW: Featured Button Logic ---
-        // If featured: Solid Star (fas), Yellow Background
-        // If not: Empty Star (far), Yellow Border
-        const isFeat = p.isFeatured === true;
-        const featuredIcon = isFeat ? 'fas' : 'far';
-        const featuredStyle = isFeat
-            ? 'background: #f1c40f; color: white;'
-            : 'background: white; color: #f1c40f; border: 1px solid #f1c40f;';
-        const totalQty = p.variants ? p.variants.reduce((acc, v) => acc + (v.stock || 0), 0) : 0;
-        const stockLabel = totalQty > 0 ? `${totalQty} Units` : 'Out of Stock';
-        const stockClass = totalQty > 0 ? 'stock-in' : 'stock-out';
-        tbody.innerHTML += `
-            <tr class="${rowClass}">
-                <td>
-                    <img src="${sanitizeUrl(p.image)}" width="40" height="40" style="border-radius:5px; object-fit:cover;" onerror="this.onerror=null; this.src='logo.jpg';">
-                </td>
-                <td>
-                    <strong>${escapeHtml(String(p.name))}</strong><br>
-                    <small>${escapeHtml(String(p.category))}</small>
-                </td>
-                <td><small>${vs}</small></td>
-                <td>
-                <span class="stock-tag ${stockClass}" onclick="editProduct('${p.docId}')" style="cursor:pointer; min-width:80px; text-align:center;">
-    ${stockLabel} <i class="fas fa-pen" style="font-size:0.6rem; margin-left:4px; opacity:0.5;"></i>
-</span>
-                </td>
-                <td>
-                    <button class="icon-btn" onclick="toggleFeatured('${p.docId}', ${!isFeat})" title="Toggle Featured" style="${featuredStyle}">
-                        <i class="${featuredIcon} fa-star"></i>
-                    </button>
-                    
-                    <button class="icon-btn btn-blue" onclick="editProduct('${p.docId}')"><i class="fas fa-edit"></i></button>
-                    <button class="icon-btn btn-danger" onclick="delProduct('${p.docId}')"><i class="fas fa-trash"></i></button>
-                </td>
-            </tr>`;
-    });
-}
-
 function toggleFeatured(id, status) {
     db.collection("products").doc(id).update({ isFeatured: status })
         .then(() => {
             showToast(status ? "Marked as Featured ⭐" : "Removed from Featured", "success");
-            // No need to reload manually; the snapshot listener will auto-refresh the table
         })
         .catch(err => showToast("Error: " + err.message, "error"));
 }
@@ -917,7 +983,6 @@ function saveCoupon() {
 async function deleteCoupon(id) { if (await showConfirm("Delete coupon?")) db.collection("coupons").doc(id).delete(); }
 function toggleCoupon(id, status) { db.collection("coupons").doc(id).update({ isActive: status }); }
 
-// --- HELPER FUNCTIONS ---
 function downloadCSV(csv, filename) {
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement("a");
@@ -1133,43 +1198,25 @@ function toggleSidebar() {
     }
 }
 function switchView(v) {
-    dbg("Switching view to:", v);
-    // 1. Hide all sections
-    document.querySelectorAll('.view-section').forEach(e => {
-        e.style.display = 'none';
-        e.classList.remove('active');
-    });
-
-    // 2. Deactivate all nav links
+    document.querySelectorAll('.view-section').forEach(e => { e.style.display = 'none'; e.classList.remove('active'); });
     document.querySelectorAll('.nav-links a').forEach(e => e.classList.remove('active'));
-
-    // 3. Show target section
+    
     const targetSection = document.getElementById('view-' + v);
     if (targetSection) {
         targetSection.style.display = 'block';
         targetSection.classList.add('active');
-    } else {
-        console.error("View not found:", v);
-        return;
     }
-
     const targetNav = document.getElementById('nav-' + v);
     if (targetNav) targetNav.classList.add('active');
-
+    
     const titleEl = document.getElementById('page-title');
     if (titleEl) titleEl.innerText = v === 'pos' ? 'New Order (POS)' : v.charAt(0).toUpperCase() + v.slice(1);
-
-    // Mobile fix
+    
     const sidebar = document.getElementById('sidebar');
-    if (sidebar) {
-        sidebar.classList.remove('active');
-        // FIX: Also hide overlay
-        const ov = document.getElementById('sidebar-overlay');
-        if (ov) ov.style.display = 'none';
-    }
+    if(sidebar) sidebar.classList.remove('active');
+    const ov = document.getElementById('sidebar-overlay');
+    if(ov) ov.style.display = 'none';
 
-    // Load data
-    // Load data based on view
     if (v === 'orders') loadOrders();
     if (v === 'pos' && typeof renderPosProducts === 'function') renderPosProducts();
     if (v === 'reviews' && typeof loadReviews === 'function') loadReviews();
@@ -1473,24 +1520,16 @@ function bulkPrintSlips() {
 
 function showToast(message, type = 'neutral') {
     const container = document.getElementById('toast-container');
-    if (!container) return; // Ensure container exists
+    if (!container) return;
 
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
-
-    let icon = '';
-    if (type === 'success') icon = '<i class="fas fa-check-circle" style="color:#2ecc71"></i>';
-    if (type === 'error') icon = '<i class="fas fa-exclamation-circle" style="color:#e74c3c"></i>';
-
+    let icon = type === 'success' ? '<i class="fas fa-check-circle" style="color:#2ecc71"></i>' : (type === 'error' ? '<i class="fas fa-exclamation-circle" style="color:#e74c3c"></i>' : '');
     toast.innerHTML = `${icon} <span>${message}</span>`;
-
-    // Add to DOM
     container.appendChild(toast);
-
-    // Remove after 3 seconds
     setTimeout(() => {
         toast.style.opacity = '0';
-        toast.style.transform = 'translateY(10px)'; // Drop down effect
+        toast.style.transform = 'translateY(10px)';
         setTimeout(() => toast.remove(), 300);
     }, 3000);
 }
@@ -2717,15 +2756,45 @@ function readAndNav(id, link) {
     document.getElementById('admin-notif-dropdown').style.display = 'none';
 }
 
+// Find this function in admin.js (around line 1391) and replace it
 function markAllAdminRead() {
+    const btn = document.querySelector('#admin-notif-dropdown span[onclick="markAllAdminRead()"]');
+    if(btn) btn.innerText = "Processing...";
+
     db.collection('admin_notifications').where('read', '==', false).get()
-        .then(snap => {
-            const batch = db.batch();
-            snap.forEach(doc => batch.update(doc.ref, { read: true }));
-            batch.commit();
+        .then(async snap => {
+            if (snap.empty) {
+                showToast("No unread notifications", "neutral");
+                if(btn) btn.innerText = "Mark all read";
+                return;
+            }
+
+            const chunkSize = 400;
+            const chunks = [];
+            
+            for (let i = 0; i < snap.docs.length; i += chunkSize) {
+                chunks.push(snap.docs.slice(i, i + chunkSize));
+            }
+
+            let count = 0;
+            for (const chunk of chunks) {
+                const batch = db.batch();
+                chunk.forEach(doc => {
+                    batch.update(doc.ref, { read: true });
+                    count++;
+                });
+                await batch.commit();
+            }
+
+            showToast(`Marked ${count} notifications as read`, "success");
+            if(btn) btn.innerText = "Mark all read";
+        })
+        .catch(err => {
+            console.error("Error clearing notifications:", err);
+            showToast("Failed to mark read. Check console.", "error");
+            if(btn) btn.innerText = "Mark all read";
         });
 }
-
 // --- AUTOMATED REPORTING LOGIC ---
 
 async function generateReport() {
