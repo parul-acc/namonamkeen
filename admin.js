@@ -8,6 +8,9 @@ const firebaseConfig = {
     measurementId: "G-8HJJ8YW1YH"
 };
 
+let allOrders = []; // For heatmap rendering
+
+
 if (typeof firebase !== 'undefined' && !firebase.apps.length) {
     firebase.initializeApp(firebaseConfig);
 }
@@ -89,6 +92,33 @@ if (window.location.pathname.endsWith('admin-local.html')) {
             document.getElementById('login-overlay').style.display = 'none';
             document.getElementById('admin-user-info').innerText = user.displayName;
             initDashboard();
+            // Small delay to ensure DOM is ready
+            setTimeout(() => {
+                // Safe call wrapper
+                const safeCall = (fn, ...args) => {
+                    try {
+                        if (typeof fn === 'function') fn(...args);
+                    } catch (error) {
+                        console.error('Analytics function error:', error);
+                    }
+                };
+
+                // Load analytics with error handling
+                safeCall(loadEnhancedDashboard);
+
+                if (document.getElementById('segmentationChart')) {
+                    safeCall(renderCustomerSegmentationChart);
+                }
+                if (document.getElementById('top-customers-list')) {
+                    safeCall(loadTopCustomers);
+                }
+                if (document.getElementById('revenueByProductChart')) {
+                    safeCall(renderRevenueByProductChart);
+                }
+                if (document.getElementById('product-performance-body')) {
+                    safeCall(loadProductPerformance);
+                }
+            }, 2000);
         } else if (user) {
             showToast("Access Denied. Admin Only.", "error");
             auth.signOut();
@@ -211,7 +241,88 @@ function renderInventoryRows(tbody, items) {
                     <button class="icon-btn btn-danger" onclick="delProduct('${p.docId}')"><i class="fas fa-trash"></i></button>
                 </td>
             </tr>`;
+
+        // Calculate velocity (mock logic - ideally fetched from analytics)
+        const soldLast30Days = p.soldCount || 0;
+        const ads = soldLast30Days / 30;
+        const daysLeft = ads > 0 ? Math.round(p.stock / ads) : 999;
+
+        let forecastHtml = '';
+        if (daysLeft < 7 && p.stock > 0) {
+            forecastHtml = `<span class="badge badge-warning">Empty in ${daysLeft} days!</span>`;
+        }
     });
+}
+
+// 1. Define a basic mapping of Pincodes to Lat/Long for Indore
+// Add this at the top of admin.js or near your renderHeatmap function
+const PINCODE_MAP = {
+    "452001": { lat: 22.7196, lng: 75.8577, name: "Central Indore" },
+    "452010": { lat: 22.7533, lng: 75.8937, name: "Vijay Nagar" },
+    "452002": { lat: 22.7253, lng: 75.8647, name: "Jawahar Marg" },
+    "452014": { lat: 22.6868, lng: 75.8614, name: "Bhawarkua" },
+    "452016": { lat: 22.7244, lng: 75.8839, name: "Palasia" },
+    "453441": { lat: 22.5548, lng: 75.7575, name: "Mhow" }
+    // Add more pincodes as you discover them
+};
+
+let mapInstance = null;
+
+// 2. The Render Function
+function renderHeatmap(orders) {
+    try {
+        const mapDiv = document.getElementById('order-map');
+        if (!mapDiv) {
+            console.warn('Map container not found');
+            return;
+        }
+
+        // Check if Leaflet library loaded
+        if (typeof L === 'undefined') {
+            console.error('Leaflet library not loaded');
+            mapDiv.innerHTML = '<p style="padding:20px; text-align:center; color:#999;">Map library unavailable</p>';
+            return;
+        }
+
+        // Prevent map re-initialization error if function runs twice
+        if (mapInstance) {
+            mapInstance.remove();
+        }
+
+        // Initialize Map centered on Indore
+        mapInstance = L.map('order-map').setView([22.7196, 75.8577], 11);
+
+        // Add OpenStreetMap Tiles (Free)
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(mapInstance);
+
+        // Process Orders
+        orders.forEach(o => {
+            // Extract Pincode from your address string or object
+            const pinMatch = o.userAddress ? o.userAddress.match(/\b(45\d{4})\b/) : null;
+            const pincode = pinMatch ? pinMatch[0] : null;
+
+            if (pincode && PINCODE_MAP[pincode]) {
+                const loc = PINCODE_MAP[pincode];
+
+                // Add a circle for this order
+                L.circle([loc.lat, loc.lng], {
+                    color: '#e85d04',
+                    fillColor: '#e85d04',
+                    fillOpacity: 0.5,
+                    radius: 300
+                }).addTo(mapInstance)
+                    .bindPopup(`<b>Order #${o.id || 'N/A'}</b><br>₹${o.total || 0}<br>${loc.name}`);
+            }
+        });
+    } catch (error) {
+        console.error('Heatmap render error:', error);
+        const mapDiv = document.getElementById('order-map');
+        if (mapDiv) {
+            mapDiv.innerHTML = '<p style="padding:20px; text-align:center; color:#e74c3c;">Failed to load map. Please refresh the page.</p>';
+        }
+    }
 }
 
 // --- QUICK STOCK MODAL LOGIC ---
@@ -606,6 +717,7 @@ function loadDashboardData(timeframe = 'All') {
 
         snap.forEach(doc => {
             const o = doc.data();
+            allOrders.push(o);
             if (o.status === 'Cancelled') return;
 
             const d = o.timestamp ? o.timestamp.toDate() : new Date();
@@ -641,6 +753,10 @@ function loadDashboardData(timeframe = 'All') {
         document.getElementById('total-orders').innerText = count;
         document.getElementById('pending-count').innerText = pending;
         document.getElementById('avg-order').innerText = '₹' + (count ? Math.round(rev / count) : 0);
+
+        if (document.getElementById('order-map')) {
+            renderHeatmap(allOrders);
+        }
 
         updateCharts(salesMap, prodMap, timeframe, paymentStats);
     });
