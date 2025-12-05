@@ -3381,16 +3381,20 @@ body.no-scroll {
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
     color: var(--primary);
     transition: top 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
-.ptr-spinner.loading { top: 80px; }
+
+.ptr-spinner.loading {
+    top: 80px;
+}
 
 /* 2. Smart Bottom Nav (Hide on Scroll) */
 .bottom-nav {
     transition: transform 0.3s ease;
 }
+
 .bottom-nav.nav-hidden {
     transform: translateY(100%);
 }
@@ -3408,7 +3412,8 @@ body.no-scroll {
     border-radius: 20px;
     cursor: pointer;
     font-size: 1rem;
-    box-shadow: -5px 0 10px rgba(255,255,255,0.8); /* Fade effect */
+    box-shadow: -5px 0 10px rgba(255, 255, 255, 0.8);
+    /* Fade effect */
 }
 
 /* 4. Bottom Sheet (Filters) */
@@ -3421,12 +3426,15 @@ body.no-scroll {
     z-index: 8000;
     border-radius: 20px 20px 0 0;
     transition: bottom 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 -10px 40px rgba(0,0,0,0.1);
+    box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.1);
     max-height: 80vh;
     display: flex;
     flex-direction: column;
 }
-.bottom-sheet.active { bottom: 0; }
+
+.bottom-sheet.active {
+    bottom: 0;
+}
 
 .sheet-header {
     padding: 20px;
@@ -3435,15 +3443,28 @@ body.no-scroll {
     justify-content: space-between;
     align-items: center;
 }
-.sheet-header h3 { margin: 0; font-size: 1.2rem; }
-.sheet-header button { background: none; border: none; font-size: 1.5rem; color: #666; }
+
+.sheet-header h3 {
+    margin: 0;
+    font-size: 1.2rem;
+}
+
+.sheet-header button {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    color: #666;
+}
 
 .sheet-content {
     padding: 20px;
     overflow-y: auto;
 }
 
-.filter-group { margin-bottom: 25px; }
+.filter-group {
+    margin-bottom: 25px;
+}
+
 .filter-group label {
     display: block;
     font-weight: 600;
@@ -3454,7 +3475,11 @@ body.no-scroll {
     letter-spacing: 0.5px;
 }
 
-.chip-group { display: flex; flex-wrap: wrap; gap: 10px; }
+.chip-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
 
 .filter-chip {
     padding: 10px 16px;
@@ -3466,6 +3491,7 @@ body.no-scroll {
     cursor: pointer;
     transition: 0.2s;
 }
+
 .filter-chip.active {
     background: #fff3e0;
     border-color: var(--primary);
@@ -3488,10 +3514,20 @@ body.no-scroll {
     animation: ripple 0.6s linear;
     pointer-events: none;
 }
+
 @keyframes ripple {
-    to { transform: scale(4); opacity: 0; }
+    to {
+        transform: scale(4);
+        opacity: 0;
+    }
 }
-button { position: relative; overflow: hidden; } /* Ensure buttons contain ripples */
+
+button {
+    position: relative;
+    overflow: hidden;
+}
+
+/* Ensure buttons contain ripples */
 
 /* 6. Product Modal - Swipe Handle */
 .modal-handle {
@@ -3500,7 +3536,8 @@ button { position: relative; overflow: hidden; } /* Ensure buttons contain rippl
     background: #e0e0e0;
     border-radius: 10px;
     margin: 0 auto 15px;
-    display: none; /* Show only on mobile via media query if needed */
+    display: none;
+    /* Show only on mobile via media query if needed */
 }
 
 /* --- CHATBOT PRODUCT CARD --- */
@@ -3511,7 +3548,7 @@ button { position: relative; overflow: hidden; } /* Ensure buttons contain rippl
     overflow: hidden;
     width: 100%;
     max-width: 240px;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
     margin-top: 5px;
 }
 
@@ -3534,7 +3571,8 @@ button { position: relative; overflow: hidden; } /* Ensure buttons contain rippl
 .chat-refresh-btn {
     background: none;
     border: none;
-    color: var(--primary); /* Orange */
+    color: var(--primary);
+    /* Orange */
     font-size: 0.75rem;
     cursor: pointer;
     font-weight: 600;
@@ -3577,8 +3615,10 @@ button { position: relative; overflow: hidden; } /* Ensure buttons contain rippl
 .nav-badge {
     position: absolute;
     top: 5px;
-    right: 25px; /* Adjust based on icon position */
-    background-color: #e74c3c; /* Red */
+    right: 25px;
+    /* Adjust based on icon position */
+    background-color: #e74c3c;
+    /* Red */
     color: white;
     font-size: 0.7rem;
     font-weight: bold;
@@ -3604,14 +3644,26 @@ button { position: relative; overflow: hidden; } /* Ensure buttons contain rippl
     margin-bottom: 20px;
     position: relative;
     overflow: hidden;
-    box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
 }
 
 /* Tier Themes */
-.loyalty-card.Bronze { border-bottom: 4px solid #cd7f32; }
-.loyalty-card.Silver { border-bottom: 4px solid #c0c0c0; }
-.loyalty-card.Gold { border-bottom: 4px solid #ffd700; }
-.loyalty-card.Platinum { border-bottom: 4px solid #e5e4e2; background: linear-gradient(135deg, #2c3e50, #000); }
+.loyalty-card.Bronze {
+    border-bottom: 4px solid #cd7f32;
+}
+
+.loyalty-card.Silver {
+    border-bottom: 4px solid #c0c0c0;
+}
+
+.loyalty-card.Gold {
+    border-bottom: 4px solid #ffd700;
+}
+
+.loyalty-card.Platinum {
+    border-bottom: 4px solid #e5e4e2;
+    background: linear-gradient(135deg, #2c3e50, #000);
+}
 
 .loyalty-header {
     display: flex;
@@ -3628,13 +3680,30 @@ button { position: relative; overflow: hidden; } /* Ensure buttons contain rippl
     text-transform: uppercase;
     letter-spacing: 1px;
 }
-.bg-Bronze { background: #cd7f32; color: white; }
-.bg-Silver { background: #c0c0c0; color: black; }
-.bg-Gold { background: #ffd700; color: black; }
-.bg-Platinum { background: #e5e4e2; color: black; box-shadow: 0 0 10px rgba(255,255,255,0.5); }
+
+.bg-Bronze {
+    background: #cd7f32;
+    color: white;
+}
+
+.bg-Silver {
+    background: #c0c0c0;
+    color: black;
+}
+
+.bg-Gold {
+    background: #ffd700;
+    color: black;
+}
+
+.bg-Platinum {
+    background: #e5e4e2;
+    color: black;
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+}
 
 .loyalty-progress {
-    background: rgba(255,255,255,0.1);
+    background: rgba(255, 255, 255, 0.1);
     height: 8px;
     border-radius: 4px;
     margin: 10px 0 5px;
@@ -3656,6 +3725,7 @@ button { position: relative; overflow: hidden; } /* Ensure buttons contain rippl
     padding: 5px 0;
     scrollbar-width: none;
 }
+
 .badge-item {
     flex: 0 0 auto;
     width: 60px;
@@ -3664,11 +3734,13 @@ button { position: relative; overflow: hidden; } /* Ensure buttons contain rippl
     filter: grayscale(1);
     transition: 0.3s;
 }
+
 .badge-item.unlocked {
     opacity: 1;
     filter: grayscale(0);
     transform: scale(1.05);
 }
+
 .badge-icon {
     width: 45px;
     height: 45px;
@@ -3681,12 +3753,18 @@ button { position: relative; overflow: hidden; } /* Ensure buttons contain rippl
     margin: 0 auto 5px;
     border: 2px solid #eee;
 }
+
 .badge-item.unlocked .badge-icon {
     border-color: var(--primary);
     background: #fff3e0;
     color: var(--primary);
 }
-.badge-name { font-size: 0.65rem; color: #666; font-weight: 600; }
+
+.badge-name {
+    font-size: 0.65rem;
+    color: #666;
+    font-weight: 600;
+}
 
 /* 3. Leaderboard */
 .leaderboard-row {
@@ -3696,26 +3774,56 @@ button { position: relative; overflow: hidden; } /* Ensure buttons contain rippl
     border-bottom: 1px solid #f0f0f0;
     transition: 0.2s;
 }
-.leaderboard-row:hover { background: #f9f9f9; }
+
+.leaderboard-row:hover {
+    background: #f9f9f9;
+}
+
 .rank-num {
     font-size: 1.2rem;
     font-weight: 700;
     color: #ccc;
     width: 30px;
 }
-.rank-1 { color: #ffd700; }
-.rank-2 { color: #c0c0c0; }
-.rank-3 { color: #cd7f32; }
 
-.lb-user { flex: 1; display: flex; align-items: center; gap: 10px; }
-.lb-avatar { width: 35px; height: 35px; border-radius: 50%; background: #eee; object-fit: cover; }
-.lb-points { font-weight: 700; color: var(--primary); }
+.rank-1 {
+    color: #ffd700;
+}
+
+.rank-2 {
+    color: #c0c0c0;
+}
+
+.rank-3 {
+    color: #cd7f32;
+}
+
+.lb-user {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.lb-avatar {
+    width: 35px;
+    height: 35px;
+    border-radius: 50%;
+    background: #eee;
+    object-fit: cover;
+}
+
+.lb-points {
+    font-weight: 700;
+    color: var(--primary);
+}
 
 /* --- CHATBOT WIDGET STYLES --- */
 .chat-widget-btn {
     position: fixed;
     bottom: 90px;
-    right: 20px; /* Positioned to not overlap WhatsApp */
+    right: 20px;
+    /* Positioned to not overlap WhatsApp */
     width: 55px;
     height: 55px;
     background: var(--primary);
@@ -3730,7 +3838,10 @@ button { position: relative; overflow: hidden; } /* Ensure buttons contain rippl
     z-index: 9990;
     transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
-.chat-widget-btn:hover { transform: scale(1.1); }
+
+.chat-widget-btn:hover {
+    transform: scale(1.1);
+}
 
 .chat-window {
     position: fixed;
@@ -3740,7 +3851,7 @@ button { position: relative; overflow: hidden; } /* Ensure buttons contain rippl
     height: 500px;
     background: white;
     border-radius: 15px;
-    box-shadow: 0 5px 30px rgba(0,0,0,0.2);
+    box-shadow: 0 5px 30px rgba(0, 0, 0, 0.2);
     z-index: 9999;
     display: none;
     flex-direction: column;
@@ -3751,12 +3862,20 @@ button { position: relative; overflow: hidden; } /* Ensure buttons contain rippl
 }
 
 @keyframes chatPop {
-    from { opacity: 0; transform: scale(0.8); }
-    to { opacity: 1; transform: scale(1); }
+    from {
+        opacity: 0;
+        transform: scale(0.8);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
 }
 
 .chat-header {
-    background: var(--primary); /* Orange */
+    background: var(--primary);
+    /* Orange */
     color: white;
     padding: 15px;
     display: flex;
@@ -3788,7 +3907,7 @@ button { position: relative; overflow: hidden; } /* Ensure buttons contain rippl
     border: 1px solid #eee;
     border-bottom-left-radius: 2px;
     align-self: flex-start;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.03);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.03);
 }
 
 .user-msg {
@@ -3813,6 +3932,7 @@ button { position: relative; overflow: hidden; } /* Ensure buttons contain rippl
     margin-bottom: 5px;
     scrollbar-width: none;
 }
+
 .chat-chips button {
     white-space: nowrap;
     background: #f0f2f5;
@@ -3824,7 +3944,10 @@ button { position: relative; overflow: hidden; } /* Ensure buttons contain rippl
     cursor: pointer;
     transition: 0.2s;
 }
-.chat-chips button:hover { background: #e0e0e0; }
+
+.chat-chips button:hover {
+    background: #e0e0e0;
+}
 
 #chat-input {
     flex: 1;
@@ -3851,13 +3974,15 @@ button { position: relative; overflow: hidden; } /* Ensure buttons contain rippl
 /* --- EXPRESS CHECKOUT STYLES --- */
 
 .price-row {
-    gap: 8px; /* Ensure space between buttons */
+    gap: 8px;
+    /* Ensure space between buttons */
 }
 
 /* Buy Now Button (Lightning) */
 .buy-now-btn {
     width: 40px;
-    height: 34px; /* Matches Add button height */
+    height: 34px;
+    /* Matches Add button height */
     background: #fff3e0;
     border: 1px solid #ffe0b2;
     color: #e85d04;
@@ -3869,6 +3994,7 @@ button { position: relative; overflow: hidden; } /* Ensure buttons contain rippl
     cursor: pointer;
     transition: 0.2s;
 }
+
 .buy-now-btn:hover {
     background: #e85d04;
     color: white;
@@ -3902,6 +4028,7 @@ button { position: relative; overflow: hidden; } /* Ensure buttons contain rippl
     background: white;
     border-radius: 8px;
 }
+
 .express-totals .row {
     display: flex;
     justify-content: space-between;
@@ -3909,6 +4036,7 @@ button { position: relative; overflow: hidden; } /* Ensure buttons contain rippl
     font-size: 0.9rem;
     color: #555;
 }
+
 .express-totals .row.total {
     margin-top: 10px;
     padding-top: 10px;
@@ -3922,15 +4050,18 @@ button { position: relative; overflow: hidden; } /* Ensure buttons contain rippl
 
 /* 1. Fix Z-Index: Ensure Invoice is above History/Sidebar */
 #invoice-modal {
-    z-index: 10000 !important; /* Beats everything (Sidebar is ~5000) */
-    background: rgba(0, 0, 0, 0.85) !important; /* Darker background for focus */
+    z-index: 10000 !important;
+    /* Beats everything (Sidebar is ~5000) */
+    background: rgba(0, 0, 0, 0.85) !important;
+    /* Darker background for focus */
 }
 
 /* 2. Ensure Content is clickable and pops out */
 .invoice-container {
     z-index: 10001 !important;
     position: relative;
-    box-shadow: 0 0 50px rgba(0,0,0,0.5); /* Strong shadow to separate layers */
+    box-shadow: 0 0 50px rgba(0, 0, 0, 0.5);
+    /* Strong shadow to separate layers */
 }
 
 /* 3. Hide QR Code Section visually (Backup for JS) */
@@ -3941,8 +4072,10 @@ button { position: relative; overflow: hidden; } /* Ensure buttons contain rippl
 /* --- FIX: PROFILE MODAL STACKING --- */
 /* Ensure Profile Modal appears ON TOP of Express Checkout */
 #profile-modal {
-    z-index: 7010 !important; /* Higher than standard .modal-overlay (7002) */
-    background: rgba(0, 0, 0, 0.6) !important; /* Ensure dimming works */
+    z-index: 7010 !important;
+    /* Higher than standard .modal-overlay (7002) */
+    background: rgba(0, 0, 0, 0.6) !important;
+    /* Ensure dimming works */
 }
 
 /* --- STOCK MANAGEMENT STYLES --- */
@@ -3952,8 +4085,10 @@ button { position: relative; overflow: hidden; } /* Ensure buttons contain rippl
     opacity: 0.8;
     border: 1px solid #eee;
 }
+
 .product-card.sold-out .product-img {
-    filter: grayscale(100%); /* Black & White image */
+    filter: grayscale(100%);
+    /* Black & White image */
     opacity: 0.6;
 }
 
@@ -3987,8 +4122,16 @@ button { position: relative; overflow: hidden; } /* Ensure buttons contain rippl
     font-size: 0.75rem;
     font-weight: bold;
 }
-.stock-in { background: #e8f5e9; color: #27ae60; }
-.stock-out { background: #ffebee; color: #c62828; }
+
+.stock-in {
+    background: #e8f5e9;
+    color: #27ae60;
+}
+
+.stock-out {
+    background: #ffebee;
+    color: #c62828;
+}
 
 /* ========================================= */
 /* 📱 MOBILE RESPONSIVE STYLES (Consolidated)*/
@@ -4073,8 +4216,8 @@ button { position: relative; overflow: hidden; } /* Ensure buttons contain rippl
         display: flex !important;
         align-items: center;
         justify-content: center;
-        width: 35px !important;
-        height: 35px !important;
+        width: 44px !important;
+        height: 44px !important;
         margin: 0 !important;
         text-decoration: none;
         color: white !important;
@@ -4320,35 +4463,41 @@ button { position: relative; overflow: hidden; } /* Ensure buttons contain rippl
         font-size: 16px !important;
     }
 
-/* 1. Main Footer Container */
+    /* 1. Main Footer Container */
     .footer {
-        padding: 30px 15px 100px 15px; /* Bottom padding for nav bar */
+        padding: 30px 15px 100px 15px;
+        /* Bottom padding for nav bar */
         text-align: center;
     }
 
     .footer-top {
         display: grid !important;
-        grid-template-columns: 1fr 1fr !important; /* FORCE 2 Columns */
-        gap: 30px 10px !important; /* Vertical Gap: 30px, Horizontal: 10px */
+        grid-template-columns: 1fr 1fr !important;
+        /* FORCE 2 Columns */
+        gap: 30px 10px !important;
+        /* Vertical Gap: 30px, Horizontal: 10px */
     }
 
     /* 2. Logo/About Section (First Item) - Full Width */
     .footer-section.about {
-        grid-column: 1 / -1; /* Spans across both columns */
-        border-bottom: 1px solid rgba(0,0,0,0.1);
+        grid-column: 1 / -1;
+        /* Spans across both columns */
+        border-bottom: 1px solid rgba(0, 0, 0, 0.1);
         padding-bottom: 20px;
         margin-bottom: 10px;
     }
 
     /* Hide the description text to save space */
     .footer-section.about p {
-        display: none; 
+        display: none;
     }
 
     /* 3. Link Sections (Quick Links & Legal) - Side by Side */
     .footer-section.links {
-        text-align: left; /* Align text left for neatness */
-        padding-left: 15px; /* Add indent */
+        text-align: left;
+        /* Align text left for neatness */
+        padding-left: 15px;
+        /* Add indent */
     }
 
     .footer-section h4 {
@@ -4360,7 +4509,8 @@ button { position: relative; overflow: hidden; } /* Ensure buttons contain rippl
     }
 
     .footer-section.links ul {
-        display: block !important; /* Ensure vertical list */
+        display: block !important;
+        /* Ensure vertical list */
     }
 
     .footer-section.links li {
@@ -4374,7 +4524,8 @@ button { position: relative; overflow: hidden; } /* Ensure buttons contain rippl
 
     /* 4. Contact Section (Last Item) - Full Width */
     .footer-section.contact {
-        grid-column: 1 / -1; /* Spans across both columns */
+        grid-column: 1 / -1;
+        /* Spans across both columns */
         background: #f9f9f9;
         padding: 20px;
         border-radius: 12px;
@@ -4407,13 +4558,18 @@ button { position: relative; overflow: hidden; } /* Ensure buttons contain rippl
         bottom: 0;
         left: 0;
         width: 100%;
-        height: 65px; /* Standard Height */
-        background: rgba(255, 255, 255, 0.98); /* Slight transparency */
-        backdrop-filter: blur(10px); /* Glass effect */
-        box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.05); /* Soft Shadow */
+        height: 65px;
+        /* Standard Height */
+        background: rgba(255, 255, 255, 0.98);
+        /* Slight transparency */
+        backdrop-filter: blur(10px);
+        /* Glass effect */
+        box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.05);
+        /* Soft Shadow */
         z-index: 5000;
-        border-top: 1px solid rgba(0,0,0,0.05);
-        padding-bottom: env(safe-area-inset-bottom); /* iPhone X+ Safe Area */
+        border-top: 1px solid rgba(0, 0, 0, 0.05);
+        padding-bottom: env(safe-area-inset-bottom);
+        /* iPhone X+ Safe Area */
     }
 
     .nav-item {
@@ -4422,7 +4578,8 @@ button { position: relative; overflow: hidden; } /* Ensure buttons contain rippl
         align-items: center;
         justify-content: center;
         text-decoration: none;
-        color: #9ca3af; /* Gray inactive */
+        color: #9ca3af;
+        /* Gray inactive */
         flex: 1;
         height: 100%;
         transition: all 0.2s ease;
@@ -4435,9 +4592,10 @@ button { position: relative; overflow: hidden; } /* Ensure buttons contain rippl
     }
 
     .nav-item.active i {
-        transform: translateY(-2px); /* Subtle lift */
+        transform: translateY(-2px);
+        /* Subtle lift */
     }
-    
+
     /* Icon Sizing */
     .nav-item i {
         font-size: 1.4rem;
@@ -4454,12 +4612,13 @@ button { position: relative; overflow: hidden; } /* Ensure buttons contain rippl
 
     /* Install App Button (Highlight) */
     #install-nav-btn {
-        color: var(--text-dark); /* Darker to stand out */
+        color: var(--text-dark);
+        /* Darker to stand out */
     }
-    
+
     /* Hide the "Floating WA" button if it overlaps */
     .float-wa {
-        bottom: 80px !important; 
+        bottom: 80px !important;
         right: 20px !important;
         width: 50px;
         height: 50px;
@@ -4469,10 +4628,12 @@ button { position: relative; overflow: hidden; } /* Ensure buttons contain rippl
     .badge-grid {
         display: grid !important;
         /* Force all 4 items into 1 row */
-        grid-template-columns: repeat(4, 1fr) !important; 
-        gap: 5px !important; /* Tight gap */
+        grid-template-columns: repeat(4, 1fr) !important;
+        gap: 5px !important;
+        /* Tight gap */
         padding: 10px 5px;
-        overflow-x: hidden; /* Prevent horizontal scroll */
+        overflow-x: hidden;
+        /* Prevent horizontal scroll */
     }
 
     .badge-item {
@@ -4486,22 +4647,25 @@ button { position: relative; overflow: hidden; } /* Ensure buttons contain rippl
 
     /* Compact Icons */
     .badge-item i {
-        font-size: 1.2rem !important; /* Smaller icon */
+        font-size: 1.2rem !important;
+        /* Smaller icon */
         margin-bottom: 5px !important;
         color: var(--primary);
     }
 
     /* Compact Text (2 lines max) */
     .badge-item h4 {
-        font-size: 0.65rem !important; /* Tiny readable text */
+        font-size: 0.65rem !important;
+        /* Tiny readable text */
         line-height: 1.1;
         margin: 0;
         color: var(--text-dark);
         font-weight: 600;
         width: 100%;
-        word-wrap: break-word; /* Prevent overflow */
+        word-wrap: break-word;
+        /* Prevent overflow */
     }
-    
+
 }
 
 /* Very Small Screens */
@@ -4553,12 +4717,14 @@ button { position: relative; overflow: hidden; } /* Ensure buttons contain rippl
 
 /* 1. Base Overlay (Standard Modals) */
 .modal-overlay {
-    z-index: 8000 !important; /* Higher than Cart */
+    z-index: 8000 !important;
+    /* Higher than Cart */
 }
 
 /* 2. Cart Sidebar */
 .cart-sidebar {
-    z-index: 7000 !important; /* High, but lower than modals */
+    z-index: 7000 !important;
+    width: 100%;
 }
 
 /* 3. Toast Notifications (Highest) */
@@ -4567,8 +4733,75 @@ button { position: relative; overflow: hidden; } /* Ensure buttons contain rippl
 }
 
 /* 4. Login Choice Modal specifically */
-#login-choice-modal, 
-#otp-modal, 
+#login-choice-modal,
+#otp-modal,
 #whatsapp-login-modal {
-    z-index: 8001 !important; /* Guarantee visibility over Cart */
+    z-index: 8001 !important;
+    /* Guarantee visibility over Cart */
+}
+
+/* Tablet Fix for Profile Dropdown */
+@media (min-width: 601px) and (max-width: 1024px) {
+    .profile-dropdown {
+        position: absolute !important;
+        top: 55px !important;
+        right: 0 !important;
+        width: 220px !important;
+        max-width: 220px !important;
+        left: auto !important;
+        transform: none !important;
+        z-index: 5001 !important;
+        /* Above mobile nav */
+    }
+
+    /* Ensure user profile container is properly positioned */
+    #user-profile {
+        position: relative !important;
+    }
+}
+
+@media (min-width: 900px) and (max-width: 1024px) {
+    .product-grid {
+        grid-template-columns: repeat(3, 1fr) !important;
+    }
+}
+
+@media (min-width: 768px) {
+    .cart-sidebar {
+        max-width: 400px !important;
+        width: 400px !important;
+    }
+}
+
+@media (min-width: 768px) and (orientation: landscape) {
+    .bottom-nav {
+        display: none !important;
+    }
+}
+
+/* Tablet/Touch Improvements */
+@media (min-width: 601px) {
+
+    .cart-trigger,
+    .notif-trigger,
+    .user-notif-btn {
+        width: 44px !important;
+        height: 44px !important;
+    }
+}
+
+/* Tablet: Better Cart Sidebar */
+@media (min-width: 768px) {
+    .cart-sidebar.active {
+        max-width: 400px !important;
+        width: 400px !important;
+    }
+}
+
+/* Landscape Tablets: 3-Column Grid */
+@media (min-width: 900px) and (max-width: 1199px) {
+    .product-grid {
+        grid-template-columns: repeat(3, 1fr) !important;
+        gap: 15px !important;
+    }
 }

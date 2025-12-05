@@ -31,7 +31,7 @@ messaging.onBackgroundMessage(function (payload) {
 });
 
 // 2. Handle Notification Click (Opens App)
-self.addEventListener('notificationclick', function(event) {
+self.addEventListener('notificationclick', function (event) {
   console.log('[Service Worker] Notification Clicked');
   event.notification.close();
 
@@ -55,7 +55,7 @@ self.addEventListener('notificationclick', function(event) {
   );
 });
 
-const CACHE_NAME = 'namo-v28'; // Increment Version
+const CACHE_NAME = 'namo-v29'; // Increment Version
 const urlsToCache = [
   '/',
   '/index.html',

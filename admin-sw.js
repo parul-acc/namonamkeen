@@ -23,7 +23,7 @@ messaging.onBackgroundMessage(function (payload) {
   self.registration.showNotification(notificationTitle, notificationOptions);
 });
 
-const CACHE_NAME = 'namo-admin-v28';
+const CACHE_NAME = 'namo-admin-v29';
 const urlsToCache = [
   '/admin.html',
   '/admin.css',
@@ -58,7 +58,7 @@ self.addEventListener('fetch', event => {
 });
 
 // 3. Handle Notification Click (THE FIX)
-self.addEventListener('notificationclick', function(event) {
+self.addEventListener('notificationclick', function (event) {
   console.log('[Admin SW] Notification Clicked');
   event.notification.close();
 

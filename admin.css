@@ -1266,3 +1266,257 @@ body.loading .main-content {
         font-size: 1rem;
     }
 }
+
+/* ===================================== */
+/* POS MOBILE RESPONSIVE FIXES */
+/* ===================================== */
+@media (max-width: 1024px) {
+
+    /* Stack POS layout vertically on tablets/mobile */
+    .pos-layout {
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .pos-left,
+    .pos-right {
+        flex: 1;
+        width: 100% !important;
+        max-width: 100%;
+    }
+
+    /* Adjust right panel height */
+    .pos-right {
+        max-height: 500px;
+        min-height: 400px;
+    }
+
+    /* Smaller product grid on tablets */
+    .pos-product-grid {
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 12px;
+        padding: 10px;
+    }
+}
+
+@media (max-width: 768px) {
+    /* Mobile-specific POS fixes */
+
+    /* Ensure all inputs fit screen */
+    .form-control,
+    .search-input,
+    .date-input,
+    .filter-select,
+    input[type="text"],
+    input[type="number"],
+    input[type="tel"],
+    input[type="email"] {
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+        font-size: 16px !important;
+        /* Prevent zoom on iOS */
+    }
+
+    /* POS Layout */
+    .pos-layout {
+        padding: 10px;
+        gap: 10px;
+    }
+
+    /* Product Grid: 2 columns on mobile */
+    .pos-product-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 10px;
+        padding: 8px;
+    }
+
+    /* Smaller product cards */
+    .pos-card {
+        font-size: 0.85rem;
+    }
+
+    .pos-card-img-wrap {
+        height: 100px;
+    }
+
+    .pos-card h4 {
+        font-size: 0.85rem;
+        padding: 8px;
+    }
+
+    /* Cart sidebar mobile */
+    .pos-right {
+        max-height: 60vh;
+        min-height: 300px;
+    }
+
+    .pos-cart-list {
+        padding: 8px;
+    }
+
+    /* Card header responsive */
+    .card-header {
+        padding: 15px;
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .header-actions {
+        width: 100%;
+        flex-direction: column;
+    }
+
+    .header-actions .btn,
+    .header-actions .search-input {
+        width: 100%;
+    }
+
+    /* Table improvements */
+    .table-responsive {
+        border-radius: 0;
+        margin: 0 -15px;
+    }
+
+    table {
+        min-width: 600px;
+        font-size: 0.85rem;
+    }
+
+    th,
+    td {
+        padding: 10px 12px;
+    }
+
+    /* Stats grid mobile */
+    .stats-grid {
+        grid-template-columns: 1fr !important;
+        gap: 15px;
+    }
+
+    .stat-card {
+        padding: 20px;
+    }
+
+    /* Charts mobile */
+    .charts-grid {
+        grid-template-columns: 1fr !important;
+        gap: 15px;
+    }
+
+    .chart-box {
+        height: 250px;
+    }
+
+    /* Main content padding */
+    .main-content {
+        margin-left: 0;
+        width: 100%;
+        padding: 15px;
+    }
+
+    /* Top bar mobile */
+    .top-bar {
+        padding: 12px 15px;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+
+    .top-bar h3 {
+        font-size: 1.2rem;
+    }
+
+    /* Buttons full-width on mobile */
+    .btn-primary,
+    .btn-outline,
+    .btn-green,
+    .btn-blue {
+        width: 100%;
+        justify-content: center;
+    }
+
+    /* Modal responsive */
+    .modal-content {
+        width: 95%;
+        padding: 20px;
+        max-height: 85vh;
+    }
+
+    /* Pagination mobile */
+    .pagination {
+        flex-wrap: wrap;
+        justify-content: center;
+        padding: 12px;
+    }
+
+    /* Prevent horizontal scroll */
+    body {
+        overflow-x: hidden;
+    }
+
+    .sidebar {
+        width: 75%;
+        max-width: 280px;
+        left: -100%;
+        transition: left 0.3s ease;
+    }
+
+    .sidebar.active {
+        left: 0;
+    }
+
+    /* Show close button on mobile */
+    .close-sidebar {
+        display: flex !important;
+    }
+
+    /* Sidebar overlay */
+    #sidebar-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 99;
+    }
+
+    #sidebar-overlay.active {
+        display: block;
+    }
+}
+
+/* Very small phones */
+@media (max-width: 480px) {
+
+    /* Single column product grid */
+    .pos-product-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    /* Even smaller text */
+    .pos-card h4 {
+        font-size: 0.8rem;
+    }
+
+    /* Compact stats */
+    .stat-card h1 {
+        font-size: 1.8rem;
+    }
+
+    /* Tighter spacing */
+    .main-content {
+        padding: 10px;
+    }
+
+    table {
+        font-size: 0.75rem;
+    }
+
+    th,
+    td {
+        padding: 8px;
+    }
+}
