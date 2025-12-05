@@ -4805,3 +4805,92 @@ button {
         gap: 15px !important;
     }
 }
+
+/* --- LIVE SALES NOTIFICATION (Polite Version) --- */
+.fomo-popup {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    background: white;
+    padding: 12px 15px;
+    border-radius: 12px;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    z-index: 4900;
+    /* Behind modals/cart but above content */
+    transform: translateX(-150%);
+    /* Hidden off-screen */
+    transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+    border-left: 4px solid var(--primary);
+    max-width: 320px;
+    min-width: 280px;
+    font-family: 'Poppins', sans-serif;
+}
+
+.fomo-popup.active {
+    transform: translateX(0);
+    /* Slide in */
+}
+
+.fomo-close-btn {
+    background: none;
+    border: none;
+    color: #999;
+    font-size: 1.2rem;
+    line-height: 0.8;
+    cursor: pointer;
+    padding: 0 0 0 10px;
+    align-self: flex-start;
+}
+
+.fomo-close-btn:hover {
+    color: #333;
+}
+
+/* Mobile Optimization: Show at top to avoid cluttering bottom nav/cart */
+@media (max-width: 768px) {
+    .fomo-popup {
+        bottom: auto;
+        top: 90px;
+        /* Below navbar */
+        left: 50%;
+        transform: translateX(-50%) translateY(-20px);
+        opacity: 0;
+        width: 90%;
+        border-left: none;
+        border-top: 3px solid var(--primary);
+    }
+
+    .fomo-popup.active {
+        transform: translateX(-50%) translateY(0);
+        opacity: 1;
+    }
+}
+
+/* --- STICKY CART SUMMARY --- */
+.sticky-cart-summary {
+    position: fixed;
+    bottom: 70px;
+    /* Above bottom nav */
+    left: 5%;
+    width: 90%;
+    background: var(--text-dark);
+    color: white;
+    padding: 12px 20px;
+    border-radius: 50px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    z-index: 4990;
+    transform: translateY(100px);
+    /* Hidden */
+    transition: transform 0.3s ease;
+    cursor: pointer;
+}
+
+.sticky-cart-summary.visible {
+    transform: translateY(0);
+}

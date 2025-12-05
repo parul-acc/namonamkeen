@@ -1164,6 +1164,29 @@ function updateCartUI() {
         shareBtn.onclick = shareCartOnWhatsApp;
         footer.insertBefore(shareBtn, checkoutBtn);
     }
+
+    // 12. Update Sticky Cart Summary (Mobile)
+    const summary = document.getElementById('sticky-summary');
+    if (summary) {
+        if (cart.length > 0) {
+            const count = cart.reduce((a, b) => a + b.qty, 0);
+            // finalTotal comes from getCartTotals() inside updateCartUI scope
+            const { finalTotal } = getCartTotals();
+            summary.innerHTML = `
+                <div style="font-weight:600;">${count} Items</div>
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <span>₹${finalTotal.toLocaleString('en-IN')}</span>
+                    <span style="background:rgba(255,255,255,0.2); width:30px; height:30px; border-radius:50%; display:flex; align-items:center; justify-content:center;">
+                        <i class="fas fa-chevron-right" style="font-size:0.8rem;"></i>
+                    </span>
+                </div>
+            `;
+            summary.classList.add('visible');
+            summary.onclick = toggleCart;
+        } else {
+            summary.classList.remove('visible');
+        }
+    }
 }
 
 // --- BOTTOM NAV HELPER ---
@@ -4626,3 +4649,72 @@ window.addEventListener('appinstalled', () => {
     const installBtn = document.getElementById('pwa-install-btn');
     if (installBtn) installBtn.style.display = 'none';
 });
+
+// ==========================================
+// 🔔 SMART SOCIAL PROOF (Polite Version)
+// ==========================================
+
+const fomoNames = ["Priya", "Rahul", "Amit", "Sneha", "Vikram", "Anjali", "Rohan", "Kavita"];
+const fomoCities = ["Palasia", "Goyal Nagar", "Tilak nagar", "Mhow", "Umariya", "Vijay Nagar", "AB Road", "Chawani"];
+let fomoInterval;
+
+function showFomoNotification() {
+    // 1. CHECK LIMITS: Max 2 times per session OR if user closed it manually
+    let count = parseInt(sessionStorage.getItem('fomoCount') || '0');
+    const isClosed = sessionStorage.getItem('fomoClosed') === 'true';
+
+    if (isClosed || count >= 2) {
+        if (fomoInterval) clearInterval(fomoInterval);
+        return;
+    }
+
+    // 2. Safety check for products
+    if (typeof products === 'undefined' || products.length === 0) return;
+
+    // 3. Generate Content
+    const randomProduct = products[Math.floor(Math.random() * products.length)];
+    const name = fomoNames[Math.floor(Math.random() * fomoNames.length)];
+    const city = fomoCities[Math.floor(Math.random() * fomoCities.length)];
+    // Random time between 2 mins and 15 mins ago
+    const timeAgo = Math.floor(Math.random() * 13 + 2) + " mins ago";
+
+    const popup = document.getElementById('fomo-popup');
+
+    if (popup && randomProduct) {
+        popup.innerHTML = `
+            <div style="display:flex; align-items:center; gap:12px; flex:1;">
+                <img src="${randomProduct.image}" style="width:45px; height:45px; border-radius:6px; object-fit:cover; border:1px solid #eee;" onerror="this.src='logo.jpg'">
+                <div style="flex:1; line-height:1.3;">
+                    <strong style="font-size:0.85rem; color:#333; display:block;">${name} in ${city}</strong>
+                    <small style="color:#666; font-size:0.75rem;">bought <span style="color:var(--primary); font-weight:600;">${randomProduct.name}</span></small>
+                    <div style="color:#aaa; font-size:0.65rem; margin-top:2px;">${timeAgo}</div>
+                </div>
+            </div>
+            <button class="fomo-close-btn" onclick="closeFomoForever()" title="Close Notification">&times;</button>
+        `;
+
+        // 4. Show Animation
+        popup.classList.add('active');
+
+        // 5. Update Count
+        sessionStorage.setItem('fomoCount', count + 1);
+
+        // 6. Hide automatically after 6 seconds
+        setTimeout(() => {
+            popup.classList.remove('active');
+        }, 6000);
+    }
+}
+
+function closeFomoForever() {
+    const popup = document.getElementById('fomo-popup');
+    if (popup) popup.classList.remove('active');
+    sessionStorage.setItem('fomoClosed', 'true'); // Remember choice for this session
+    if (fomoInterval) clearInterval(fomoInterval); // Stop loop
+}
+
+// Start Logic: Initial delay 20s, then every 2 minutes (120000ms)
+setTimeout(() => {
+    showFomoNotification(); // First show
+    fomoInterval = setInterval(showFomoNotification, 120000); // Repeat every 2 mins
+}, 20000);

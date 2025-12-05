@@ -1293,3 +1293,80 @@ body.loading .main-content {
         padding: 8px;
     }
 }
+
+/* ========================================================= */
+/* 🚀 FINAL FIX: FORCE 4-COLUMN STATS ON ALL MOBILE DEVICES */
+/* ========================================================= */
+
+@media (max-width: 900px) {
+
+    /* 1. Reset Main Container Width */
+    .main-content {
+        width: 100vw !important;
+        /* Force full viewport width */
+        padding: 10px 5px !important;
+        /* Reduce side padding */
+        overflow-x: hidden;
+        /* Prevent horizontal scroll/white space */
+        box-sizing: border-box;
+    }
+
+    /* 2. Force 4 Columns on Stats Grid */
+    .stats-grid {
+        display: grid !important;
+        grid-template-columns: repeat(4, 1fr) !important;
+        /* Strict 4 cols */
+        gap: 4px !important;
+        /* Tiny gap to fit screens */
+        margin-bottom: 15px !important;
+        width: 100% !important;
+        box-sizing: border-box;
+    }
+
+    /* 3. Compact Card Styling */
+    .stat-card {
+        padding: 8px 2px !important;
+        /* Minimal padding inside card */
+        min-height: 65px !important;
+        /* Reduced height */
+        height: auto !important;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+        border-radius: 6px !important;
+    }
+
+    /* 4. Tiny Fonts for Labels (Revenue, Orders...) */
+    .stat-card h3 {
+        font-size: 9px !important;
+        margin: 0 0 2px 0 !important;
+        text-transform: uppercase;
+        letter-spacing: 0;
+        white-space: nowrap;
+        /* Prevent wrapping */
+        width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        opacity: 0.8;
+    }
+
+    /* 5. Responsive Fonts for Values (₹20k...) */
+    .stat-card h1 {
+        font-size: 11px !important;
+        /* Default small size */
+        margin: 0 !important;
+        line-height: 1.2;
+        font-weight: 700;
+        word-break: break-all;
+        /* Prevent layout break on huge numbers */
+    }
+}
+
+/* Special Tweak for slightly larger mobiles to allow bigger font */
+@media (min-width: 380px) and (max-width: 900px) {
+    .stat-card h1 {
+        font-size: 13px !important;
+    }
+}
