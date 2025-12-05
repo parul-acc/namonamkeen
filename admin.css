@@ -352,74 +352,6 @@ body {
     margin-bottom: 30px;
 }
 
-/* --- POS: Desktop Layout (default) --- */
-.pos-layout {
-    display: flex;
-    gap: 20px;
-    align-items: flex-start;
-    width: 100%;
-}
-
-.pos-left {
-    flex: 7;
-    display: flex;
-    flex-direction: column;
-    background: transparent;
-    overflow: hidden;
-}
-
-.pos-product-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 18px;
-    padding: 12px;
-    overflow-y: auto;
-}
-
-.pos-card {
-    background: white;
-    border-radius: 12px;
-    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
-    overflow: hidden;
-    cursor: pointer;
-    display: flex;
-    flex-direction: column;
-}
-
-.pos-card-img-wrap {
-    width: 100%;
-    height: 140px;
-    background: #f4f4f4;
-}
-
-.pos-card-img-wrap img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-.pos-card h4 {
-    font-size: 1rem;
-    margin: 0 0 6px 0;
-}
-
-.pos-right {
-    flex: 3;
-    display: flex;
-    flex-direction: column;
-    background: white;
-    border-radius: 12px;
-    box-shadow: var(--shadow);
-    border: 1px solid #eee;
-    max-height: calc(100vh - 160px);
-    overflow: hidden;
-}
-
-.pos-cart-list {
-    overflow-y: auto;
-    padding: 10px;
-}
-
 .card-header {
     padding: 20px 25px;
     border-bottom: 1px solid #eee;
@@ -1123,125 +1055,47 @@ body.loading .main-content {
     }
 
     .stats-grid {
-        grid-template-columns: repeat(2, 1fr) !important;
-        gap: 10px;
+        grid-template-columns: repeat(4, 1fr) !important;
+        gap: 5px !important;
+        margin-bottom: 15px !important;
     }
 
     .stat-card {
-        padding: 15px;
+        padding: 8px 4px !important;
+        /* Minimal padding */
+        text-align: center;
+        border-radius: 8px;
+        border-left-width: 3px !important;
+        /* Thinner colored border */
+        min-height: 70px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .stat-card h3 {
+        font-size: 0.6rem !important;
+        /* Tiny Label */
+        margin: 0 0 4px 0 !important;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        width: 100%;
+        opacity: 0.8;
     }
 
     .stat-card h1 {
-        font-size: 1.5rem;
-    }
-
-    .charts-grid {
-        grid-template-columns: 1fr;
+        font-size: 0.85rem !important;
+        /* Reduced Value Size */
+        margin: 0 !important;
+        line-height: 1.1;
+        word-break: break-all;
+        /* Ensure numbers don't overflow */
     }
 
     .chart-box {
         height: 250px;
-    }
-
-    /* --- MOBILE POS LAYOUT FIX --- */
-    .pos-layout {
-        display: flex;
-        flex-direction: column !important;
-        height: auto !important;
-        min-height: 100%;
-        /* Increased padding to ensure footer doesn't overlap content */
-        padding-bottom: 160px !important;
-        gap: 15px;
-    }
-
-    /* REORDER: Inputs First (Top) */
-    .pos-right {
-        order: 1;
-        padding: 15px;
-        margin-bottom: 10px;
-        background: white;
-        border: 1px solid #eee;
-        border-radius: 12px;
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
-    }
-
-    /* Products Second */
-    .pos-left {
-        order: 2;
-        border: none;
-        box-shadow: none;
-        padding: 0;
-        flex: 0 0 auto;
-    }
-
-    /* Compact Cart List (Prevents pushing content too far) */
-    .pos-cart-list {
-        max-height: 150px;
-        overflow-y: auto;
-        background: #f9f9f9;
-        border-radius: 8px;
-        padding: 8px;
-        margin-top: 10px;
-    }
-
-    /* Inputs Layout */
-    #pos-name,
-    #pos-phone {
-        width: 100%;
-        /* Full width for easier tapping */
-        margin-bottom: 10px !important;
-        height: 45px;
-        font-size: 16px !important;
-        /* Prevents iOS zoom */
-    }
-
-    /* Make Product Grid Scrollable Page-wise, not internal trap */
-    .pos-product-grid {
-        display: grid !important;
-        grid-template-columns: repeat(2, 1fr) !important;
-        /* 2 Cols better for mobile */
-        gap: 10px !important;
-        max-height: none !important;
-        /* Allow full height */
-        overflow-y: visible !important;
-        padding-bottom: 10px;
-        margin-bottom: 10px;
-        border-bottom: none;
-    }
-
-    .pos-card h4 {
-        font-size: 0.85rem;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        margin-bottom: 4px;
-    }
-
-    .pos-card-img-wrap {
-        height: 100px !important;
-    }
-
-    /* Sticky Footer */
-    .pos-total-section {
-        position: fixed;
-        bottom: 0;
-        left: 0;
-        width: 100%;
-        background: white;
-        z-index: 999;
-        padding: 12px 20px;
-        border-top: 1px solid #eee;
-        box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.1);
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-    }
-
-    .pos-total-section button {
-        width: 100%;
-        padding: 14px;
-        font-size: 1.1rem;
-        border-radius: 12px;
     }
 
     th,
@@ -1254,11 +1108,8 @@ body.loading .main-content {
 /* Extra Small Screens */
 @media (max-width: 360px) {
     .stats-grid {
-        grid-template-columns: 1fr !important;
-    }
-
-    .pos-product-grid {
-        grid-template-columns: 1fr !important;
+        grid-template-columns: repeat(4, 1fr) !important;
+        /* Keep 4 columns even on small screens */
     }
 
     /* 1 Col for very small phones */
@@ -1267,37 +1118,6 @@ body.loading .main-content {
     }
 }
 
-/* ===================================== */
-/* POS MOBILE RESPONSIVE FIXES */
-/* ===================================== */
-@media (max-width: 1024px) {
-
-    /* Stack POS layout vertically on tablets/mobile */
-    .pos-layout {
-        flex-direction: column;
-        gap: 15px;
-    }
-
-    .pos-left,
-    .pos-right {
-        flex: 1;
-        width: 100% !important;
-        max-width: 100%;
-    }
-
-    /* Adjust right panel height */
-    .pos-right {
-        max-height: 500px;
-        min-height: 400px;
-    }
-
-    /* Smaller product grid on tablets */
-    .pos-product-grid {
-        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-        gap: 12px;
-        padding: 10px;
-    }
-}
 
 @media (max-width: 768px) {
     /* Mobile-specific POS fixes */
@@ -1316,43 +1136,6 @@ body.loading .main-content {
         box-sizing: border-box !important;
         font-size: 16px !important;
         /* Prevent zoom on iOS */
-    }
-
-    /* POS Layout */
-    .pos-layout {
-        padding: 10px;
-        gap: 10px;
-    }
-
-    /* Product Grid: 2 columns on mobile */
-    .pos-product-grid {
-        grid-template-columns: repeat(2, 1fr) !important;
-        gap: 10px;
-        padding: 8px;
-    }
-
-    /* Smaller product cards */
-    .pos-card {
-        font-size: 0.85rem;
-    }
-
-    .pos-card-img-wrap {
-        height: 100px;
-    }
-
-    .pos-card h4 {
-        font-size: 0.85rem;
-        padding: 8px;
-    }
-
-    /* Cart sidebar mobile */
-    .pos-right {
-        max-height: 60vh;
-        min-height: 300px;
-    }
-
-    .pos-cart-list {
-        padding: 8px;
     }
 
     /* Card header responsive */
@@ -1490,16 +1273,6 @@ body.loading .main-content {
 
 /* Very small phones */
 @media (max-width: 480px) {
-
-    /* Single column product grid */
-    .pos-product-grid {
-        grid-template-columns: 1fr !important;
-    }
-
-    /* Even smaller text */
-    .pos-card h4 {
-        font-size: 0.8rem;
-    }
 
     /* Compact stats */
     .stat-card h1 {
