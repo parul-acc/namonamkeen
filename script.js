@@ -442,23 +442,23 @@ function renderMenu() {
         if (p.variants && p.variants.length > 0) {
             // Find first in-stock variant
             const firstActive = p.variants.find(v => v.inStock !== false);
-            
+
             // Set display price to that variant's price (or default to first if all OOS)
             displayPrice = firstActive ? firstActive.price : p.variants[0].price;
-            
+
             if (!firstActive) isAvailable = false;
 
             // Build Dropdown
             variantHtml = `<select class="variant-select" id="variant-select-${p.id}" onclick="event.stopPropagation()" onchange="updateCardPrice(${p.id}, this.value)">`;
-            
+
             p.variants.forEach((v, index) => {
                 const stockStatus = (v.inStock !== false);
                 const disabledAttr = stockStatus ? '' : 'disabled';
                 const label = v.weight + (stockStatus ? '' : ' (Out of Stock)');
-                
+
                 // FIX: Define selectedAttr here properly
                 const selectedAttr = (v.price === displayPrice && stockStatus) ? 'selected' : '';
-                
+
                 variantHtml += `<option value="${index}" ${disabledAttr} ${selectedAttr}>${label}</option>`;
             });
             variantHtml += `</select>`;
@@ -485,8 +485,8 @@ function renderMenu() {
         }
 
         // NEW: One-Click Button (Lightning Icon)
-        const oneClickBtn = isAvailable 
-            ? `<button class="buy-now-btn" onclick="event.stopPropagation(); buyNow(${p.id})" title="Buy Now"><i class="fas fa-bolt"></i></button>` 
+        const oneClickBtn = isAvailable
+            ? `<button class="buy-now-btn" onclick="event.stopPropagation(); buyNow(${p.id})" title="Buy Now"><i class="fas fa-bolt"></i></button>`
             : '';
 
         grid.innerHTML += `
@@ -1279,9 +1279,9 @@ async function handleCheckout() {
     // 2. Validate Inputs
     const phoneInput = document.getElementById('cust-phone');
     const streetInput = document.getElementById('cust-addr-street');
-    
+
     if (!phoneInput || !streetInput) return showToast("Form error. Refresh page.", "error");
-    
+
     const phone = phoneInput.value.trim();
     const addrObj = getAddressFromInputs('cust');
 
@@ -1548,39 +1548,39 @@ function showOrderHistory() {
                     s1 = 'cancelled'; s2 = 'cancelled'; s3 = 'cancelled'; // All red dots
                 }
                 const timelineHTML = `
-<div class="timeline-container">
-    <div class="timeline-line-bg"></div>
-    <div class="timeline-line-fill ${lineClass}" style="width: ${progress}"></div>
-    
-    <div class="timeline-step ${s1}">
-        <div class="step-dot"><i class="fas ${o.status === 'Cancelled' ? 'fa-times' : 'fa-clipboard-check'}"></i></div>
-        <div class="step-label">${o.status === 'Cancelled' ? 'Cancelled' : 'Placed'}</div>
-    </div>
-    <div class="timeline-step ${s2}">
-        <div class="step-dot"><i class="fas fa-box-open"></i></div>
-    </div>
-    <div class="timeline-step ${s3}">
-        <div class="step-dot"><i class="fas fa-truck"></i></div>
-    </div>
-</div>`;
+                <div class="timeline-container">
+                    <div class="timeline-line-bg"></div>
+                    <div class="timeline-line-fill ${lineClass}" style="width: ${progress}"></div>
+                    
+                    <div class="timeline-step ${s1}">
+                        <div class="step-dot"><i class="fas ${o.status === 'Cancelled' ? 'fa-times' : 'fa-clipboard-check'}"></i></div>
+                        <div class="step-label">${o.status === 'Cancelled' ? 'Cancelled' : 'Placed'}</div>
+                    </div>
+                    <div class="timeline-step ${s2}">
+                        <div class="step-dot"><i class="fas fa-box-open"></i></div>
+                    </div>
+                    <div class="timeline-step ${s3}">
+                        <div class="step-dot"><i class="fas fa-truck"></i></div>
+                    </div>
+                </div>`;
 
                 // 2. Button Logic (Hide controls if Cancelled)
                 let actionButtons = '';
                 if (o.status === 'Pending') {
                     actionButtons = `
-        <button onclick="cancelOrder('${o.docId}')" style="flex:1; padding:8px; background:#ffebee; color:#c62828; border:1px solid #ef9a9a; border-radius:5px; cursor:pointer;">Cancel Order</button>
-        <button onclick="openInvoice('${o.id}')" style="flex:1; padding:8px; border:1px solid #e85d04; background:white; color:#e85d04; border-radius:5px; cursor:pointer;">Invoice</button>
-    `;
+                    <button onclick="cancelOrder('${o.docId}')" style="flex:1; padding:8px; background:#ffebee; color:#c62828; border:1px solid #ef9a9a; border-radius:5px; cursor:pointer;">Cancel Order</button>
+                    <button onclick="openInvoice('${o.id}')" style="flex:1; padding:8px; border:1px solid #e85d04; background:white; color:#e85d04; border-radius:5px; cursor:pointer;">Invoice</button>
+                `;
                 } else if (o.status === 'Cancelled') {
                     actionButtons = `
-        <button disabled style="flex:1; padding:8px; background:#eee; color:#999; border:none; border-radius:5px; cursor:not-allowed;">Order Cancelled</button>
-        <button onclick="repeatOrder('${o.id}')" style="flex:1; padding:8px; background:#e85d04; color:white; border:none; border-radius:5px; cursor:pointer;">Re-Order</button>
-    `;
+                    <button disabled style="flex:1; padding:8px; background:#eee; color:#999; border:none; border-radius:5px; cursor:not-allowed;">Order Cancelled</button>
+                    <button onclick="repeatOrder('${o.id}')" style="flex:1; padding:8px; background:#e85d04; color:white; border:none; border-radius:5px; cursor:pointer;">Re-Order</button>
+                `;
                 } else {
                     actionButtons = `
-        <button onclick="openInvoice('${o.id}')" style="flex:1; padding:8px; border:1px solid #e85d04; background:white; color:#e85d04; border-radius:5px; cursor:pointer;">Invoice</button>
-        <button onclick="repeatOrder('${o.id}')" style="flex:1; padding:8px; background:#e85d04; color:white; border:none; border-radius:5px; cursor:pointer;">Repeat</button>
-    `;
+                    <button onclick="openInvoice('${o.id}')" style="flex:1; padding:8px; border:1px solid #e85d04; background:white; color:#e85d04; border-radius:5px; cursor:pointer;">Invoice</button>
+                    <button onclick="repeatOrder('${o.id}')" style="flex:1; padding:8px; background:#e85d04; color:white; border:none; border-radius:5px; cursor:pointer;">Repeat</button>
+                `;
                 }
 
                 // Items List
@@ -2776,7 +2776,7 @@ let userSearchTimeout; // Add this variable
 if (searchInput && suggestionsBox) {
     searchInput.addEventListener('input', function () {
         const inputVal = this.value; // Capture value immediately
-        
+
         // Clear previous timer
         clearTimeout(userSearchTimeout);
 
@@ -2812,11 +2812,11 @@ if (searchInput && suggestionsBox) {
             } else {
                 suggestionsBox.classList.remove('active');
             }
-            
+
             // Also filter the main grid
             searchQuery = query; // Update global state
-            renderMenu(); 
-            
+            renderMenu();
+
         }, 300); // 300ms Delay
     });
 }
@@ -3088,6 +3088,9 @@ function openWalletHistory() {
               </div>`;
             });
             list.innerHTML = html;
+        }).catch(err => {
+            console.error("Error loading wallet history:", err);
+            list.innerHTML = '<div style="text-align:center; padding:20px; color:red;">Error loading wallet history</div>';
         });
 }
 
@@ -3405,19 +3408,20 @@ window.addEventListener('beforeinstallprompt', (e) => {
     }
 });
 
-// Helper to construct address object
 function getAddressFromInputs(prefix) {
-    const street = document.getElementById(`${prefix}-addr-street`);
-    const city = document.getElementById(`${prefix}-addr-city`);
-    const pin = document.getElementById(`${prefix}-addr-pin`);
+    const street = document.getElementById(`${prefix}-addr-street`)?.value.trim();
+    const city = document.getElementById(`${prefix}-addr-city`)?.value.trim();
+    const pin = document.getElementById(`${prefix}-addr-pin`)?.value.trim();
 
-    if (!street || !city || !pin) return null; // Safety check
+    if (!street || !city || !pin) {
+        return null; // Incomplete address
+    }
 
     return {
-        street: street.value.trim(),
-        city: city.value.trim(),
-        pin: pin.value.trim(),
-        full: `${street.value.trim()}, ${city.value.trim()} - ${pin.value.trim()}`
+        street: street,
+        city: city,
+        pin: pin,
+        full: `${street}, ${city} - ${pin}`
     };
 }
 
@@ -3436,9 +3440,9 @@ function requestUserNotifications() {
         if (permission === 'granted') {
             // FIX: Wait for SW Ready, then pass registration
             navigator.serviceWorker.ready.then((registration) => {
-                messaging.getToken({ 
-                    vapidKey: shopConfig.vapidKey, 
-                    serviceWorkerRegistration: registration 
+                messaging.getToken({
+                    vapidKey: shopConfig.vapidKey,
+                    serviceWorkerRegistration: registration
                 }).then((currentToken) => {
                     if (currentToken && currentUser) {
                         db.collection("users").doc(currentUser.uid).update({
@@ -3942,10 +3946,6 @@ function toggleUserNotif() {
     if (!currentUser) return showToast("Login to see notifications", "neutral");
     document.getElementById('user-notif-modal').style.display = 'flex';
 
-    // Visual update immediately
-    const badge = document.getElementById('user-notif-badge');
-    if (badge) badge.style.display = 'none';
-
     // --- FIX: Handle Batch Limits (Chunking) ---
     db.collection(`users/${currentUser.uid}/notifications`)
         .where('read', '==', false)
@@ -3954,9 +3954,9 @@ function toggleUserNotif() {
             if (snap.empty) return;
 
             // Firestore batch limit is 500 operations. We chunk it to be safe.
-            const chunkSize = 400; 
+            const chunkSize = 400;
             const chunks = [];
-            
+
             for (let i = 0; i < snap.docs.length; i += chunkSize) {
                 chunks.push(snap.docs.slice(i, i + chunkSize));
             }
@@ -4530,9 +4530,9 @@ function requestUserNotifications() {
     Notification.requestPermission().then(permission => {
         if (permission === 'granted') {
             navigator.serviceWorker.ready.then((registration) => {
-                messaging.getToken({ 
-                    vapidKey: shopConfig.vapidKey, 
-                    serviceWorkerRegistration: registration 
+                messaging.getToken({
+                    vapidKey: shopConfig.vapidKey,
+                    serviceWorkerRegistration: registration
                 }).then((currentToken) => {
                     if (currentToken && currentUser) {
                         db.collection("users").doc(currentUser.uid).update({
@@ -4587,7 +4587,7 @@ function initUserNotifications(uid) {
             });
 
             list.innerHTML = html;
-            
+
             // Logic to toggle badge visibility
             if (unread > 0) {
                 badge.textContent = unread;
