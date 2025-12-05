@@ -1243,6 +1243,7 @@ function switchView(v) {
     const ov = document.getElementById('sidebar-overlay');
     if (ov) ov.style.display = 'none';
 
+    if (v === 'finance') loadFinance();
     if (v === 'orders') loadOrders();
     if (v === 'pos' && typeof renderPosProducts === 'function') renderPosProducts();
     if (v === 'reviews' && typeof loadReviews === 'function') loadReviews();
