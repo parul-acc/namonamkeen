@@ -663,15 +663,6 @@ exports.notifyUserStatusChange = functions.firestore
 // =====================================================
 
 // 11. Daily Report
-const functions = require("firebase-functions");
-const admin = require("firebase-admin");
-const nodemailer = require("nodemailer");
-
-// Ensure app is initialized
-if (!admin.apps.length) {
-    admin.initializeApp();
-}
-
 exports.dailyReport = functions.pubsub.schedule('every day 08:00')
     .timeZone('Asia/Kolkata') // Set your timezone
     .onRun(async (context) => {
