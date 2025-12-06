@@ -1755,11 +1755,16 @@ function resolveAlert(id) {
 
 function renderAdminCart() {
     const list = document.getElementById('pos-cart-list');
+    if (!list) return;
+
     list.innerHTML = '';
     let total = 0;
+    let itemCount = 0;
 
     adminCart.forEach((item, idx) => {
         total += item.price * item.qty;
+        itemCount += item.qty;
+
         list.innerHTML += `
         <div class="pos-cart-item">
             <div style="flex:1">
@@ -1778,35 +1783,37 @@ function renderAdminCart() {
     });
 
     // Handle Empty Cart
+    const footer = document.getElementById('pos-mobile-footer');
     if (adminCart.length === 0) {
         list.innerHTML = `
             <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; color:#999; padding:30px;">
                 <i class="fas fa-shopping-basket" style="font-size:2rem; margin-bottom:10px; opacity:0.3;"></i>
                 <p>Cart is Empty</p>
             </div>`;
-        // Hide footer if empty
-        document.getElementById('pos-mobile-footer').classList.add('hidden');
+        if (footer) footer.style.display = 'none'; // Hide footer if empty
     } else {
-        // Show footer if items exist
-        document.getElementById('pos-mobile-footer').classList.remove('hidden');
+        if (footer) footer.style.display = 'flex'; // Show footer
     }
 
-    // Calculate total item count
-    const itemCount = adminCart.reduce((sum, item) => sum + item.qty, 0);
+    // Update Main Total
+    const totalDisplay = document.getElementById('pos-total-display');
+    if (totalDisplay) totalDisplay.innerText = `₹${total.toLocaleString('en-IN')}`;
 
-    document.getElementById('pos-total-display').innerText = `₹${total.toLocaleString('en-IN')}`;
     // Update Mobile Floating Footer
-    document.getElementById('pmf-total').innerText = `₹${total.toLocaleString('en-IN')}`;
-    document.getElementById('pmf-count').innerText = `${itemCount} Items`;
-    list.scrollTop = list.scrollHeight;
+    const pmfTotal = document.getElementById('pmf-total');
+    const pmfCount = document.getElementById('pmf-count');
+    if (pmfTotal) pmfTotal.innerText = `₹${total.toLocaleString('en-IN')}`;
+    if (pmfCount) pmfCount.innerText = `${itemCount} Items`;
 }
 
 function togglePosCart(show) {
     const cartPanel = document.getElementById('mobile-pos-cart');
-    if (show) {
-        cartPanel.classList.add('active');
-    } else {
-        cartPanel.classList.remove('active');
+    if (cartPanel) {
+        if (show) {
+            cartPanel.classList.add('active');
+        } else {
+            cartPanel.classList.remove('active');
+        }
     }
 }
 
@@ -3193,16 +3200,23 @@ async function fetchPosCustomer(phoneNumber) {
                 nameInput.style.borderColor = "#2ecc71"; // Green border indicator
             }
 
-            // 2. Populate Address
+            // 2. Populate Address (only if fields exist)
             // Handle both new (addressDetails) and old (address string) formats
             if (userDoc.addressDetails) {
-                document.getElementById('pos-addr-street').value = userDoc.addressDetails.street || '';
-                document.getElementById('pos-addr-city').value = userDoc.addressDetails.city || 'Indore';
-                document.getElementById('pos-addr-pin').value = userDoc.addressDetails.pin || '';
+                const streetEl = document.getElementById('pos-addr-street');
+                const cityEl = document.getElementById('pos-addr-city');
+                const pinEl = document.getElementById('pos-addr-pin');
+
+                if (streetEl) streetEl.value = userDoc.addressDetails.street || '';
+                if (cityEl) cityEl.value = userDoc.addressDetails.city || 'Indore';
+                if (pinEl) pinEl.value = userDoc.addressDetails.pin || '';
             } else if (userDoc.address) {
                 // Fallback: Put the whole string in the street field
-                document.getElementById('pos-addr-street').value = userDoc.address;
-                document.getElementById('pos-addr-city').value = 'Indore';
+                const streetEl = document.getElementById('pos-addr-street');
+                const cityEl = document.getElementById('pos-addr-city');
+
+                if (streetEl) streetEl.value = userDoc.address;
+                if (cityEl) cityEl.value = 'Indore';
             }
 
             // Optional: Play a small success sound if sound enabled

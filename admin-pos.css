@@ -505,10 +505,22 @@
     }
 }
 
+/* --- MOBILE-ONLY ELEMENTS (Hidden on Desktop) --- */
 .mobile-only {
     display: none;
 }
 
 .pos-mobile-footer {
     display: none;
+}
+
+/* Show these elements ONLY on mobile */
+@media (max-width: 768px) {
+    .mobile-only {
+        display: inline-block;
+    }
+
+    .pos-mobile-footer {
+        display: flex !important;
+    }
 }

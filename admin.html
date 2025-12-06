@@ -301,50 +301,20 @@
                             style="margin-right:10px; border:none; font-size:1.2rem;">
                             <i class="fas fa-arrow-left"></i>
                         </button>
-
                         <h3><i class="fas fa-shopping-cart"></i> Current Order</h3>
-
-                        <button class="btn btn-sm btn-outline" onclick="adminCart=[]; renderAdminCart();">
-                            <i class="fas fa-trash"></i> Clear
-                        </button>
-                    </div>
-
-                    <div style="padding: 15px; border-bottom: 1px solid #f0f0f0; background:#fff;">
-                        <input type="tel" id="pos-phone" class="form-control" placeholder="Mobile Number (Auto-fetch) *"
-                            maxlength="10" autocomplete="off">
-                        <input type="text" id="pos-name" class="form-control" placeholder="Customer Name *"
-                            autocomplete="off">
-                    </div>
-
-                    <div id="pos-cart-list" class="pos-cart-list">
-                    </div>
-
-                    <div class="pos-total-section">
-                        <div
-                            style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-                            <span style="color:#666;">Total Amount</span>
-                            <span id="pos-total-display"
-                                style="font-size:1.5rem; font-weight:700; color:var(--dark);">₹0</span>
-                        </div>
-                        <button class="btn btn-primary" style="width:100%; padding:15px; font-size:1.1rem;"
-                            onclick="submitPosOrder()">
-                            Complete Order <i class="fas fa-arrow-right" style="margin-left:5px;"></i>
-                        </button>
                     </div>
                 </div>
             </div>
 
-
-        </div>
-
-        <div id="pos-mobile-footer" class="pos-mobile-footer" onclick="togglePosCart(true)">
-            <div class="pmf-info">
-                <span class="pmf-count" id="pmf-count">0 Items</span>
-                <span class="pmf-total" id="pmf-total">₹0</span>
+            <div id="pos-mobile-footer" class="pos-mobile-footer" onclick="togglePosCart(true)">
+                <div class="pmf-info">
+                    <span class="pmf-count" id="pmf-count">0 Items</span>
+                    <span class="pmf-total" id="pmf-total">₹0</span>
+                </div>
+                <button class="pmf-btn">
+                    Checkout <i class="fas fa-chevron-up"></i>
+                </button>
             </div>
-            <button class="pmf-btn">
-                Checkout <i class="fas fa-chevron-up"></i>
-            </button>
         </div>
 
 
