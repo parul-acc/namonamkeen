@@ -222,6 +222,10 @@ body {
     width: calc(100% - 260px);
     padding: 30px;
     transition: 0.3s;
+    /* ADD THESE LINES TO FIX LAYOUT & STICKY FOOTER */
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
 }
 
 .top-bar {
@@ -1022,6 +1026,10 @@ body.loading .main-content {
         width: 100%;
         padding: 15px 10px;
         overflow-x: hidden;
+        /* ADD THESE LINES TO FIX LAYOUT & STICKY FOOTER */
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
     }
 
     .sidebar {
@@ -1195,6 +1203,10 @@ body.loading .main-content {
         margin-left: 0;
         width: 100%;
         padding: 15px;
+        /* ADD THESE LINES TO FIX LAYOUT & STICKY FOOTER */
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
     }
 
     /* Top bar mobile */
@@ -1391,6 +1403,7 @@ body.loading .main-content {
     margin-top: 40px;
     border-top: 3px solid var(--primary);
     box-shadow: 0 -4px 6px -1px rgba(0, 0, 0, 0.1);
+    margin-top: auto;
 }
 
 .admin-footer::before {

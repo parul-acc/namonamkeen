@@ -349,3 +349,94 @@
         grid-template-columns: repeat(2, 1fr);
     }
 }
+
+/* Variant Select Dropdown in POS Card */
+.pos-var-select {
+    font-size: 0.75rem;
+    padding: 2px 4px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background: #f9fafb;
+    color: #374151;
+    max-width: 80px;
+    /* Prevent it from pushing the price off */
+    cursor: pointer;
+    outline: none;
+}
+
+.pos-var-select:focus {
+    border-color: #e85d04;
+}
+
+/* Ensure meta row aligns correctly */
+.pos-meta {
+    margin-top: auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height: 26px;
+    /* Fixed height to prevent jumping */
+}
+
+/* --- POS VARIANT SELECTOR STYLES --- */
+
+/* Variant Dropdown (Default Desktop) */
+.pos-var-select {
+    font-size: 0.75rem;
+    padding: 2px 0px;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    background: #f9fafb;
+    color: #374151;
+    width: 100%;
+    max-width: 85px;
+    /* Prevents pushing price off edge */
+    cursor: pointer;
+    outline: none;
+    transition: border-color 0.2s;
+
+    /* Text truncation for long variant names */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.pos-var-select:focus {
+    border-color: #e85d04;
+    background: #fff;
+}
+
+/* Meta Row Alignment */
+.pos-meta {
+    margin-top: auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height: 30px;
+    /* Fixed height prevents card jumping */
+    gap: 5px;
+}
+
+.pos-price {
+    white-space: nowrap;
+    flex-shrink: 0;
+    /* Ensures price never shrinks */
+}
+
+/* --- MOBILE TOUCH OPTIMIZATIONS (< 768px) --- */
+@media (max-width: 768px) {
+    .pos-var-select {
+        font-size: 0.8rem;
+        /* Larger text for readability */
+        padding: 5px 2px;
+        /* Larger touch target */
+        max-width: 55%;
+        /* Take up more space on mobile cards */
+        border-color: #ccc;
+    }
+
+    .pos-meta {
+        height: 34px;
+        /* Taller row for touch */
+    }
+}

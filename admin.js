@@ -2164,14 +2164,14 @@ function sanitizeUrl(url) {
 
 // --- ADD THIS TO THE BOTTOM OF admin.js ---
 
+// --- UPDATED POS RENDERING WITH VARIANTS ---
+
 function renderPosProducts() {
     const grid = document.getElementById('pos-grid');
     if (!grid) return;
 
     grid.innerHTML = '';
     const query = document.getElementById('pos-search').value.toLowerCase().trim();
-
-    // Use the inventory data already loaded in the 'state' object
     const products = state.inventory.data || [];
 
     const filtered = products.filter(p => {
@@ -2186,36 +2186,92 @@ function renderPosProducts() {
     }
 
     filtered.forEach(p => {
-        // Determine Price & Weight (Default to first variant or base price)
-        let price = p.price;
-        let weight = 'Std';
+        const img = p.image || 'logo.jpg';
+        let variantControl = '';
+        let priceDisplay = `₹${p.price}`;
+        let weightDisplay = 'Std';
 
-        if (p.variants && p.variants.length > 0) {
-            // Find first in-stock variant or just the first one
-            const v = p.variants.find(v => v.inStock !== false) || p.variants[0];
-            price = v.price;
-            weight = v.weight;
+        // LOGIC: If multiple variants, show Dropdown. Else show static weight.
+        if (p.variants && p.variants.length > 1) {
+            let optionsHtml = '';
+            p.variants.forEach((v, idx) => {
+                // Determine if we can sell this variant
+                const isOOS = (v.inStock === false); // Check explicit false
+                optionsHtml += `<option value="${idx}" data-price="${v.price}" ${isOOS ? 'disabled' : ''}>
+                    ${v.weight} ${isOOS ? '(OOS)' : ''}
+                </option>`;
+            });
+
+            // Set initial price to first variant
+            priceDisplay = `₹${p.variants[0].price}`;
+            variantControl = `
+                <select id="pos-var-${p.id}" class="pos-var-select" onclick="event.stopPropagation()" onchange="updatePosCardDisplay(this, '${p.id}')">
+                    ${optionsHtml}
+                </select>
+            `;
+        } else if (p.variants && p.variants.length === 1) {
+            priceDisplay = `₹${p.variants[0].price}`;
+            weightDisplay = p.variants[0].weight;
+            variantControl = `<span class="pos-weight">${escapeHtml(String(weightDisplay))}</span>`;
+        } else {
+            variantControl = `<span class="pos-weight">${escapeHtml(String(weightDisplay))}</span>`;
         }
 
-        const img = p.image || 'logo.jpg';
-        // Use an encoded name for the onclick and escape display values
-        const safeNameForClick = encodeURIComponent(p.name || '');
-
         grid.innerHTML += `
-            <div class="pos-card" onclick="addToAdminCart('${p.id}', '${safeNameForClick}', ${price}, '${weight}', '${sanitizeUrl(img)}')">
+            <div class="pos-card" onclick="addPosItemFromCard('${p.id}')">
                 <div class="pos-card-img-wrap">
                     <img src="${sanitizeUrl(img)}" onerror="this.src='logo.jpg'" loading="lazy">
+                    ${p.isFeatured ? '<span style="position:absolute; top:5px; right:5px; color:#f1c40f; background:rgba(0,0,0,0.5); padding:2px 5px; border-radius:4px; font-size:0.7rem;"><i class="fas fa-star"></i></span>' : ''}
                 </div>
                 <div class="pos-card-info">
                     <h4>${escapeHtml(String(p.name))}</h4>
                     <div class="pos-meta">
-                        <span class="pos-weight">${escapeHtml(String(weight))}</span>
-                        <span class="pos-price">₹${price}</span>
+                        ${variantControl}
+                        <span class="pos-price" id="pos-price-${p.id}">${priceDisplay}</span>
                     </div>
                 </div>
             </div>
         `;
     });
+}
+
+// Helper: Adds item to cart based on the SELECTED variant in the dropdown
+function addPosItemFromCard(id) {
+    const p = state.inventory.data.find(x => x.id == id);
+    if (!p) return;
+
+    let price = p.price;
+    let weight = 'Std';
+
+    // Check if there is a dropdown for this product
+    const select = document.getElementById(`pos-var-${id}`);
+    if (select) {
+        const idx = select.value;
+        const v = p.variants[idx];
+        if (v) {
+            price = v.price;
+            weight = v.weight;
+        }
+    } else if (p.variants && p.variants.length > 0) {
+        // Fallback for single variant
+        price = p.variants[0].price;
+        weight = p.variants[0].weight;
+    }
+
+    // Reuse existing logic (encoding name to match existing function signature)
+    addToAdminCart(p.id, encodeURIComponent(p.name), price, weight, p.image);
+}
+
+// Helper: Updates the price text when dropdown changes
+function updatePosCardDisplay(select, id) {
+    const price = select.options[select.selectedIndex].getAttribute('data-price');
+    const priceEl = document.getElementById(`pos-price-${id}`);
+    if (priceEl) {
+        priceEl.innerText = `₹${price}`;
+        // Optional: Add a flash effect to indicate change
+        priceEl.style.color = '#2ecc71';
+        setTimeout(() => priceEl.style.color = '', 300);
+    }
 }
 
 
