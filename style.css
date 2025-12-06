@@ -4893,3 +4893,68 @@ button {
 .sticky-cart-summary.visible {
     transform: translateY(0);
 }
+
+.inv-status-stamp {
+    position: absolute;
+    top: 150px;
+    right: 40px;
+    font-size: 3rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    border: 5px solid;
+    padding: 10px 20px;
+    border-radius: 10px;
+    transform: rotate(-15deg);
+    opacity: 0.3;
+    pointer-events: none;
+    z-index: 0;
+    display: none;
+    /* Hidden by default */
+}
+
+.inv-status-stamp.paid {
+    display: block;
+    color: #27ae60;
+    border-color: #27ae60;
+}
+
+.inv-status-stamp.due {
+    display: block;
+    color: #c0392b;
+    border-color: #c0392b;
+}
+
+/* Invoice Status Stamp */
+.inv-status-stamp {
+    position: absolute;
+    top: 140px;
+    right: 40px;
+    font-size: 2.5rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    border: 4px solid;
+    padding: 5px 15px;
+    border-radius: 8px;
+    transform: rotate(-15deg);
+    opacity: 0.4;
+    pointer-events: none;
+    z-index: 0;
+    display: none;
+    /* Hidden by default */
+    letter-spacing: 2px;
+}
+
+.inv-status-stamp.paid {
+    color: #27ae60;
+    border-color: #27ae60;
+}
+
+.inv-status-stamp.due {
+    color: #c0392b;
+    border-color: #c0392b;
+}
+
+/* Ensure container is relative for absolute positioning */
+.invoice-container {
+    position: relative;
+}

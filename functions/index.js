@@ -2,6 +2,7 @@ const functions = require("firebase-functions/v1");
 const admin = require("firebase-admin");
 const nodemailer = require("nodemailer");
 const Razorpay = require("razorpay");
+const crypto = require('crypto');
 const { defineString } = require("firebase-functions/params");
 
 admin.initializeApp();
@@ -662,35 +663,140 @@ exports.notifyUserStatusChange = functions.firestore
 // =====================================================
 
 // 11. Daily Report
-exports.dailyReport = functions.pubsub
-    .schedule('every day 09:00')
-    .timeZone('Asia/Kolkata')
+const functions = require("firebase-functions");
+const admin = require("firebase-admin");
+const nodemailer = require("nodemailer");
+
+// Ensure app is initialized
+if (!admin.apps.length) {
+    admin.initializeApp();
+}
+
+exports.dailyReport = functions.pubsub.schedule('every day 08:00')
+    .timeZone('Asia/Kolkata') // Set your timezone
     .onRun(async (context) => {
-        const yesterday = new Date();
-        yesterday.setDate(yesterday.getDate() - 1);
-        yesterday.setHours(0, 0, 0, 0);
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
 
-        const ordersSnap = await admin.firestore().collection('orders')
-            .where('timestamp', '>=', yesterday)
-            .where('timestamp', '<', today)
-            .get();
+        try {
+            const db = admin.firestore();
 
-        let revenue = 0;
-        ordersSnap.forEach(doc => {
-            const o = doc.data();
-            if (o.status !== 'Cancelled') revenue += o.total || 0;
-        });
+            // 1. Calculate Date Range (Yesterday)
+            const now = new Date();
+            const yesterday = new Date(now);
+            yesterday.setDate(yesterday.getDate() - 1);
 
-        const html = `<h3>Daily Report</h3><p>Revenue: ₹${revenue}</p>`;
-        await transporter.sendMail({
-            from: `"Namo Analytics" <${emailSender.value()}>`,
-            to: emailAdmin.value(),
-            subject: `📊 Daily Report: ₹${revenue}`,
-            html: html
-        });
-        return null;
+            // Start of yesterday (00:00:00)
+            const start = new Date(yesterday);
+            start.setHours(0, 0, 0, 0);
+
+            // End of yesterday (23:59:59)
+            const end = new Date(yesterday);
+            end.setHours(23, 59, 59, 999);
+
+            // 2. Fetch Orders
+            const snapshot = await db.collection('orders')
+                .where('createdAt', '>=', admin.firestore.Timestamp.fromDate(start))
+                .where('createdAt', '<=', admin.firestore.Timestamp.fromDate(end))
+                .get();
+
+            // 3. Process Data
+            let totalRevenue = 0;
+            let totalOrders = 0;
+            let deliveredCount = 0;
+            let productSales = {}; // Map to track quantity per product
+
+            snapshot.forEach(doc => {
+                const order = doc.data();
+                totalOrders++;
+                totalRevenue += (parseFloat(order.total) || 0);
+
+                if (order.status === 'Delivered') deliveredCount++;
+
+                // Track Product Sales (assuming order.items is an array)
+                if (order.items && Array.isArray(order.items)) {
+                    order.items.forEach(item => {
+                        const name = item.name || 'Unknown Item';
+                        const qty = parseInt(item.qty || 1);
+                        if (!productSales[name]) productSales[name] = 0;
+                        productSales[name] += qty;
+                    });
+                }
+            });
+
+            // Sort Top Products
+            const sortedProducts = Object.entries(productSales)
+                .sort(([, a], [, b]) => b - a)
+                .slice(0, 5); // Get top 5 items
+
+            // 4. Generate HTML Template
+            const dateStr = yesterday.toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
+            const htmlContent = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9f9f9;">
+            <div style="background-color: #2c3e50; color: white; padding: 20px; text-align: center; border-radius: 5px 5px 0 0;">
+                <h1 style="margin: 0; font-size: 24px;">Daily Sales Report</h1>
+                <p style="margin: 5px 0 0 0; opacity: 0.8;">${dateStr}</p>
+            </div>
+            
+            <div style="background-color: white; padding: 20px; border: 1px solid #ddd; border-top: none;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
+                    <div style="text-align: center; flex: 1; border-right: 1px solid #eee;">
+                        <div style="font-size: 12px; color: #7f8c8d;">TOTAL REVENUE</div>
+                        <div style="font-size: 20px; font-weight: bold; color: #27ae60;">₹${totalRevenue.toLocaleString('en-IN')}</div>
+                    </div>
+                    <div style="text-align: center; flex: 1; border-right: 1px solid #eee;">
+                        <div style="font-size: 12px; color: #7f8c8d;">TOTAL ORDERS</div>
+                        <div style="font-size: 20px; font-weight: bold; color: #2980b9;">${totalOrders}</div>
+                    </div>
+                    <div style="text-align: center; flex: 1;">
+                        <div style="font-size: 12px; color: #7f8c8d;">AVG VALUE</div>
+                        <div style="font-size: 20px; font-weight: bold; color: #8e44ad;">₹${totalOrders > 0 ? Math.round(totalRevenue / totalOrders) : 0}</div>
+                    </div>
+                </div>
+
+                <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
+
+                <h3 style="margin-top: 0; color: #34495e;">Top Selling Items</h3>
+                <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+                    <thead>
+                        <tr style="background-color: #f2f2f2; text-align: left;">
+                            <th style="padding: 10px; border-bottom: 2px solid #ddd;">Product Name</th>
+                            <th style="padding: 10px; border-bottom: 2px solid #ddd; text-align: right;">Qty Sold</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${sortedProducts.map(([name, qty]) => `
+                        <tr>
+                            <td style="padding: 10px; border-bottom: 1px solid #eee;">${name}</td>
+                            <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: right;">${qty}</td>
+                        </tr>
+                        `).join('')}
+                        ${sortedProducts.length === 0 ? '<tr><td colspan="2" style="padding:10px; text-align:center; color:#999;">No items sold yesterday</td></tr>' : ''}
+                    </tbody>
+                </table>
+            </div>
+            
+            <div style="text-align: center; font-size: 11px; color: #999; margin-top: 10px;">
+                Generated automatically by Namo Namkeen Admin Panel
+            </div>
+        </div>
+        `;
+
+            // 5. Send Email
+            const mailOptions = {
+                from: '"Namo Admin" <your-email@gmail.com>', // Match the auth user
+                to: "admin-email@example.com",               // REPLACE WITH RECEIVER EMAIL
+                subject: `Daily Report: ₹${totalRevenue} - ${dateStr}`,
+                html: htmlContent
+            };
+
+            await transporter.sendMail(mailOptions);
+            console.log('Daily report sent successfully');
+            return null;
+
+        } catch (error) {
+            console.error('Error sending daily report:', error);
+            return null;
+        }
     });
 
 // 12. Generate Custom Report
@@ -718,4 +824,40 @@ exports.generateReport = functions.https.onCall(async (data, context) => {
         inventory: { topProducts: [] },
         chartData: {}
     };
+});
+
+// --- FUNCTION 13: Verify Razorpay Payment (Secure Webhook/Callback) ---
+exports.verifyRazorpayPayment = functions.https.onCall(async (data, context) => {
+    const { orderId, paymentId, signature, razorpayOrderId } = data;
+
+    // 1. Get Secret
+    const secret = razorpayKeySecret.value() || process.env.RAZORPAY_KEY_SECRET;
+
+    // 2. Generate Signature
+    const generated_signature = crypto
+        .createHmac("sha256", secret)
+        .update(razorpayOrderId + "|" + paymentId)
+        .digest("hex");
+
+    // 3. Verify
+    if (generated_signature === signature) {
+        // Signature matched - Update Firestore
+        // Note: orderId here is the Firestore Document ID (ORD-XXX)
+        try {
+            await admin.firestore().collection("orders").doc(orderId).update({
+                paymentStatus: 'Paid',
+                transactionId: paymentId,
+                paymentVerified: true,
+                paidAt: admin.firestore.FieldValue.serverTimestamp()
+            });
+            return { success: true, message: "Payment Verified" };
+        } catch (e) {
+            console.error("DB Update Failed:", e);
+            throw new functions.https.HttpsError('internal', 'Database update failed');
+        }
+    } else {
+        // Invalid Signature
+        console.error("Signature Mismatch for Order:", orderId);
+        throw new functions.https.HttpsError('invalid-argument', 'Invalid Signature');
+    }
 });

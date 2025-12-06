@@ -413,11 +413,7 @@
         margin-bottom: 0 !important;
     }
 
-    #pos-addr-street,
-    #pos-addr-city,
-    #pos-addr-pin {
-        display: none;
-    }
+    /* Address fields are now visible on mobile - removed display:none */
 
     .pos-cart-list {
         max-height: 120px;

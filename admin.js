@@ -1834,8 +1834,8 @@ async function submitPosOrder() {
     const addressDetails = (street && pin) ? { street, city, pin, full: fullAddress } : null;
 
     phone = phone.replace('+91', '').replace(/[^0-9]/g, '');
-    const status = document.getElementById('pos-status').value;
-    const uid = `guest_${phone}`;
+    const status = 'Pending'; // Default status for POS orders
+    let uid = `guest_${phone}`; // Changed to let so we can reassign
     if (!name || !phone) return showToast("Enter Name & Phone", "error");
     if (adminCart.length === 0) return showToast("Cart Empty", "error");
     const total = adminCart.reduce((sum, i) => sum + (i.price * i.qty), 0);
@@ -1857,9 +1857,18 @@ async function submitPosOrder() {
         }
         const batch = db.batch();
         batch.set(db.collection("orders").doc(orderId), {
-            id: orderId, userId: uid, userName: name, userPhone: phone, userAddress: address,
-            items: adminCart, total: total, status: status, paymentMethod: 'Cash/UPI (POS)', paymentStatus: 'Paid', timestamp: new Date(), source: 'Admin POS',
+            id: orderId,
+            userId: uid,
+            userName: name,
+            userPhone: phone,
             userAddress: fullAddress,
+            items: adminCart,
+            total: total,
+            status: status,
+            paymentMethod: 'Cash/UPI (POS)',
+            paymentStatus: 'Paid',
+            timestamp: new Date(),
+            source: 'Admin POS',
             addressDetails: addressDetails,
         });
         batch.set(db.collection("users").doc(uid), {
