@@ -295,9 +295,15 @@
                     </div>
                 </div>
 
-                <div class="pos-right">
+                <div class="pos-right" id="mobile-pos-cart">
                     <div class="card-header">
+                        <button class="btn btn-sm btn-outline mobile-only" onclick="togglePosCart(false)"
+                            style="margin-right:10px; border:none; font-size:1.2rem;">
+                            <i class="fas fa-arrow-left"></i>
+                        </button>
+
                         <h3><i class="fas fa-shopping-cart"></i> Current Order</h3>
+
                         <button class="btn btn-sm btn-outline" onclick="adminCart=[]; renderAdminCart();">
                             <i class="fas fa-trash"></i> Clear
                         </button>
@@ -305,33 +311,12 @@
 
                     <div style="padding: 15px; border-bottom: 1px solid #f0f0f0; background:#fff;">
                         <input type="tel" id="pos-phone" class="form-control" placeholder="Mobile Number (Auto-fetch) *"
-                            maxlength="10" autocomplete="off" required>
+                            maxlength="10" autocomplete="off">
                         <input type="text" id="pos-name" class="form-control" placeholder="Customer Name *"
                             autocomplete="off">
-
-                        <div class="form-row-compact" style="display:flex; gap:10px; margin-top:8px;">
-                            <input type="text" id="pos-addr-street" class="form-control" placeholder="Address / Area"
-                                style="flex:2">
-                            <input type="text" id="pos-addr-city" class="form-control" placeholder="City" value="Indore"
-                                style="flex:1">
-                            <input type="number" id="pos-addr-pin" class="form-control" placeholder="Pin"
-                                style="flex:1">
-                        </div>
-
-                        <select id="pos-status" class="form-control" style="margin-top:8px; border-color:#2ecc71;">
-                            <option value="Delivered">Status: Delivered</option>
-                            <option value="Packed">Status: Packed</option>
-                            <option value="Pending">Status: Pending</option>
-                        </select>
                     </div>
 
                     <div id="pos-cart-list" class="pos-cart-list">
-                        <div
-                            style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; color:#ccc;">
-                            <i class="fas fa-cash-register"
-                                style="font-size:2rem; margin-bottom:10px; opacity:0.5;"></i>
-                            <p>Cart is Empty</p>
-                        </div>
                     </div>
 
                     <div class="pos-total-section">
@@ -348,7 +333,20 @@
                     </div>
                 </div>
             </div>
+
+
         </div>
+
+        <div id="pos-mobile-footer" class="pos-mobile-footer" onclick="togglePosCart(true)">
+            <div class="pmf-info">
+                <span class="pmf-count" id="pmf-count">0 Items</span>
+                <span class="pmf-total" id="pmf-total">₹0</span>
+            </div>
+            <button class="pmf-btn">
+                Checkout <i class="fas fa-chevron-up"></i>
+            </button>
+        </div>
+
 
         <div id="view-orders" class="view-section">
             <div class="stats-grid">
@@ -675,8 +673,7 @@
                         </select>
 
                         <button class="btn btn-primary full-width" onclick="saveSettings()"
-                            style="margin-top: 20px;">Update
-                            Announcement</button>
+                            style="margin-top: 20px;">Update Announcement</button>
                     </div>
                 </div>
 

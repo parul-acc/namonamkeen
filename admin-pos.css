@@ -260,18 +260,24 @@
 @media (max-width: 768px) {
     #view-pos {
         height: calc(100vh - 60px);
-    }
-
-    .pos-layout {
-        flex-direction: column;
+        padding-bottom: 70px !important;
+        /* Space for floating footer */
     }
 
     .pos-left {
         flex: 1;
         width: 100%;
         border-right: none;
-        border-bottom: 1px solid #e5e7eb;
-        order: 1;
+        height: 100%;
+        /* Full height for products */
+    }
+
+    .mobile-only {
+        display: inline-block;
+    }
+
+    .pos-layout {
+        flex-direction: column;
     }
 
     .pos-product-grid {
@@ -285,24 +291,82 @@
     }
 
     .pos-right {
-        flex: 0 0 auto;
-        height: auto;
-        max-height: 50vh;
+        position: fixed;
+        top: 0;
+        left: 0;
         width: 100%;
-        order: 2;
-        border-top: 2px solid #e85d04;
-        border-radius: 15px 15px 0 0;
-        box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
-        transition: max-height 0.3s ease;
+        height: 100%;
+        z-index: 2000;
+        transform: translateY(110%);
+        /* Hidden by default */
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: none;
+        border-radius: 0;
+        border-top: none;
     }
 
-    .pos-right .card-header {
-        padding: 8px 15px;
-        background: #e85d04;
-        color: white;
-        cursor: pointer;
+    .pos-right.active {
+        transform: translateY(0);
+        /* Slide up */
+    }
+
+    .pos-mobile-footer {
         display: flex;
         justify-content: space-between;
+        align-items: center;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        background: var(--dark);
+        color: white;
+        padding: 15px 20px;
+        z-index: 1000;
+        box-shadow: 0 -5px 15px rgba(0, 0, 0, 0.2);
+        cursor: pointer;
+        transition: transform 0.3s;
+    }
+
+    /* Hide footer when cart is empty (handled by JS) */
+    .pos-mobile-footer.hidden {
+        transform: translateY(100%);
+    }
+
+    .pmf-info {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .pmf-count {
+        font-size: 0.8rem;
+        opacity: 0.8;
+    }
+
+    .pmf-total {
+        font-size: 1.2rem;
+        font-weight: 700;
+    }
+
+    .pmf-btn {
+        background: var(--primary);
+        border: none;
+        color: white;
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-weight: 600;
+        font-size: 0.9rem;
+    }
+
+    /* Adjust Header for Modal Mode */
+    .pos-right .card-header {
+        padding: 15px;
+        background: white;
+        border-bottom: 1px solid #eee;
+    }
+
+    .pos-product-grid {
+        padding-bottom: 80px;
+        /* Ensure last product isn't hidden by footer */
     }
 
     .pos-right .card-header h3 {
@@ -439,4 +503,12 @@
         height: 34px;
         /* Taller row for touch */
     }
+}
+
+.mobile-only {
+    display: none;
+}
+
+.pos-mobile-footer {
+    display: none;
 }

@@ -1766,29 +1766,45 @@ function renderAdminCart() {
                 <div style="font-weight:600; font-size:0.9rem;">${escapeHtml(String(item.name))}</div>
                 <div style="font-size:0.8rem; color:#666;">₹${item.price} x ${item.qty}</div>
             </div>
-            
             <div class="pos-cart-controls">
                 <button class="pos-qty-btn" onclick="updatePosQty(${idx}, -1)">-</button>
                 <span style="font-weight:600; font-size:0.9rem; min-width:15px; text-align:center;">${item.qty}</span>
                 <button class="pos-qty-btn" onclick="updatePosQty(${idx}, 1)">+</button>
             </div>
-            
             <div style="font-weight:bold; margin-left:15px; min-width:50px; text-align:right; font-size:0.95rem;">
                 ₹${item.price * item.qty}
             </div>
         </div>`;
     });
 
+    // Handle Empty Cart
     if (adminCart.length === 0) {
         list.innerHTML = `
-            <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; color:#999;">
+            <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; color:#999; padding:30px;">
                 <i class="fas fa-shopping-basket" style="font-size:2rem; margin-bottom:10px; opacity:0.3;"></i>
                 <p>Cart is Empty</p>
             </div>`;
+        // Hide footer if empty
+        document.getElementById('pos-mobile-footer').classList.add('hidden');
+    } else {
+        // Show footer if items exist
+        document.getElementById('pos-mobile-footer').classList.remove('hidden');
     }
 
     document.getElementById('pos-total-display').innerText = `₹${total.toLocaleString('en-IN')}`;
+    // Update Mobile Floating Footer
+    document.getElementById('pmf-total').innerText = `₹${total.toLocaleString('en-IN')}`;
+    document.getElementById('pmf-count').innerText = `${itemCount} Items`;
     list.scrollTop = list.scrollHeight;
+}
+
+function togglePosCart(show) {
+    const cartPanel = document.getElementById('mobile-pos-cart');
+    if (show) {
+        cartPanel.classList.add('active');
+    } else {
+        cartPanel.classList.remove('active');
+    }
 }
 
 function updatePosQty(idx, change) {
@@ -1849,6 +1865,8 @@ async function submitPosOrder() {
         document.getElementById('pos-addr-street').value = '';
         document.getElementById('pos-addr-pin').value = '';
         showToast("Order Placed!", "success");
+        // ADD THIS LINE:
+        togglePosCart(false); // Close the mobile modal
         adminCart = []; renderAdminCart(); document.getElementById('pos-name').value = ''; document.getElementById('pos-phone').value = '';
         switchView('orders');
     } catch (e) { console.error(e); showToast("Error: " + e.message, "error"); }
@@ -1973,6 +1991,19 @@ function loadStoreConfig() {
             if (document.getElementById('conf-free-ship')) document.getElementById('conf-free-ship').value = data.freeShippingThreshold || '';
             if (data.minOrderValue) document.getElementById('conf-min-order').value = data.minOrderValue;
             if (data.vapidKey) document.getElementById('conf-vapid').value = data.vapidKey;
+
+            // Helper to safely set value
+            const setVal = (id, val) => {
+                const el = document.getElementById(id);
+                if (el) el.value = val || '';
+            };
+
+            setVal('conf-phone', data.adminPhone);
+            setVal('conf-upi', data.upiId);
+            setVal('conf-del-charge', data.deliveryCharge);
+            setVal('conf-free-ship', data.freeShippingThreshold);
+            setVal('conf-min-order', data.minOrderValue); // This line was causing Error 1
+            setVal('conf-vapid', data.vapidKey);         // This line was causing Error 1
         }
     }).catch(err => console.error("Config load error (first run?):", err));
 
@@ -1980,16 +2011,25 @@ function loadStoreConfig() {
     db.collection("settings").doc("layout").get().then(doc => {
         if (doc.exists) {
             const data = doc.data();
-            if (data.banners && Array.isArray(data.banners)) {
-                document.getElementById('banner-container').innerHTML = ''; // Clear default
-                data.banners.forEach(url => addBannerInput(url));
-            } else if (data.heroImage) {
-                addBannerInput(data.heroImage); // Fallback for old single image
-            } else {
-                addBannerInput(); // Empty start
+
+            // Safety check for banner container
+            const bannerContainer = document.getElementById('banner-container');
+            if (bannerContainer) {
+                if (data.banners && Array.isArray(data.banners)) {
+                    bannerContainer.innerHTML = ''; // This line was causing Error 2
+                    data.banners.forEach(url => addBannerInput(url));
+                } else if (data.heroImage) {
+                    addBannerInput(data.heroImage);
+                } else {
+                    addBannerInput();
+                }
             }
-            if (data.heroTitle) document.getElementById('layout-title').value = data.heroTitle;
-            if (data.heroSubtitle) document.getElementById('layout-subtitle').value = data.heroSubtitle;
+
+            const titleEl = document.getElementById('layout-title');
+            if (titleEl && data.heroTitle) titleEl.value = data.heroTitle;
+
+            const subEl = document.getElementById('layout-subtitle');
+            if (subEl && data.heroSubtitle) subEl.value = data.heroSubtitle;
         }
     });
 }
