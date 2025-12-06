@@ -1761,6 +1761,7 @@ function renderAdminCart() {
     let total = 0;
     let itemCount = 0;
 
+    // Render Items
     adminCart.forEach((item, idx) => {
         total += item.price * item.qty;
         itemCount += item.qty;
@@ -1773,33 +1774,34 @@ function renderAdminCart() {
             </div>
             <div class="pos-cart-controls">
                 <button class="pos-qty-btn" onclick="updatePosQty(${idx}, -1)">-</button>
-                <span style="font-weight:600; font-size:0.9rem; min-width:15px; text-align:center;">${item.qty}</span>
+                <span style="font-weight:600; font-size:0.9rem; min-width:20px; text-align:center;">${item.qty}</span>
                 <button class="pos-qty-btn" onclick="updatePosQty(${idx}, 1)">+</button>
             </div>
-            <div style="font-weight:bold; margin-left:15px; min-width:50px; text-align:right; font-size:0.95rem;">
+            <div style="font-weight:bold; margin-left:15px; min-width:60px; text-align:right; font-size:0.95rem;">
                 ₹${item.price * item.qty}
             </div>
         </div>`;
     });
 
-    // Handle Empty Cart
+    // Handle Empty State & Mobile Footer Visibility
     const footer = document.getElementById('pos-mobile-footer');
+
     if (adminCart.length === 0) {
         list.innerHTML = `
-            <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; color:#999; padding:30px;">
-                <i class="fas fa-shopping-basket" style="font-size:2rem; margin-bottom:10px; opacity:0.3;"></i>
+            <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:150px; color:#ccc;">
+                <i class="fas fa-shopping-basket" style="font-size:2rem; margin-bottom:10px; opacity:0.5;"></i>
                 <p>Cart is Empty</p>
             </div>`;
-        if (footer) footer.style.display = 'none'; // Hide footer if empty
+        if (footer) footer.classList.add('hidden'); // Hide footer
     } else {
-        if (footer) footer.style.display = 'flex'; // Show footer
+        if (footer) footer.classList.remove('hidden'); // Show footer
     }
 
-    // Update Main Total
+    // Update Desktop Total
     const totalDisplay = document.getElementById('pos-total-display');
     if (totalDisplay) totalDisplay.innerText = `₹${total.toLocaleString('en-IN')}`;
 
-    // Update Mobile Floating Footer
+    // Update Mobile Floating Footer Totals
     const pmfTotal = document.getElementById('pmf-total');
     const pmfCount = document.getElementById('pmf-count');
     if (pmfTotal) pmfTotal.innerText = `₹${total.toLocaleString('en-IN')}`;
@@ -1809,11 +1811,8 @@ function renderAdminCart() {
 function togglePosCart(show) {
     const cartPanel = document.getElementById('mobile-pos-cart');
     if (cartPanel) {
-        if (show) {
-            cartPanel.classList.add('active');
-        } else {
-            cartPanel.classList.remove('active');
-        }
+        if (show) cartPanel.classList.add('active');
+        else cartPanel.classList.remove('active');
     }
 }
 

@@ -283,25 +283,53 @@
                         <div style="position:relative; width:100%;">
                             <i class="fas fa-search"
                                 style="position:absolute; left:15px; top:50%; transform:translateY(-50%); color:#888;"></i>
-                            <input type="text" id="pos-search" class="search-input"
-                                placeholder="Search products (Name or ID)..." style="padding-left:40px; width:100%;"
-                                onkeyup="debouncedPosSearch()">
+                            <input type="text" id="pos-search" class="search-input" placeholder="Search products..."
+                                style="padding-left:40px; width:100%;" onkeyup="renderPosProducts()">
                         </div>
                     </div>
-                    <div id="pos-grid" class="pos-product-grid">
-                        <div style="text-align:center; padding:40px; color:#999; grid-column:1/-1;">
-                            <i class="fas fa-spinner fa-spin"></i> Loading Products...
-                        </div>
-                    </div>
+                    <div id="pos-grid" class="pos-product-grid"></div>
                 </div>
 
                 <div class="pos-right" id="mobile-pos-cart">
                     <div class="card-header">
                         <button class="btn btn-sm btn-outline mobile-only" onclick="togglePosCart(false)"
-                            style="margin-right:10px; border:none; font-size:1.2rem;">
-                            <i class="fas fa-arrow-left"></i>
+                            style="margin-right:10px; border:none; font-size:1.2rem; padding: 5px 10px;">
+                            <i class="fas fa-chevron-down"></i>
                         </button>
+
                         <h3><i class="fas fa-shopping-cart"></i> Current Order</h3>
+                        <button class="btn btn-sm btn-outline" onclick="adminCart=[]; renderAdminCart();">
+                            <i class="fas fa-trash"></i> Clear
+                        </button>
+                    </div>
+
+                    <div style="padding: 15px; border-bottom: 1px solid #f0f0f0; background:#fff;">
+                        <input type="tel" id="pos-phone" class="form-control" placeholder="Mobile Number *"
+                            maxlength="10">
+                        <input type="text" id="pos-name" class="form-control" placeholder="Customer Name *">
+                        <div class="form-row-compact" style="display:flex; gap:10px; margin-top:8px;">
+                            <input type="text" id="pos-addr-street" class="form-control" placeholder="Address"
+                                style="flex:2">
+                            <input type="text" id="pos-addr-city" class="form-control" placeholder="City" value="Indore"
+                                style="flex:1">
+                            <input type="number" id="pos-addr-pin" class="form-control" placeholder="Pin"
+                                style="flex:1">
+                        </div>
+                    </div>
+
+                    <div id="pos-cart-list" class="pos-cart-list"></div>
+
+                    <div class="pos-total-section">
+                        <div
+                            style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                            <span style="color:#666;">Total Amount</span>
+                            <span id="pos-total-display"
+                                style="font-size:1.5rem; font-weight:700; color:var(--dark);">₹0</span>
+                        </div>
+                        <button class="btn btn-primary" style="width:100%; padding:15px; font-size:1.1rem;"
+                            onclick="submitPosOrder()">
+                            Complete Order <i class="fas fa-check-circle" style="margin-left:5px;"></i>
+                        </button>
                     </div>
                 </div>
             </div>
