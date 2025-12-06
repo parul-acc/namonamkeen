@@ -4361,8 +4361,7 @@ button {
 
     /* Product Modal Sticky Footer */
     .pm-controls {
-        position: sticky;
-        bottom: 0;
+        position: relative;
         background: white;
         padding-top: 10px;
         border-top: 1px solid #eee;

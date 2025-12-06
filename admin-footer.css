@@ -1,0 +1,29 @@
+/* ===== FOOTER STYLING ===== */
+.admin-footer {
+    background: linear-gradient(135deg, #2c1810 0%, #4a2f1a 100%);
+    color: #f5f5f5;
+    text-align: center;
+    padding: 20px;
+    font-size: 0.9rem;
+    margin-top: 40px;
+    border-top: 3px solid var(--primary);
+    box-shadow: 0 -4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.admin-footer::before {
+    content: '';
+    display: block;
+    width: 60px;
+    height: 3px;
+    background: var(--primary);
+    margin: 0 auto 15px;
+    border-radius: 2px;
+}
+
+@media (max-width: 768px) {
+    .admin-footer {
+        padding: 15px;
+        font-size: 0.8rem;
+        margin-top: 30px;
+    }
+}
