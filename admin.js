@@ -1791,6 +1791,9 @@ function renderAdminCart() {
         document.getElementById('pos-mobile-footer').classList.remove('hidden');
     }
 
+    // Calculate total item count
+    const itemCount = adminCart.reduce((sum, item) => sum + item.qty, 0);
+
     document.getElementById('pos-total-display').innerText = `₹${total.toLocaleString('en-IN')}`;
     // Update Mobile Floating Footer
     document.getElementById('pmf-total').innerText = `₹${total.toLocaleString('en-IN')}`;
