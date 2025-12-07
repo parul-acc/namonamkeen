@@ -55,7 +55,7 @@ self.addEventListener('notificationclick', function (event) {
   );
 });
 
-const CACHE_NAME = 'namo-v39'; // Increment Version
+const CACHE_NAME = 'namo-v40'; // Increment Version
 const urlsToCache = [
   '/',
   '/index.html',
@@ -97,6 +97,12 @@ self.addEventListener('activate', event => {
 
 // 4. Fetch
 self.addEventListener('fetch', event => {
+  // IGNORE Firestore/Google API requests to prevent connection errors
+  if (event.request.url.includes('firestore.googleapis.com') ||
+    event.request.url.includes('googleapis.com')) {
+    return;
+  }
+
   event.respondWith(
     caches.match(event.request).then(response => {
       return response || fetch(event.request);

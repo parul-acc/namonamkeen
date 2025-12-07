@@ -502,42 +502,86 @@ exports.dailyProductAnalytics = functions.pubsub
     .schedule('every day 02:00')
     .timeZone('Asia/Kolkata')
     .onRun(async (context) => {
-        const thirtyDaysAgo = new Date();
-        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        const db = admin.firestore();
+        const now = new Date();
 
-        const ordersSnapshot = await admin.firestore().collection('orders')
-            .where('timestamp', '>=', thirtyDaysAgo)
+        // Define Time Ranges
+        const day30 = new Date(now); day30.setDate(day30.getDate() - 30);
+        const day60 = new Date(now); day60.setDate(day60.getDate() - 60);
+
+        // Fetch Orders from Last 60 Days (to calculate growth)
+        const ordersSnapshot = await db.collection('orders')
+            .where('timestamp', '>=', day60)
             .get();
 
         const productStats = {};
+
         ordersSnapshot.forEach(doc => {
             const order = doc.data();
-            if (order.items) {
+            // Skip cancelled orders if necessary
+            if (order.status === 'Cancelled') return;
+
+            const orderDate = order.timestamp.toDate();
+
+            // Determine Period
+            const isCurrentPeriod = orderDate >= day30; // Last 30 days
+            const isPreviousPeriod = orderDate < day30 && orderDate >= day60; // 30-60 days ago
+
+            if (order.items && Array.isArray(order.items)) {
                 order.items.forEach(item => {
                     if (!item.productId) return;
+
                     if (!productStats[item.productId]) {
                         productStats[item.productId] = {
                             productId: item.productId,
                             productName: item.name,
-                            totalRevenue: 0,
+                            currentRevenue: 0,
+                            prevRevenue: 0,
                             totalUnitsSold: 0
                         };
                     }
-                    productStats[item.productId].totalRevenue += (item.price * item.qty);
-                    productStats[item.productId].totalUnitsSold += item.qty;
+
+                    const amount = (item.price * item.qty);
+
+                    if (isCurrentPeriod) {
+                        productStats[item.productId].currentRevenue += amount;
+                        productStats[item.productId].totalUnitsSold += item.qty;
+                    } else if (isPreviousPeriod) {
+                        productStats[item.productId].prevRevenue += amount;
+                    }
                 });
             }
         });
 
-        const batch = admin.firestore().batch();
+        const batch = db.batch();
+
         Object.values(productStats).forEach(stats => {
-            const docRef = admin.firestore().collection('productAnalytics').doc(String(stats.productId));
+            const docRef = db.collection('productAnalytics').doc(String(stats.productId));
+
+            // 1. Calculate Average Price
+            const avgPrice = stats.totalUnitsSold > 0
+                ? (stats.currentRevenue / stats.totalUnitsSold)
+                : 0;
+
+            // 2. Calculate Growth Rate
+            let growthRate = 0;
+            if (stats.prevRevenue > 0) {
+                growthRate = ((stats.currentRevenue - stats.prevRevenue) / stats.prevRevenue) * 100;
+            } else if (stats.currentRevenue > 0) {
+                growthRate = 100; // 100% growth if no previous revenue
+            }
+
             batch.set(docRef, {
-                ...stats,
-                updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-                last30DaysRevenue: stats.totalRevenue
+                productId: stats.productId,
+                productName: stats.productName,
+                totalUnitsSold: stats.totalUnitsSold,
+                last30DaysRevenue: stats.currentRevenue,
+                averagePrice: avgPrice,
+                growthRate: growthRate,
+                updatedAt: admin.firestore.FieldValue.serverTimestamp()
             }, { merge: true });
         });
+
         await batch.commit();
         return null;
     });
@@ -850,5 +894,92 @@ exports.verifyRazorpayPayment = functions.https.onCall(async (data, context) => 
         // Invalid Signature
         console.error("Signature Mismatch for Order:", orderId);
         throw new functions.https.HttpsError('invalid-argument', 'Invalid Signature');
+    }
+});
+
+// --- FUNCTION 14: Email Custom Report ---
+exports.sendCustomReportEmail = functions.https.onCall(async (data, context) => {
+    if (!context.auth) throw new functions.https.HttpsError('unauthenticated', 'Auth required');
+
+    const { reportData } = data;
+    const { startDate, endDate, type } = reportData.meta;
+
+    const startStr = new Date(startDate).toLocaleDateString('en-IN');
+    const endStr = new Date(endDate).toLocaleDateString('en-IN');
+
+    // Build Email HTML based on Report Type
+    let detailsHtml = '';
+
+    if (type === 'inventory') {
+        detailsHtml = `
+            <h3>Top Selling Products</h3>
+            <table style="width:100%; border-collapse:collapse; text-align:left;">
+                <tr style="background:#eee;">
+                    <th style="padding:8px;">Product</th>
+                    <th style="padding:8px;">Units Sold</th>
+                </tr>
+                ${reportData.inventory.topProducts.map(p => `
+                    <tr>
+                        <td style="padding:8px; border-bottom:1px solid #ddd;">${p[0]}</td>
+                        <td style="padding:8px; border-bottom:1px solid #ddd;">${p[1]}</td>
+                    </tr>
+                `).join('')}
+            </table>`;
+    } else {
+        // Financials Table
+        detailsHtml = `
+            <h3>Expense Breakdown</h3>
+            <table style="width:100%; border-collapse:collapse; text-align:left;">
+                <tr style="background:#eee;">
+                    <th style="padding:8px;">Category</th>
+                    <th style="padding:8px;">Amount</th>
+                </tr>
+                ${Object.entries(reportData.financials.expenses).map(([cat, amt]) => `
+                    <tr>
+                        <td style="padding:8px; border-bottom:1px solid #ddd;">${cat}</td>
+                        <td style="padding:8px; border-bottom:1px solid #ddd;">₹${amt.toLocaleString()}</td>
+                    </tr>
+                `).join('')}
+            </table>`;
+    }
+
+    const htmlContent = `
+        <div style="font-family: Arial, sans-serif; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #ddd; padding: 20px;">
+            <div style="text-align: center; border-bottom: 2px solid #e85d04; padding-bottom: 10px; margin-bottom: 20px;">
+                <h2 style="color: #e85d04; margin: 0;">Namo Admin Report</h2>
+                <p style="color: #666; margin: 5px 0;">${type.toUpperCase()}</p>
+                <p style="font-size: 0.9em; color: #888;">${startStr} to ${endStr}</p>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px;">
+                <div style="background: #f9f9f9; padding: 10px; border-radius: 5px;">
+                    <strong style="display:block; color:#666; font-size:0.8em;">REVENUE</strong>
+                    <span style="font-size: 1.2em; color: #27ae60;">₹${reportData.financials.revenue.toLocaleString()}</span>
+                </div>
+                <div style="background: #f9f9f9; padding: 10px; border-radius: 5px;">
+                    <strong style="display:block; color:#666; font-size:0.8em;">NET PROFIT</strong>
+                    <span style="font-size: 1.2em; color: #2c3e50;">₹${reportData.financials.netProfit.toLocaleString()}</span>
+                </div>
+            </div>
+
+            ${detailsHtml}
+
+            <div style="margin-top: 30px; font-size: 0.8em; color: #999; text-align: center;">
+                Generated by Admin Panel on ${new Date().toLocaleString('en-IN')}
+            </div>
+        </div>
+    `;
+
+    try {
+        await transporter.sendMail({
+            from: `"Namo Reporting" <${emailSender.value()}>`,
+            to: emailAdmin.value(),
+            subject: `📊 ${type} Report (${startStr} - ${endStr})`,
+            html: htmlContent
+        });
+        return { success: true };
+    } catch (error) {
+        console.error("Email Error:", error);
+        throw new functions.https.HttpsError('internal', 'Failed to send email');
     }
 });

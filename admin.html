@@ -483,7 +483,7 @@
                         <option value="percent">Percentage (%)</option>
                         <option value="flat">Flat Amount (₹)</option>
                     </select>
-                    <input id="cpn-min" placeholder="Min Order ₹">
+                    <input type="number" id="cpn-min" class="form-control" placeholder="Min Order ₹">
                     <input type="number" id="cpn-value" class="form-control" placeholder="Value (e.g. 15)">
                     <input type="date" id="cpn-expiry" class="form-control">
                 </div>
@@ -713,12 +713,14 @@
             </div>
 
             <div id="report-results" style="display: none;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                    <h3 style="margin:0;">Report Results</h3>
+                    <button id="btn-email-report" class="btn btn-outline" onclick="emailCurrentReport()">
+                        <i class="fas fa-envelope"></i> Email to Admin
+                    </button>
+                </div>
 
                 <div class="stats-grid">
-                    <div class="stat-card border-green">
-                        <h3>Total Revenue</h3>
-                        <h1 id="rep-revenue">₹0</h1>
-                    </div>
                     <div class="stat-card border-red">
                         <h3>Total Expenses</h3>
                         <h1 id="rep-expense">₹0</h1>

@@ -43,6 +43,7 @@ let inventoryUnsubscribe = null;
 let couponsUnsubscribe = null;
 let blogsUnsubscribe = null;
 let expensesUnsubscribe = null;
+let currentReportData = null; // Store report data for emailing
 
 let salesChartInstance, productChartInstance, paymentChartInstance;
 const ITEMS_PER_PAGE = 10;
@@ -965,11 +966,20 @@ function renderOrderRows(tbody, items) {
             : '';
 
         // FIX: Use data attributes to store messy strings (addresses with quotes/newlines)
-        // instead of passing them directly into the onclick function which breaks syntax.
         const safeAddress = escapeHtml(o.userAddress);
 
         const cancelBtn = (o.status === 'Pending' || o.status === 'Packed') ?
             `<button class="icon-btn btn-danger" onclick="adminCancelOrder('${o.docId}')" title="Cancel Order"><i class="fas fa-ban"></i></button>` : '';
+
+        // --- NEW: Dynamic Action Button Logic ---
+        let actionBtn = '';
+        if (o.status === 'Pending') {
+            actionBtn = `<button class="icon-btn btn-green" onclick="setStatus('${o.docId}', 'Packed')" title="Mark Packed"><i class="fas fa-box"></i></button>`;
+        } else if (o.status === 'Packed') {
+            // Adds the Deliver button for packed items
+            actionBtn = `<button class="icon-btn btn-green" onclick="setStatus('${o.docId}', 'Delivered')" title="Mark Delivered"><i class="fas fa-truck"></i></button>`;
+        }
+        // ----------------------------------------
 
         tbody.innerHTML += `
             <tr class="${isHighValue}">
@@ -997,8 +1007,7 @@ function renderOrderRows(tbody, items) {
                     ${payBtn}
                     <button class="icon-btn" style="background:#555;" onclick="printPackingSlip('${o.docId}')" title="Print"><i class="fas fa-print"></i></button>
                     ${cancelBtn}
-                    ${o.status === 'Pending' ? `<button class="icon-btn btn-green" onclick="setStatus('${o.docId}', 'Packed')" title="Mark Packed"><i class="fas fa-box"></i></button>` : ''}
-                </td>
+                    ${actionBtn} </td>
             </tr>`;
     });
 }
@@ -1322,6 +1331,94 @@ function saveSettings() {
     const text = document.getElementById('setting-announce').value;
     const active = document.getElementById('setting-announce-active').value === 'true';
     db.collection("settings").doc("announcement").set({ text, active }, { merge: true }).then(() => showToast("Saved", "success"));
+}
+
+// --- ABANDONED CART LOGIC ---
+function loadAbandonedCarts() {
+    const tbody = document.getElementById('abandoned-body');
+    if (!tbody) return;
+
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:20px;">Loading abandoned carts...</td></tr>';
+
+    // Criteria: Cart updated between 7 days ago and 1 hour ago
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+
+    db.collection("users")
+        .where("lastCartUpdate", "<", oneHourAgo)
+        .where("lastCartUpdate", ">", sevenDaysAgo)
+        .orderBy("lastCartUpdate", "desc")
+        .limit(50)
+        .get()
+        .then(snap => {
+            if (snap.empty) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:20px;">No abandoned carts found in the last 7 days.</td></tr>';
+                return;
+            }
+
+            let html = '';
+            let count = 0;
+
+            snap.forEach(doc => {
+                const u = doc.data();
+                // Filter out empty carts or carts with 0 items
+                if (u.cart && u.cart.length > 0) {
+                    count++;
+                    const cartTotal = u.cart.reduce((acc, item) => acc + (item.price * item.qty), 0);
+
+                    // Create a summary of items (e.g., "2x Sev, 1x Chips...")
+                    const itemsSummary = u.cart.map(i => `${i.qty}x ${i.name}`).join(', ');
+
+                    // WhatsApp Reminder Link
+                    const cleanPhone = u.phone ? u.phone.replace(/\D/g, '') : '';
+                    let actionBtn = '<span class="text-muted" style="font-size:0.8rem;">No Phone</span>';
+
+                    if (cleanPhone.length >= 10) {
+                        const msg = `Hi ${u.name || 'there'}! 👋 We noticed you left some items in your cart at Namo Namkeen. Complete your order now before stock runs out! 🛒 https://namonamkeen.shop`;
+                        const waLink = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}`;
+                        actionBtn = `<a href="${waLink}" target="_blank" class="btn btn-green btn-sm" style="text-decoration:none;"><i class="fab fa-whatsapp"></i> Remind</a>`;
+                    }
+
+                    const lastActive = u.lastCartUpdate ? u.lastCartUpdate.toDate().toLocaleString('en-IN') : '-';
+
+                    html += `
+                        <tr>
+                            <td>
+                                <strong>${escapeHtml(u.name || 'Guest')}</strong><br>
+                                <small style="color:#888;">Last Active: ${lastActive}</small>
+                            </td>
+                            <td>${escapeHtml(u.phone || '-')}</td>
+                            <td>
+                                <div style="max-width:250px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${escapeHtml(itemsSummary)}">
+                                    ${escapeHtml(itemsSummary)}
+                                </div>
+                                <small style="color:#666;">${u.cart.length} Items</small>
+                            </td>
+                            <td style="font-weight:bold; color:var(--primary);">₹${cartTotal}</td>
+                            <td>${actionBtn}</td>
+                        </tr>
+                    `;
+                }
+            });
+
+            if (count === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:20px;">No active abandoned carts found (all empty).</td></tr>';
+            } else {
+                tbody.innerHTML = html;
+            }
+        })
+        .catch(err => {
+            console.error("Error loading abandoned carts:", err);
+            // Hint: Firestore might require a composite index for this query the first time
+            if (err.message.includes("index")) {
+                const indexUrl = err.message.match(/https:\/\/console\.firebase\.google\.com[^\s]*/);
+                if (indexUrl) {
+                    console.log("Create Index Here:", indexUrl[0]);
+                    showToast("Missing Index. Check Console.", "error");
+                }
+            }
+            tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:red; padding:20px;">Error: ${err.message}</td></tr>`;
+        });
 }
 
 function toggleStock(id, s) { db.collection("products").doc(id).update({ in_stock: s }); }
@@ -3068,14 +3165,40 @@ async function generateReport() {
     try {
         const generateFn = firebase.functions().httpsCallable('generateReport');
         const result = await generateFn({ startDate: start, endDate: end, type: type });
-        const data = result.data;
+        currentReportData = result.data; // <--- STORE DATA HERE
 
-        renderReportUI(data);
+        // Add date range for the email context
+        currentReportData.meta = {
+            startDate: start,
+            endDate: end,
+            type: type
+        };
+
+        renderReportUI(currentReportData);
     } catch (error) {
         console.error(error);
         showToast("Report Generation Failed: " + error.message, "error");
     } finally {
         setBtnLoading('btn-gen-report', false);
+    }
+}
+
+async function emailCurrentReport() {
+    if (!currentReportData) return showToast("Generate a report first", "error");
+
+    if (!await showConfirm("Send this report to Admin Email?")) return;
+
+    setBtnLoading('btn-email-report', true);
+
+    try {
+        const sendEmailFn = firebase.functions().httpsCallable('sendCustomReportEmail');
+        await sendEmailFn({ reportData: currentReportData });
+        showToast("Report sent successfully! 📧", "success");
+    } catch (e) {
+        console.error(e);
+        showToast("Failed to send email: " + e.message, "error");
+    } finally {
+        setBtnLoading('btn-email-report', false);
     }
 }
 

@@ -105,7 +105,8 @@ async function loadTopCustomers() {
 
         let html = '<div class="top-customers-list" style="display:flex; flex-direction:column; gap:10px;">';
 
-        topCustomersSnapshot.forEach((doc, index) => {
+        // 🔴 CHANGE THIS LINE: Use .docs.forEach instead of just .forEach
+        topCustomersSnapshot.docs.forEach((doc, index) => {
             const customer = doc.data();
             const segmentColor = {
                 'VIP': '#9b59b6',
@@ -157,12 +158,18 @@ async function loadProductPerformance() {
             const growthClass = (product.growthRate || 0) >= 0 ? 'positive' : 'negative';
             const growthColor = (product.growthRate || 0) >= 0 ? '#2ecc71' : '#e74c3c';
 
+            // --- FIX: Calculate Average Price dynamically ---
+            const revenue = product.last30DaysRevenue || 0;
+            const units = product.totalUnitsSold || 0;
+            // Prevent division by zero
+            const avgPrice = units > 0 ? Math.round(revenue / units) : 0;
+
             html += `
                 <tr>
                     <td><strong>${product.productName}</strong></td>
-                    <td>₹${(product.last30DaysRevenue || 0).toLocaleString('en-IN')}</td>
-                    <td>${product.totalUnitsSold || 0}</td>
-                    <td>₹${(product.averagePrice || 0).toLocaleString('en-IN')}</td>
+                    <td>₹${revenue.toLocaleString('en-IN')}</td>
+                    <td>${units}</td>
+                    <td>₹${avgPrice.toLocaleString('en-IN')}</td>
                     <td>${product.profitMargin ? product.profitMargin.toFixed(1) + '%' : 'N/A'}</td>
                     <td style="color:${growthColor}; font-weight:600;">
                         ${(product.growthRate || 0) > 0 ? '+' : ''}${(product.growthRate || 0).toFixed(1)}%
@@ -171,7 +178,7 @@ async function loadProductPerformance() {
             `;
         });
 
-        tbodyElement.innerHTML = html;
+        tbody.innerHTML = html;
 
     } catch (error) {
         console.error('Error loading product performance:', error);
