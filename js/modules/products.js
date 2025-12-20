@@ -1,6 +1,5 @@
 import { sanitizeHTML } from './utils.js';
-import { products, subscribeToRestock } from './data.js'; // Imports shared state
-import { openModal } from './ui.js';
+import { products } from './data.js'; // Imports shared state
 import { addToCart } from './cart.js'; // Added import
 
 let currentCategory = 'all';

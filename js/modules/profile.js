@@ -1,5 +1,5 @@
 
-import { db, auth, firebase } from './firebase-init.js';
+import { db } from './firebase-init.js';
 import { showToast, dbg } from './utils.js';
 import { currentUser, userProfile, setUserProfile } from './auth.js';
 

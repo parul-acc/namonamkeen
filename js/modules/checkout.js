@@ -1,5 +1,5 @@
 
-import { db, auth } from './firebase-init.js';
+import { db } from './firebase-init.js';
 import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-functions.js";
 import { doc, collection, writeBatch, increment, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 import { cart, updateCartUI, saveCartLocal, getCartTotals, appliedDiscount, resetCartDiscount } from './cart.js';

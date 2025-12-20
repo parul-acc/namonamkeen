@@ -1,5 +1,5 @@
 import { showToast, dbg } from './utils.js';
-import { products, shopConfig } from './data.js';
+import { products } from './data.js';
 import { db } from './firebase-init.js';
 import { currentUser, userProfile } from './auth.js';
 import { doc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";

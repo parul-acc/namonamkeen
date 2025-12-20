@@ -1,8 +1,9 @@
 
-import { db, auth, firebase } from './firebase-init.js';
+import { db } from './firebase-init.js';
+import { collection, query, where, orderBy, limit, getDocs, doc, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 import { showToast, dbg, escapeHtml } from './utils.js';
 import { currentUser } from './auth.js';
-import { cart, addToCart, updateCartUI, toggleCart, saveCartLocal } from './cart.js';
+import { addToCart, updateCartUI, toggleCart, saveCartLocal } from './cart.js';
 import { products } from './data.js';
 
 let historyOrders = [];
@@ -23,11 +24,15 @@ export function showOrderHistory() {
 
     content.innerHTML = '<p style="padding:20px; text-align:center;">Loading history...</p>';
 
-    db.collection("orders")
-        .where("userId", "==", currentUser.uid)
-        .orderBy("timestamp", "desc")
-        .limit(20)
-        .get()
+    // Query: db.collection("orders").where(...).orderBy(...).limit(20)
+    const q = query(
+        collection(db, "orders"),
+        where("userId", "==", currentUser.uid),
+        orderBy("timestamp", "desc"),
+        limit(20)
+    );
+
+    getDocs(q)
         .then(snap => {
             if (snap.empty) {
                 content.innerHTML = '<p style="padding:20px; text-align:center;">No past orders found.</p>';
@@ -37,9 +42,9 @@ export function showOrderHistory() {
             let html = '';
             historyOrders = [];
 
-            snap.forEach(doc => {
-                const o = doc.data();
-                o.docId = doc.id;
+            snap.forEach(docSnap => {
+                const o = docSnap.data();
+                o.docId = docSnap.id;
                 historyOrders.push(o);
 
                 const date = o.timestamp ? o.timestamp.toDate().toLocaleDateString() : 'N/A';
@@ -264,9 +269,10 @@ export async function repeatOrder(orderId) {
 export function cancelOrder(docId) {
     if (!confirm("Are you sure you want to cancel this order?")) return;
 
-    db.collection("orders").doc(docId).update({
+    const orderRef = doc(db, "orders", docId);
+    updateDoc(orderRef, {
         status: "Cancelled",
-        cancelledAt: new Date()
+        cancelledAt: serverTimestamp()
     }).then(() => {
         showToast("Order cancelled successfully.", "success");
         showOrderHistory(); // Refresh list
