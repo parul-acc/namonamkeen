@@ -8,6 +8,7 @@ import * as cart from './modules/cart.js';
 import * as checkout from './modules/checkout.js';
 import * as orders from './modules/orders.js';
 import * as auth from './modules/auth.js';
+import * as profile from './modules/profile.js';
 import './modules/firebase-init.js'; // Just Import to run init
 
 // --- EXPOSE TO WINDOW (The Bridge) ---
