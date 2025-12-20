@@ -958,15 +958,15 @@
         </div>
     </div>
 
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-
     <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-functions-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging-compat.js"></script>
-    <script src="script.js"></script>
+    <!-- MAIN MODULE (Firebase Loaded internally via Imports) -->
+    <script type="module" src="js/main.js"></script>
+    <!-- Fallback for older browsers if needed, though most support modules now -->
+    <script nomodule src="script.js"></script>
+
 </body>
+
+</html>
 
 </html>

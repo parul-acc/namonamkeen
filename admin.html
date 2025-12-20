@@ -20,11 +20,6 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
         integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-functions-compat.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 
@@ -898,7 +893,8 @@
             © 2025 Namo Namkeen Admin Panel. Designed by Parul Gangwal.
         </footer>
 
-        <script src="admin.js"></script>
+        <script type="module" src="js/admin.js"></script>
+        <script nomodule src="admin.js"></script>
         <script src="js/analytics-dashboard.js"></script>
         <script src="js/inventory-alerts.js"></script>
 </body>

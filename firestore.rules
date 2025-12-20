@@ -6,8 +6,14 @@ service cloud.firestore {
 
     // 1. Check if user is a verified Admin
     function isAdmin() {
-      return request.auth != null && 
-      (request.auth.token.email in ['parul19.accenture@gmail.com', 'namonamkeens@gmail.com', 'soramjain2297@gmail.com', 'ajmera.nidhishree@gmail.com']);
+      return request.auth != null && (
+        // Legacy Hardcoded List
+        request.auth.token.email in ['parul19.accenture@gmail.com', 'namonamkeens@gmail.com', 'soramjain2297@gmail.com', 'ajmera.nidhishree@gmail.com']
+        ||
+        // Dynamic DB Role (User Doc has role: 'admin')
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin')
+      );
     }
 
     // 2. Check if user is logged in
@@ -25,7 +31,9 @@ service cloud.firestore {
     // 1. PRODUCTS & INVENTORY
     match /products/{productId} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if isAdmin() && 
+                   request.resource.data.price is number && 
+                   request.resource.data.price >= 0;
     }
     
     // Inventory collection (used by functions/admin)
@@ -35,7 +43,12 @@ service cloud.firestore {
 
     // 2. ORDERS
     match /orders/{orderId} {
-      allow create: if true; // Guest Checkout
+      // Allow Create: Guest or Auth, but validate keys
+      allow create: if (isAuth() || true) && 
+                    request.resource.data.total is number && 
+                    request.resource.data.total >= 0 &&
+                    request.resource.data.items is list;
+      
       allow read: if isAdmin() || (isAuth() && resource.data.userId == request.auth.uid);
       allow update: if isAdmin() || (isAuth() && resource.data.userId == request.auth.uid && request.resource.data.status == 'Cancelled'); // Allow user to cancel if you have that feature
       allow delete: if isAdmin();
