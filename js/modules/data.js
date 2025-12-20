@@ -91,7 +91,7 @@ export function fetchData(callbacks) {
 // --- USER PROFILE ---
 export function loadUserProfile(uid) {
     const ref = doc(db, "users", uid);
-    getDoc(ref).then(snap => {
+    return getDoc(ref).then(snap => {
         if (snap.exists()) {
             userProfile = snap.data();
         } else {
@@ -104,6 +104,7 @@ export function loadUserProfile(uid) {
             setDoc(ref, newUser, { merge: true });
             userProfile = newUser;
         }
+        return userProfile;
     });
 }
 
