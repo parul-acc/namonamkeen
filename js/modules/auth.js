@@ -53,3 +53,14 @@ export function logout() {
         setTimeout(() => window.location.reload(), 1000);
     });
 }
+
+export function handleLoginChoice(method) {
+    const m = document.getElementById('login-choice-modal');
+    if (m) m.style.display = 'none';
+
+    if (method === 'google') {
+        login();
+    } else {
+        showToast("Method not supported yet", "neutral");
+    }
+}

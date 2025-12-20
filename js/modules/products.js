@@ -1,6 +1,7 @@
 import { sanitizeHTML } from './utils.js';
 import { products, subscribeToRestock } from './data.js'; // Imports shared state
 import { openModal } from './ui.js';
+import { addToCart } from './cart.js'; // Added import
 
 let currentCategory = 'all';
 let searchQuery = '';
@@ -72,9 +73,8 @@ export function renderMenu() {
             displayPrice = firstActive ? firstActive.price : p.variants[0].price;
             if (!firstActive) isAvailable = false;
 
-            // Note: We need to expose `updateCardPrice` globally or handle change events cleanly.
-            // For now, using inline onchange="window.app.updateCardPrice(...)" approach in main.js bridge.
-            variantHtml = `<select class="variant-select" onchange="window.app.updateCardPrice(${p.id}, this.value)" onclick="event.stopPropagation()">`;
+            // Added ID to select
+            variantHtml = `<select class="variant-select" id="variant-select-${p.id}" onchange="window.app.updateCardPrice(${p.id}, this.value)" onclick="event.stopPropagation()">`;
             p.variants.forEach((v, index) => {
                 const stockStatus = (v.inStock !== false);
                 const disabledAttr = stockStatus ? '' : 'disabled';
@@ -123,4 +123,38 @@ export function renderMenu() {
         </div>`;
         grid.innerHTML += itemHtml;
     });
+}
+
+export function updateCardPrice(id, index) {
+    const p = products.find(x => x.id === id);
+    if (p && p.variants && p.variants[index]) {
+        const priceEl = document.getElementById(`price-${id}`);
+        if (priceEl) priceEl.innerText = `₹${p.variants[index].price}`;
+    }
+}
+
+export function addToCartFromGrid(id) {
+    const p = products.find(x => x.id === id);
+    if (!p) return;
+
+    let v = null;
+    const select = document.getElementById(`variant-select-${id}`);
+
+    if (select) {
+        v = p.variants[select.value];
+    } else if (p.variants && p.variants.length > 0) {
+        v = p.variants.find(vars => vars.inStock !== false) || p.variants[0];
+    } else {
+        v = { weight: 'Standard', price: p.price };
+    }
+
+    addToCart(p, v, 1);
+}
+
+export function buyNow(id) {
+    // Placeholder for buyNow logic if needed, or implement full logic
+    console.log("Buy Now clicked for", id);
+    // For now we can at least open product detail or add to cart
+    addToCartFromGrid(id); // Partial fallback
+    window.app.toggleCart(); // Open cart
 }

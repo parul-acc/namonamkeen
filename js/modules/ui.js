@@ -77,3 +77,8 @@ export function triggerExitPopup() {
         sessionStorage.setItem('namoExitShown', 'true');
     }
 }
+
+export function openLoginChoiceModal() {
+    const m = document.getElementById('login-choice-modal');
+    if (m) m.style.display = 'flex';
+}

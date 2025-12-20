@@ -28,13 +28,7 @@ Object.assign(window, window.app);
 // --- INITIALIZATION ---
 document.addEventListener('DOMContentLoaded', () => {
     // 1. Auth
-    auth.initAuthListener({
-        onUserChanged: (user) => {
-            // Update UI based on user state
-            const authSection = document.getElementById('user-auth-section'); // Example
-            // Logic to toggle login/profile buttons (simplified)
-        }
-    });
+    auth.initAuth();
 
     // 2. Load Data
     data.fetchData({
