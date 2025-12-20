@@ -3,6 +3,7 @@ import { collection, getDocs, doc, setDoc, deleteDoc, orderBy, query, serverTime
 import { showToast, safeCall, safeCSV } from './utils.js';
 
 let inventory = [];
+let filteredInventory = [];
 let currentInvPage = 1;
 const ITEMS_PER_PAGE = 20;
 
@@ -12,6 +13,7 @@ export function loadInventory() {
         inventory = [];
         snap.forEach(doc => inventory.push(doc.data()));
         inventory = inventory.filter(p => p.id !== 999);
+        filteredInventory = [...inventory];
 
         const inStock = inventory.filter(i => i.in_stock).length;
         document.getElementById('inv-total').innerText = inventory.length;
@@ -26,10 +28,21 @@ export function loadInventory() {
 }
 // ... (Render and modal logic is unchanged as it's pure JS) ...
 
+export function filterInventory() {
+    const term = document.getElementById('inv-search').value.toLowerCase();
+    filteredInventory = inventory.filter(p =>
+        p.name.toLowerCase().includes(term) ||
+        String(p.id).includes(term) ||
+        (p.category && p.category.toLowerCase().includes(term))
+    );
+    currentInvPage = 1;
+    renderInventoryTable();
+}
+
 function renderInventoryTable() {
     const start = (currentInvPage - 1) * ITEMS_PER_PAGE;
     const end = start + ITEMS_PER_PAGE;
-    const pageItems = inventory.slice(start, end);
+    const pageItems = filteredInventory.slice(start, end);
 
     const tbody = document.getElementById('inventory-body');
     if (!tbody) return;
@@ -78,7 +91,7 @@ function renderInventoryTable() {
 }
 
 export function changeInventoryPage(diff) {
-    const maxPage = Math.ceil(inventory.length / ITEMS_PER_PAGE);
+    const maxPage = Math.ceil(filteredInventory.length / ITEMS_PER_PAGE);
     const newPage = currentInvPage + diff;
     if (newPage > 0 && newPage <= maxPage) {
         currentInvPage = newPage;

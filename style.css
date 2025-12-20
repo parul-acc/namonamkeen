@@ -5258,9 +5258,77 @@ button {
     animation-delay: 0.2s;
 }
 
-.badge-item:nth-child(3) {
-    animation-delay: 0.3s;
+
+/* --- PREMIUM POLISH (USER PANEL) --- */
+
+/* 1. Global Typography & Smoothness */
+body {
+    -webkit-font-smoothing: antialiased;
+    letter-spacing: -0.01em;
+    /* Modern tight spacing */
 }
+
+/* 2. Button Micro-Interactions */
+.btn-primary,
+.btn-secondary,
+.btn-outline {
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    transform: translateZ(0);
+    /* Hardware accel */
+}
+
+.btn-primary:active,
+.btn-secondary:active {
+    transform: scale(0.96) !important;
+}
+
+.btn-primary:hover {
+    box-shadow: 0 8px 20px rgba(232, 93, 4, 0.3) !important;
+    transform: translateY(-2px);
+}
+
+/* 3. Product Card Lift */
+.product-card {
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+    /* Bouncy spring */
+    border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.product-card:hover {
+    transform: translateY(-8px) scale(1.01) !important;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.12) !important;
+    border-color: rgba(232, 93, 4, 0.2);
+}
+
+/* 4. Modal Softening */
+.modal-content {
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25) !important;
+    border: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+/* 5. Mobile Typography */
+@media (max-width: 768px) {
+    h1 {
+        font-size: 2.5rem !important;
+    }
+
+    h2 {
+        font-size: 1.8rem !important;
+    }
+
+    .container {
+        width: 92% !important;
+    }
+
+    /* Better touch targets */
+    .btn,
+    .nav-item {
+        min-height: 44px;
+    }
+}
+
 
 /* --- ADMIN MODAL ENHANCEMENTS --- */
 .modal-content.admin-modal {
