@@ -5,7 +5,9 @@ import * as data from './modules/data.js';
 import * as ui from './modules/ui.js';
 import * as products from './modules/products.js';
 import * as cart from './modules/cart.js';
-import * as auth from './modules/auth.js';
+import * as checkout from './modules/checkout.js';
+import * as orders from './modules/orders.js';
+import * as profile from './modules/profile.js';
 import './modules/firebase-init.js'; // Just Import to run init
 
 // --- EXPOSE TO WINDOW (The Bridge) ---
@@ -16,9 +18,10 @@ window.app = {
     ...ui,
     ...products,
     ...cart,
-    ...products,
-    ...cart,
     ...auth,
+    ...checkout,
+    ...orders,
+    ...profile,
 
     // Aliases for compatibility with old HTML onclicks
     filterMenu: products.setCategory,

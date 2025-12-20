@@ -37,3 +37,43 @@ function renderCustomerRows(list) {
         `;
     });
 }
+
+// --- MISSING FUNCTIONS ---
+
+export function filterCustomers() {
+    const q = document.getElementById('custSearch').value.toLowerCase();
+    const filtered = customers.filter(c =>
+        (c.name && c.name.toLowerCase().includes(q)) ||
+        (c.phone && c.phone.includes(q)) ||
+        (c.email && c.email.toLowerCase().includes(q))
+    );
+    renderCustomerRows(filtered);
+}
+
+export function exportCustomersToCSV() {
+    if (customers.length === 0) return alert("No data to export");
+
+    let csv = "Name,Phone,Email,Address,Segment,Total Spent\n";
+    customers.forEach(c => {
+        csv += `"${c.name || ''}","${c.phone || ''}","${c.email || ''}","${c.address || ''}","${c.segment || ''}","${c.totalSpent || 0}"\n`;
+    });
+
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `customers_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+}
+
+export function calculateSegments() {
+    // Placeholder for complex cloud function logic
+    alert("Segment calculation requested. This runs on the server daily.");
+}
+
+export function viewLeaderboard() {
+    // Basic sort by spend
+    const top = [...customers].sort((a, b) => (b.totalSpent || 0) - (a.totalSpent || 0)).slice(0, 20);
+    renderCustomerRows(top);
+    document.getElementById('custSearch').value = ''; // Clear search when showing top 20
+}

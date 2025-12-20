@@ -177,7 +177,53 @@ export function toggleAllOrders(source) {
     document.querySelectorAll('.order-checkbox').forEach(cb => cb.checked = source.checked);
 }
 // Export logic
-export function exportOrdersToCSV() { /* Simple JS Logic usually, reusing safeCSV */ }
+// Export logic
+export function exportOrdersToCSV() {
+    if (orders.length === 0) return showToast("No data", "info");
+
+    let csv = "ID,Date,Name,Phone,Total,Payment,Status\n";
+    orders.forEach(o => {
+        csv += `${o.id},"${formatDate(o.timestamp)}","${o.customerName || ''}","${o.userPhone}",${o.total},${o.paymentMethod},${o.status}\n`;
+    });
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `orders_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+}
+
+export function exportAllOrders() {
+    alert("This would trigger a full database export. Feature pending server implementation.");
+}
+
+export function bulkPrintSlips() {
+    const selected = getSelectedOrderIds();
+    if (selected.length === 0) return showToast("Select orders to print", "info");
+
+    const printOrders = orders.filter(o => selected.includes(o.id));
+    // Open a new window and write HTML for printing
+    const w = window.open('', '_blank');
+    w.document.write('<html><head><title>Print Slips</title></head><body>');
+    printOrders.forEach(o => {
+        w.document.write(`
+            <div style="border:1px solid #000; padding:20px; margin-bottom:20px; page-break-after:always;">
+                <h2>Packing Slip: ${o.id}</h2>
+                <p><strong>Customer:</strong> ${o.customerName}<br>Phone: ${o.userPhone}</p>
+                <p><strong>Address:</strong> ${o.userAddress || o.addressDetails?.full || 'N/A'}</p>
+                <p><strong>Items:</strong></p>
+                <ul>
+                    ${o.items.map(i => `<li>${i.qty} x ${i.name} (${i.weight})</li>`).join('')}
+                </ul>
+                <p><strong>Total:</strong> ₹${o.total} (${o.paymentMethod})</p>
+            </div>
+        `);
+    });
+    w.document.write('</body></html>');
+    w.document.close();
+    w.print();
+}
+
 export function changeOrderPage(diff) {
     currentOrderPage += diff;
     if (currentOrderPage < 1) currentOrderPage = 1;

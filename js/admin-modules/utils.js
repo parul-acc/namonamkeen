@@ -66,8 +66,18 @@ export function safeCSV(str) {
 export function formatDate(timestamp) {
     if (!timestamp) return '-';
     // Handle Firestore Timestamp or standard Date
-    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
     return date.toLocaleString('en-IN', {
         day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
     });
+}
+
+// Modal Helpers
+export function openModal(id) {
+    const m = document.getElementById(id);
+    if (m) m.style.display = 'flex';
+}
+
+export function closeModal(id) {
+    const m = document.getElementById(id);
+    if (m) m.style.display = 'none';
 }
