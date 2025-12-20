@@ -26,6 +26,6 @@ try {
     console.log("Messaging skipped/not supported");
 }
 
-enableIndexedDbPersistence(db).catch(err => console.log("Persistence:", err.code));
+// enableIndexedDbPersistence(db).catch(err => console.log("Persistence:", err.code));
 
 export { db, auth, functions, messaging };

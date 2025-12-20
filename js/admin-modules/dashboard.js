@@ -2,13 +2,23 @@ import { db } from './firebase-init.js';
 import { collection, query, where, getDocs, orderBy, limit } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 import { dbg, showToast, safeCall, formatDate } from './utils.js';
 
+import * as analytics from './analytics.js';
+import { loadStockAlerts } from './inventory-alerts.js';
+
 let dashboardFilter = 'All';
 
 // --- DASHBOARD INIT ---
 export function initDashboard() {
     dbg('Initializing Dashboard...');
     loadDashboardData(dashboardFilter);
-    loadLowStockAlerts();
+    loadStockAlerts();
+
+    // Initialize Analytics
+    analytics.loadEnhancedDashboard();
+    analytics.renderCustomerSegmentationChart();
+    analytics.loadTopCustomers();
+    analytics.loadProductPerformance();
+    analytics.renderRevenueByProductChart();
 }
 
 export function updateDashboardFilter(val) {
@@ -74,23 +84,7 @@ async function loadDashboardData(timeframe) {
     }
 }
 
-function loadLowStockAlerts() {
-    const q = query(collection(db, "restockAlerts"), where("acknowledged", "==", false));
-    getDocs(q).then(snap => {
-        const list = document.getElementById('low-stock-list');
-        const alertBox = document.getElementById('low-stock-alert');
-        if (snap.empty) {
-            alertBox.style.display = 'none';
-        } else {
-            alertBox.style.display = 'flex';
-            list.innerHTML = '';
-            snap.forEach(doc => {
-                const d = doc.data();
-                list.innerHTML += `<span class="badge badge-warning">${d.productName} (${d.currentStock})</span>`;
-            });
-        }
-    });
-}
+
 
 function updateCharts(revenueMap, paymentStats) {
     const ctxSales = document.getElementById('salesChart');

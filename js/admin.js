@@ -7,6 +7,7 @@ import * as orders from './admin-modules/orders.js';
 import * as users from './admin-modules/users.js';
 import * as coupons from './admin-modules/coupons.js';
 import * as settings from './admin-modules/settings.js';
+import * as analytics from './admin-modules/analytics.js';
 import { onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
 
 const auth = dbInit.auth;
@@ -18,13 +19,15 @@ window.adminApp = {
     ...orders,
     ...users,
     ...coupons,
-    ...settings
+    ...settings,
+    ...analytics
 };
 
 Object.assign(window, window.adminApp);
 
 document.addEventListener('DOMContentLoaded', () => {
     onAuthStateChanged(auth, user => {
+        document.body.classList.remove('loading');
         if (user) {
             const email = user.email;
             const ADMIN_EMAILS = ["parul19.accenture@gmail.com", "namonamkeens@gmail.com", "soramjain2297@gmail.com", "ajmera.nidhishree@gmail.com"];

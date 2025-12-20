@@ -122,6 +122,24 @@ export function updateCartUI() {
     // In full implementation, import appliedDiscount state or pass it in
     let finalTotal = subtotal; // Placeholder
     document.getElementById('cart-total').innerText = `₹${finalTotal}`;
+
+    // --- STICKY SUMMARY LOGIC ---
+    const stickySummary = document.getElementById('sticky-summary');
+    if (stickySummary) {
+        if (cart.length > 0) {
+            stickySummary.innerHTML = `
+                <div class="ss-info">
+                    <span class="ss-count">${cart.reduce((a, b) => a + b.qty, 0)} Items</span>
+                    <span class="ss-total">₹${finalTotal}</span>
+                </div>
+                <button onclick="window.app.toggleCart()">View Cart <i class="fas fa-chevron-up"></i></button>
+            `;
+            // Add class for animation
+            requestAnimationFrame(() => stickySummary.classList.add('visible'));
+        } else {
+            stickySummary.classList.remove('visible');
+        }
+    }
 }
 
 export function adjustQty(index, change) {
