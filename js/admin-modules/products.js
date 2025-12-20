@@ -39,8 +39,13 @@ function renderInventoryTable() {
         let stockDisplay = '';
         if (p.variants) {
             p.variants.forEach(v => {
-                const color = (v.inStock !== false) ? 'green' : 'red';
-                stockDisplay += `<div style="font-size:12px;"><span style="color:${color}">●</span> ${v.weight}: ₹${v.price}</div>`;
+                const qty = v.stockQty !== undefined ? v.stockQty : (v.inStock ? '100+' : 0);
+                const color = (qty > 10) ? 'green' : (qty > 0 ? 'orange' : 'red');
+                stockDisplay += `<div style="font-size:12px; margin-bottom:2px;">
+                    <span style="color:${color}">●</span> 
+                    <b>${v.weight}</b>: ₹${v.price} 
+                    <span style="color:#555; background:#eee; padding:0 4px; border-radius:3px; font-size:10px;">Qty: ${qty}</span>
+                </div>`;
             });
         } else {
             stockDisplay = `₹${p.price}`;
@@ -58,7 +63,7 @@ function renderInventoryTable() {
                     <span class="badge ${p.in_stock ? 'badge-success' : 'badge-danger'}">
                         ${p.in_stock ? 'In Stock' : 'Out'}
                     </span>
-                    ${p.stock !== undefined ? `<br><small>${p.stock} units</small>` : ''}
+                    ${p.totalStock !== undefined ? `<br><small>${p.totalStock} total</small>` : ''}
                 </td>
                 <td>
                     <button class="btn-icon" onclick="window.adminApp.openProductModal(${p.id})"><i class="fas fa-edit"></i></button>
@@ -113,10 +118,19 @@ export function addVariantRow(data = null) {
     const div = document.createElement('div');
     div.className = 'variant-row';
     div.innerHTML = `
-        <input placeholder="Weight (e.g. 200g)" value="${data ? data.weight : ''}" class="v-weight">
-        <input type="number" placeholder="Price" value="${data ? data.price : ''}" class="v-price">
-        <label><input type="checkbox" class="v-stock" ${!data || data.inStock !== false ? 'checked' : ''}> Stock</label>
-        <button onclick="this.parentElement.remove()" class="btn-icon text-red">&times;</button>
+        <div class="v-group">
+            <label>Weight / Size</label>
+            <input placeholder="e.g. 200g" value="${data ? data.weight : ''}" class="v-weight form-input">
+        </div>
+        <div class="v-group">
+            <label>Price (₹)</label>
+            <input type="number" placeholder="0" value="${data ? data.price : ''}" class="v-price form-input">
+        </div>
+        <div class="v-group">
+            <label>Stock Qty</label>
+            <input type="number" placeholder="0" value="${data && data.stockQty !== undefined ? data.stockQty : (data && data.inStock !== false ? 100 : 0)}" class="v-stock-qty form-input">
+        </div>
+        <button onclick="this.closest('.variant-row').remove()" class="btn-icon text-red delete-variant" title="Remove Variant">&times;</button>
     `;
     container.appendChild(div);
 }
@@ -126,15 +140,29 @@ export function saveProduct() {
     const isNew = !idVal;
 
     const variants = [];
+    let totalStock = 0;
+
     document.querySelectorAll('.variant-row').forEach(row => {
         const w = row.querySelector('.v-weight').value;
         const p = row.querySelector('.v-price').value;
-        const s = row.querySelector('.v-stock').checked;
-        if (w && p) variants.push({ weight: w, price: parseInt(p), inStock: s });
+        const q = row.querySelector('.v-stock-qty').value;
+
+        const qty = parseInt(q) || 0;
+        const price = parseInt(p) || 0;
+
+        if (w && price > 0) {
+            variants.push({
+                weight: w,
+                price: price,
+                stockQty: qty,
+                inStock: qty > 0 // Derived from quantity
+            });
+            totalStock += qty;
+        }
     });
 
     if (variants.length === 0) {
-        showToast("Add at least one variant", "error");
+        showToast("Add at least one valid variant", "error");
         return;
     }
 
@@ -147,7 +175,8 @@ export function saveProduct() {
         isFeatured: document.getElementById('p-featured').checked,
         variants: variants,
         price: variants[0].price,
-        in_stock: variants.some(v => v.inStock)
+        in_stock: totalStock > 0, // Global stock flag
+        totalStock: totalStock
     };
 
     const docId = isNew ? String(Date.now()) : String(idVal);

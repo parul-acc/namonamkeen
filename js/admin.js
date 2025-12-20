@@ -79,6 +79,14 @@ window.toggleSidebar = function () {
     o.style.display = s.classList.contains('active') ? 'block' : 'none';
 }
 
+window.changePage = function (section, diff) {
+    if (section === 'inventory') {
+        products.changeInventoryPage(diff);
+    } else if (section === 'orders') {
+        orders.changeOrderPage(diff);
+    }
+}
+
 window.logout = function () {
     signOut(auth).then(() => window.location.reload());
 }
