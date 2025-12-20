@@ -1,5 +1,7 @@
 
-import { db, auth, firebase } from './firebase-init.js';
+import { db, auth } from './firebase-init.js';
+import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-functions.js";
+import { doc, collection, writeBatch, increment, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 import { cart, updateCartUI, saveCartLocal, getCartTotals, appliedDiscount, resetCartDiscount } from './cart.js';
 import * as utils from './utils.js';
 import { currentUser, userProfile } from './auth.js';
@@ -99,7 +101,8 @@ export async function initiateRazorpayPayment() {
 
         try {
             // 1. Call Cloud Function
-            const createPaymentOrder = firebase.functions().httpsCallable('createPaymentOrder');
+            const functions = getFunctions();
+            const createPaymentOrder = httpsCallable(functions, 'createPaymentOrder');
             const result = await createPaymentOrder({
                 cart: cart,
                 discount: appliedDiscount
@@ -195,8 +198,8 @@ export async function saveOrderToFirebase(method, paymentStatus, txnId) {
     const deliveryNote = document.getElementById('delivery-note') ? document.getElementById('delivery-note').value.trim() : '';
 
     try {
-        const batch = db.batch();
-        const orderRef = db.collection("orders").doc(String(orderId));
+        const batch = writeBatch(db);
+        const orderRef = doc(db, "orders", String(orderId));
 
         batch.set(orderRef, {
             id: orderId,
@@ -217,18 +220,18 @@ export async function saveOrderToFirebase(method, paymentStatus, txnId) {
             status: 'Pending',
             paymentStatus: paymentStatus,
             transactionId: txnId || '',
-            timestamp: new Date()
+            timestamp: serverTimestamp()
         });
 
         // Update User Profile
-        const userRef = db.collection("users").doc(String(uid));
+        const userRef = doc(db, "users", String(uid));
 
         let userUpdateData = {
             name: uName,
             phone: phone,
             address: addrObj.full,
             addressDetails: addrObj,
-            lastOrder: new Date(),
+            lastOrder: serverTimestamp(),
             type: currentUser ? 'Registered' : 'Guest'
         };
         if (email) userUpdateData.email = email;
@@ -274,29 +277,29 @@ export async function saveOrderToFirebase(method, paymentStatus, txnId) {
 
             if (coinsEarned > 0) {
                 netWalletChange += coinsEarned;
-                const histRef = userRef.collection("wallet_history").doc();
+                const histRef = doc(collection(userRef, "wallet_history"));
                 batch.set(histRef, {
                     amount: coinsEarned,
                     type: 'credit',
                     description: `Earned from Order #${orderId}`,
-                    timestamp: new Date()
+                    timestamp: serverTimestamp()
                 });
             }
 
             if (appliedDiscount.type === 'loyalty') {
                 netWalletChange -= appliedDiscount.value;
-                const debitRef = userRef.collection("wallet_history").doc();
+                const debitRef = doc(collection(userRef, "wallet_history"));
                 batch.set(debitRef, {
                     amount: appliedDiscount.value,
                     type: 'debit',
                     description: `Redeemed on Order #${orderId}`,
-                    timestamp: new Date()
+                    timestamp: serverTimestamp()
                 });
             }
 
             if (netWalletChange !== 0) {
                 batch.update(userRef, {
-                    walletBalance: firebase.firestore.FieldValue.increment(netWalletChange)
+                    walletBalance: increment(netWalletChange)
                 });
             }
         }
@@ -307,10 +310,7 @@ export async function saveOrderToFirebase(method, paymentStatus, txnId) {
         showSuccessModal(orderId, finalTotal, method);
 
         // CLEAR CART
-        while (cart.length > 0) cart.pop(); // Empty the array in place if possible, or reset logic
-        // Better:
-        // Main cart reference is mutated by array methods? 'cart' is a const import, array mutation works.
-        // We'll trust cart.length = 0 works or splice.
+        while (cart.length > 0) cart.pop();
         cart.splice(0, cart.length);
 
         resetCartDiscount();
