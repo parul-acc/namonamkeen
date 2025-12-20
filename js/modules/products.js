@@ -101,7 +101,7 @@ export function renderMenu() {
         const itemHtml = `
         <div class="product-card ${cardClass}" onclick="window.app.openProductDetail(${p.id})">
             ${ribbonHTML}
-            <img src="${p.image}" class="product-img" loading="lazy" onerror="this.src='logo.jpg'">
+            <img src="${p.image}" class="product-img" loading="lazy" onload="this.classList.add('loaded')" onerror="this.src='logo.jpg'">
             <div class="product-info">
                 <h3>${sanitizeHTML(name)}</h3>
                 ${starHTML}
@@ -152,9 +152,127 @@ export function addToCartFromGrid(id) {
 }
 
 export function buyNow(id) {
-    // Placeholder for buyNow logic if needed, or implement full logic
-    console.log("Buy Now clicked for", id);
-    // For now we can at least open product detail or add to cart
     addToCartFromGrid(id); // Partial fallback
     window.app.toggleCart(); // Open cart
+}
+
+
+let currentModalQty = 1;
+
+export function openProductDetail(id) {
+    const p = products.find(x => x.id === id);
+    if (!p) return;
+
+    currentModalQty = 1;
+
+    // Check if openModal is available from imports, or manually set display
+    const m = document.getElementById('product-modal');
+    if (m) m.style.display = 'flex';
+
+    const name = currentLang === 'en' ? p.name : (p.nameHi || p.name);
+    const desc = currentLang === 'en' ? p.desc : (p.descHi || p.desc);
+    const category = p.category ? p.category.charAt(0).toUpperCase() + p.category.slice(1) : "Snacks";
+
+    let variantHtml = '';
+    let initialPrice = p.price;
+    let isAvailable = p.in_stock;
+
+    if (p.variants && p.variants.length > 0) {
+        const firstActive = p.variants.find(v => v.inStock !== false);
+        initialPrice = firstActive ? firstActive.price : p.variants[0].price;
+        if (!firstActive) isAvailable = false;
+
+        variantHtml = `<select id="modal-variant-select" class="pm-select" onchange="window.app.updateModalPrice(this)" style="margin-top:10px; width:100%; padding:8px; border-radius:5px; border:1px solid #ddd;">`;
+        p.variants.forEach((v, idx) => {
+            const stockStatus = (v.inStock !== false);
+            const disabledAttr = stockStatus ? '' : 'disabled';
+            const label = v.weight + (stockStatus ? '' : '');
+            const selectedAttr = (v.price === initialPrice && stockStatus) ? 'selected' : '';
+            variantHtml += `<option value="${idx}" data-price="${v.price}" ${disabledAttr} ${selectedAttr}>${label}</option>`;
+        });
+        variantHtml += `</select>`;
+    }
+
+    const shareUrl = `${window.location.origin}/?pid=${p.id}`;
+    let shareBtnHtml = '';
+    if (navigator.share) {
+        shareBtnHtml = `<button onclick="window.app.shareNative('${name.replace(/'/g, "\\'")}', '${shareUrl}')" style="background:none; border:none; color:var(--primary); font-size:1.2rem; cursor:pointer;" title="Share"><i class="fas fa-share-alt"></i></button>`;
+    }
+
+    const html = `
+        <div style="display: flex; flex-direction: column; height: 100%;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                ${shareBtnHtml}
+                <button onclick="window.app.closeProductModal()" style="background:none; border:none; color:#e85d04; font-size:1.8rem; cursor:pointer; line-height:1;">&times;</button>
+            </div>
+            <div style="text-align: center; margin-bottom: 15px;">
+                <img src="${p.image}" style="width: 200px; height: 200px; object-fit: cover; border-radius: 50%; box-shadow: 0 5px 15px rgba(0,0,0,0.1);" onerror="this.src='logo.jpg'">
+            </div>
+            <div style="flex-grow: 1;">
+                <h2 style="margin: 0; font-size: 1.6rem; color: #333;">${name}</h2>
+                <p style="color: #999; font-size: 0.85rem; margin: 2px 0 10px;">Category: ${category}</p>
+                <p style="color: #666; font-size: 0.95rem; line-height: 1.5;">${desc}</p>
+                ${variantHtml}
+                <h3 id="modal-price-display" style="color: #2ecc71; font-size: 1.8rem; margin: 15px 0 0;">₹${initialPrice}</h3>
+            </div>
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 20px; gap: 15px;">
+                <div style="display: flex; align-items: center; border: 1px solid #ddd; border-radius: 8px; overflow: hidden; height: 45px;">
+                    <button onclick="window.app.updateModalQty(-1)" style="width: 40px; height: 100%; border:none; background: #fff; font-size: 1.2rem; color: #666;">-</button>
+                    <span id="modal-qty-display" style="min-width: 30px; text-align: center; font-weight: bold; font-size: 1.1rem;">1</span>
+                    <button onclick="window.app.updateModalQty(1)" style="width: 40px; height: 100%; border:none; background: #fff; font-size: 1.2rem; color: #666;">+</button>
+                </div>
+                <button onclick="window.app.addToCartFromModal(${p.id})" 
+                    style="flex: 1; height: 45px; background: #e85d04; color: white; border: none; border-radius: 8px; font-size: 1.1rem; font-weight: 600; cursor: pointer;"
+                    ${!isAvailable ? 'disabled style="background:#ccc; cursor:not-allowed; flex:1; height:45px; border:none; border-radius:8px;"' : ''}>
+                    ${isAvailable ? 'Add' : 'Sold Out'}
+                </button>
+            </div>
+        </div>
+    `;
+
+    const body = document.getElementById('p-modal-body');
+    if (body) body.innerHTML = html;
+}
+
+export function closeProductModal() {
+    const m = document.getElementById('product-modal');
+    if (m) m.style.display = 'none';
+}
+
+export function updateModalQty(change) {
+    let newQty = currentModalQty + change;
+    if (newQty < 1) newQty = 1;
+    currentModalQty = newQty;
+    const d = document.getElementById('modal-qty-display');
+    if (d) d.innerText = currentModalQty;
+}
+
+export function updateModalPrice(selectElem) {
+    const price = selectElem.options[selectElem.selectedIndex].getAttribute('data-price');
+    const d = document.getElementById('modal-price-display');
+    if (d) d.innerText = `₹${price}`;
+}
+
+export function addToCartFromModal(id) {
+    const p = products.find(x => x.id === id);
+    if (!p) return;
+
+    let v = null;
+    const select = document.getElementById('modal-variant-select');
+    if (select) {
+        v = p.variants[select.value];
+    } else if (p.variants && p.variants.length > 0) {
+        v = p.variants.find(vars => vars.inStock !== false) || p.variants[0];
+    } else {
+        v = { weight: 'Standard', price: p.price };
+    }
+
+    addToCart(p, v, currentModalQty);
+    closeProductModal();
+}
+
+export function shareNative(title, url) {
+    if (navigator.share) {
+        navigator.share({ title: title, url: url }).catch(console.error);
+    }
 }

@@ -16,7 +16,19 @@ window.app = {
     ...ui,
     ...products,
     ...cart,
-    ...auth
+    ...products,
+    ...cart,
+    ...auth,
+
+    // Aliases for compatibility with old HTML onclicks
+    filterMenu: products.setCategory,
+    openProductDetail: products.openProductDetail,
+    closeProductModal: products.closeProductModal,
+    updateModalPrice: products.updateModalPrice,
+    updateModalQty: products.updateModalQty,
+    addToCartFromModal: products.addToCartFromModal,
+    shareNative: products.shareNative,
+    playVideo: ui.playVideo
 };
 
 // Also expose widely used functions directly if needed (Optional, but safer to namespace)

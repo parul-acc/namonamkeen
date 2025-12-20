@@ -82,3 +82,7 @@ export function openLoginChoiceModal() {
     const m = document.getElementById('login-choice-modal');
     if (m) m.style.display = 'flex';
 }
+
+export function playVideo(url, el) {
+    el.innerHTML = `<video src="${url}" autoplay controls style="width:100%; height:100%; border-radius:20px; object-fit: cover;"></video>`;
+}
