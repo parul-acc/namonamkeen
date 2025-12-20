@@ -2,8 +2,20 @@ import { showToast, dbg } from './utils.js';
 
 // --- UI STATE ---
 let modalStack = [];
+let audioInstance = null;
 
 // --- EXPORTED UI FUNCTIONS ---
+export function playNotificationSound(url = 'assets/sounds/notification.mp3') {
+    if (!audioInstance) {
+        audioInstance = new Audio(url);
+    } else if (audioInstance.src !== url && !audioInstance.src.endsWith(url)) {
+        audioInstance.src = url;
+    }
+
+    // Play safely (browsers block auto-play without interaction, so catch error)
+    audioInstance.currentTime = 0;
+    audioInstance.play().catch(e => console.log('Audio play blocked:', e));
+}
 
 export function toggleCart() {
     const sidebar = document.getElementById('cart-sidebar');

@@ -7,12 +7,13 @@ import * as products from './modules/products.js';
 import * as cart from './modules/cart.js';
 import * as checkout from './modules/checkout.js';
 import * as orders from './modules/orders.js';
-import * as profile from './modules/profile.js';
+import * as auth from './modules/auth.js';
 import './modules/firebase-init.js'; // Just Import to run init
 
 // --- EXPOSE TO WINDOW (The Bridge) ---
 // This allows onclick="window.app.functionName()" in HTML
 window.app = {
+
     ...utils,
     ...data,
     ...ui,
@@ -34,21 +35,34 @@ window.app = {
     playVideo: ui.playVideo
 };
 
-// Also expose widely used functions directly if needed (Optional, but safer to namespace)
-// For now, we will ask the user to use window.app or update HTML to window.app.
-// BUT, to keep existing HTML working without finding/replacing 100s of onclicks:
-// We can try to map them to window.
 Object.assign(window, window.app);
 
 // --- INITIALIZATION ---
 document.addEventListener('DOMContentLoaded', () => {
-    // 1. Auth
+    // 1. Auth Subscription
     auth.initAuth();
+    auth.subscribeUser(profile => {
+        const nameDisplay = document.getElementById('user-name');
+        if (nameDisplay && profile) nameDisplay.innerText = profile.name || 'User';
+
+        const picDisplay = document.getElementById('user-pic');
+        if (picDisplay && profile && profile.photoURL) picDisplay.src = profile.photoURL;
+    });
 
     // 2. Load Data
     data.fetchData({
         onProductsLoaded: (allProducts) => {
             products.renderMenu();
+
+            // --- SEO: Check for Shared Link ---
+            const params = new URLSearchParams(window.location.search);
+            const pid = params.get('pid');
+            if (pid) {
+                // Determine if ID is string or int. JSON IDs are ints usually.
+                // We'll try parsing.
+                const id = parseInt(pid);
+                if (!isNaN(id)) products.openProductDetail(id);
+            }
         },
         onConfigLoaded: (config) => {
             cart.updateCartUI(); // Update fees
@@ -57,7 +71,4 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 3. Load Cart
     cart.loadCartLocal();
-
-    // 4. Global Listeners via UI module
-    // ui.setupGlobalListeners();
 });

@@ -2,7 +2,7 @@
 import { db, auth, firebase } from './firebase-init.js';
 import { cart, updateCartUI, saveCartLocal, getCartTotals, appliedDiscount, resetCartDiscount } from './cart.js';
 import * as utils from './utils.js';
-import { currentUser } from './auth.js';
+import { currentUser, userProfile } from './auth.js';
 import * as productsData from './data.js';
 
 // Helper to get address structure
@@ -171,16 +171,18 @@ export async function saveOrderToFirebase(method, paymentStatus, txnId) {
 
     const { subtotal, discountAmount, shipping, finalTotal } = getCartTotals();
 
-    // Generate ID
-    const generateShortId = () => {
+    // Generate Robust ID (ORD-XXXX-XXXX)
+    const generateOrderID = () => {
         const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
+        const array = new Uint8Array(8);
+        window.crypto.getRandomValues(array);
         let result = '';
-        for (let i = 0; i < 6; i++) {
-            result += chars.charAt(Math.floor(Math.random() * chars.length));
+        for (let i = 0; i < array.length; i++) {
+            result += chars.charAt(array[i] % chars.length);
         }
-        return result.slice(0, 3) + '-' + result.slice(3);
+        return result.slice(0, 4) + '-' + result.slice(4);
     };
-    const orderId = 'ORD-' + generateShortId();
+    const orderId = 'ORD-' + generateOrderID();
 
     let uid = currentUser ? currentUser.uid : `guest_${phone}`;
     let uName = "Guest";
@@ -233,6 +235,40 @@ export async function saveOrderToFirebase(method, paymentStatus, txnId) {
 
         // Loyalty Logic if registered
         if (currentUser) {
+            // --- MONTHLY STREAK LOGIC ---
+            const now = new Date();
+            const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+            let streak = userProfile && userProfile.monthlyStreak ? userProfile.monthlyStreak : 0;
+            const lastMonth = userProfile && userProfile.lastOrderMonth ? userProfile.lastOrderMonth : null;
+
+            if (lastMonth !== currentMonth) {
+                const d1 = new Date(currentMonth + '-01');
+                const d2 = lastMonth ? new Date(lastMonth + '-01') : new Date('2000-01-01');
+                const diffMonths = (d1.getFullYear() - d2.getFullYear()) * 12 + (d1.getMonth() - d2.getMonth());
+
+                if (diffMonths === 1) {
+                    streak++;
+                } else if (diffMonths > 1) {
+                    streak = 1;
+                } else if (streak === 0) {
+                    streak = 1;
+                }
+            }
+
+            // Unlock Badge
+            let newBadges = userProfile && userProfile.badges ? [...userProfile.badges] : [];
+            if (streak >= 1 && !newBadges.includes('monthly_muncher')) {
+                newBadges.push('monthly_muncher');
+                utils.showToast("🏆 You unlocked 'Monthly Muncher' Badge!", "success");
+            }
+
+            // Update user data object directly
+            userUpdateData.monthlyStreak = streak;
+            userUpdateData.lastOrderMonth = currentMonth;
+            userUpdateData.badges = newBadges;
+
+
             let netWalletChange = 0;
             const coinsEarned = Math.floor(finalTotal / 100);
 
@@ -312,7 +348,29 @@ export function showSuccessModal(orderId, amount, method) {
     window.open(waUrl, '_blank');
 
     const modal = document.getElementById('success-modal');
-    if (modal) modal.style.display = 'flex';
+    if (modal) {
+        modal.style.display = 'flex';
+
+        // GUEST CONVERSION OFFER
+        const existingBtn = document.getElementById('guest-convert-btn');
+        if (existingBtn) existingBtn.remove(); // Clean up previous
+
+        if (!currentUser) {
+            const phone = document.getElementById('cust-phone').value.trim();
+            const content = modal.querySelector('.modal-content') || modal.querySelector('div');
+
+            const btn = document.createElement('button');
+            btn.id = 'guest-convert-btn';
+            btn.className = 'btn-primary';
+            btn.style.marginTop = '15px';
+            btn.style.width = '100%';
+            btn.style.background = '#2ecc71'; // Green for distinct action
+            btn.innerHTML = `<i class="fas fa-magic"></i> Save details for 5% OFF next time!`;
+            btn.onclick = () => window.app.convertGuestToUser(orderId, phone);
+
+            if (content) content.appendChild(btn);
+        }
+    }
 }
 
 export function closeSuccessModal() {

@@ -21,6 +21,7 @@ const analytics = require("./src/analytics");
 exports.sendOrderConfirmation = notifications.sendOrderConfirmation;
 exports.notifyAdminNewOrder = notifications.notifyAdminNewOrder;
 exports.notifyUserStatusChange = notifications.notifyUserStatusChange;
+exports.checkAbandonedCarts = notifications.checkAbandonedCarts;
 
 // 2. Auth & OTP
 exports.sendWhatsAppOTP = auth.sendWhatsAppOTP;

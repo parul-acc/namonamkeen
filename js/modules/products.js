@@ -232,11 +232,47 @@ export function openProductDetail(id) {
 
     const body = document.getElementById('p-modal-body');
     if (body) body.innerHTML = html;
+
+    // --- SEO: Update URL & Meta ---
+    const newUrl = `?pid=${p.id}`;
+    if (window.location.search !== newUrl) {
+        window.history.pushState({ pid: p.id }, p.name, newUrl);
+    }
+    document.title = `${p.name} | Namo Namkeen`;
+
+    setMeta('og:title', `${p.name} | Namo Namkeen`);
+    setMeta('og:description', p.desc || "Indore's Famous Namkeen - Order Online!");
+    setMeta('og:image', p.image);
+    setMeta('og:url', window.location.href);
 }
 
 export function closeProductModal() {
     const m = document.getElementById('product-modal');
     if (m) m.style.display = 'none';
+
+    // --- SEO: Revert URL & Meta ---
+    // Only revert if we are actually close to root to avoid loop if user popped state
+    if (window.location.search.includes('pid=')) {
+        window.history.pushState({}, 'Namo Namkeen', window.location.pathname);
+    }
+    document.title = "Namo Namkeen | Indore's Famous Snacks";
+
+    // Reset OG Tags (Optional, or set to default site values)
+    setMeta('og:title', "Namo Namkeen | Indore's Famous Snacks");
+    setMeta('og:description', "Order authentic Indori Namkeen online. Sev, Mixture, and more!");
+    setMeta('og:image', 'logo.jpg'); // Default
+    setMeta('og:url', window.location.origin);
+}
+
+// Helper for Meta
+function setMeta(property, content) {
+    let tag = document.querySelector(`meta[property="${property}"]`);
+    if (!tag) {
+        tag = document.createElement('meta');
+        tag.setAttribute('property', property);
+        document.head.appendChild(tag);
+    }
+    tag.setAttribute('content', content);
 }
 
 export function updateModalQty(change) {

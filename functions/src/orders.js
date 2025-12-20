@@ -27,7 +27,21 @@ exports.createPaymentOrder = functions.https.onCall(async (data, context) => {
         let realPrice = productData.price;
         if (productData.variants) {
             const variant = productData.variants.find(v => v.weight === cartItem.weight);
-            if (variant) realPrice = variant.price;
+            if (variant) {
+                realPrice = variant.price;
+                if (variant.inStock === false) {
+                    throw new functions.https.HttpsError("failed-precondition", `Variant ${cartItem.name} (${cartItem.weight}) is out of stock.`);
+                }
+            } else {
+                // Logic hole: Cart has variant, but product data doesn't? Possible if admin edited product.
+                // We should probably fail or fallback. Let's fail safe.
+                throw new functions.https.HttpsError("not-found", `Variant ${cartItem.weight} for ${cartItem.name} no longer exists.`);
+            }
+        } else {
+            // Simple Product Check
+            if (!productData.in_stock) {
+                throw new functions.https.HttpsError("failed-precondition", `${cartItem.name} is out of stock.`);
+            }
         }
         calculatedSubtotal += (realPrice * cartItem.qty);
     }

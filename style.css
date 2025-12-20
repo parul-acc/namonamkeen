@@ -7,6 +7,13 @@
     --cream-bg: #fffaf0;
     --white: #ffffff;
     --shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+
+    /* --- Z-INDEX SCALE --- */
+    --z-base: 1;
+    --z-nav: 1000;
+    --z-overlay: 2000;
+    --z-modal: 3000;
+    --z-toast: 9999;
 }
 
 * {
@@ -78,7 +85,7 @@ h4 {
     padding: 15px 0;
     position: sticky;
     top: 0;
-    z-index: 1001;
+    z-index: var(--z-nav);
     box-shadow: 0 2px 15px rgba(0, 0, 0, 0.05);
 }
 
@@ -203,7 +210,7 @@ h4 {
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
     border-radius: 10px;
     padding: 10px 0;
-    z-index: 2000;
+    z-index: var(--z-overlay);
     border: 1px solid #eee;
     text-align: left;
 }
@@ -269,7 +276,7 @@ h4 {
     /* CHANGE: Dark Brand Background instead of White */
     background: var(--text-dark);
     box-shadow: -5px 0 30px rgba(0, 0, 0, 0.5);
-    z-index: 2005;
+    z-index: var(--z-overlay);
     /* Above everything */
     display: flex;
     flex-direction: column;
@@ -345,7 +352,7 @@ h4 {
     width: 30px;
     height: 25px;
     position: relative;
-    z-index: 2000;
+    z-index: var(--z-overlay);
     /* Super high to sit on top of sidebar */
     transition: 0.3s;
 }
@@ -4451,9 +4458,9 @@ button {
         height: 100vh;
         background: var(--text-dark);
         box-shadow: -5px 0 30px rgba(0, 0, 0, 0.5);
-        z-index: 2005;
+        z-index: var(--z-overlay);
         display: flex;
-        flexDirection: column;
+        flex-direction: column;
         padding-top: 20px;
         transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }

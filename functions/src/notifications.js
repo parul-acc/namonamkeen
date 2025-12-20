@@ -269,3 +269,69 @@ exports.notifyUserStatusChange = functions.firestore
             }
         });
     });
+
+// 11. Scheduled: Abandoned Cart Recovery
+exports.checkAbandonedCarts = functions.pubsub.schedule('every 60 minutes').onRun(async (context) => {
+    const now = admin.firestore.Timestamp.now();
+    const oneHourAgo = new Date(now.toDate().getTime() - 60 * 60 * 1000);
+    const twentyFourHoursAgo = new Date(now.toDate().getTime() - 24 * 60 * 60 * 1000);
+
+    // Query users who updated cart between 1hr and 24hr ago
+    // Note: Requires Composite Index likely. Or just simple query.
+    // Let's do simple: cartLastUpdated <= oneHourAgo
+    // We'll filter 24hr in code to avoid old carts
+
+    const usersRef = admin.firestore().collection('users');
+    const snapshot = await usersRef
+        .where('cartLastUpdated', '<=', admin.firestore.Timestamp.fromDate(oneHourAgo))
+        .where('cartLastUpdated', '>=', admin.firestore.Timestamp.fromDate(twentyFourHoursAgo))
+        .get();
+
+    if (snapshot.empty) {
+        console.log('No abandoned carts found.');
+        return null;
+    }
+
+    const batch = admin.firestore().batch();
+    let count = 0;
+
+    for (const doc of snapshot.docs) {
+        const user = doc.data();
+
+        // Skip if cart empty or already notified (we need a flag)
+        if (!user.cart || user.cart.length === 0) continue;
+        if (user.cartAbandonedNotified) continue; // Prevent spam
+
+        // Send Notification
+        const payload = {
+            notification: {
+                title: "Don't forget your snacks! 🛒",
+                body: "Your Namo Namkeen cart is waiting. Complete your order before items run out!"
+            },
+            data: { url: '/index.html#cart' }
+        };
+
+        // We assume token exists
+        const target = {};
+        if (user.fcmToken) target.tokens = [user.fcmToken];
+
+        // Send
+        await sendNotification(target, payload, {
+            collection: `users/${doc.id}/notifications`,
+            content: {
+                title: payload.notification.title,
+                message: payload.notification.body,
+                type: 'reminder',
+                link: '#cart'
+            }
+        });
+
+        // Mark as notified
+        batch.update(doc.ref, { cartAbandonedNotified: true });
+        count++;
+    }
+
+    if (count > 0) await batch.commit();
+    console.log(`Notified ${count} abandoned carts.`);
+    return null;
+});

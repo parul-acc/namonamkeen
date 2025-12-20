@@ -118,7 +118,8 @@ function renderBadges(unlockedIds) {
         { id: 'foodie', icon: 'fa-utensils', name: 'Foodie' },
         { id: 'vip', icon: 'fa-crown', name: 'VIP' },
         { id: 'legend', icon: 'fa-gem', name: 'Legend' },
-        { id: 'saver', icon: 'fa-piggy-bank', name: 'Saver' }
+        { id: 'saver', icon: 'fa-piggy-bank', name: 'Saver' },
+        { id: 'monthly_muncher', icon: 'fa-calendar-check', name: 'Monthly Muncher' }
     ];
 
     return allBadges.map(b => {
