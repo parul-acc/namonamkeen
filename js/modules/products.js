@@ -1,5 +1,5 @@
 import { sanitizeHTML } from './utils.js';
-import { products, requestRestock } from './data.js'; // Imports shared state
+import { products, subscribeToRestock } from './data.js'; // Imports shared state
 import { openModal } from './ui.js';
 
 let currentCategory = 'all';
