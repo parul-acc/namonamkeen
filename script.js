@@ -2474,15 +2474,13 @@ async function saveOrderToFirebase(method, paymentStatus, txnId) {
                 });
             }
 
-            // 3. SINGLE UPDATE to User Profile
+            // 3. Add wallet change to the profile update data
             if (netWalletChange !== 0) {
-                batch.update(userRef, {
-                    walletBalance: firebase.firestore.FieldValue.increment(netWalletChange)
-                });
+                userUpdateData.walletBalance = firebase.firestore.FieldValue.increment(netWalletChange);
             }
         }
 
-        // --- PERFORM SINGLE USER WRITE ---
+        // --- PERFORM SINGLE USER WRITE (All data consolidated) ---
         batch.set(userRef, userUpdateData, { merge: true });
 
         // --- C. COMMIT ---

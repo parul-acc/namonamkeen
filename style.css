@@ -3976,8 +3976,14 @@ button {
     font-size: 1.5rem;
     cursor: pointer;
     box-shadow: 0 4px 15px rgba(232, 93, 4, 0.4);
-    z-index: 9990;
+    z-index: 10001;
+    /* Very high z-index */
     transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    /* Mobile touch improvements */
+    -webkit-tap-highlight-color: rgba(232, 93, 4, 0.3);
+    touch-action: manipulation;
+    user-select: none;
+    -webkit-user-select: none;
 }
 
 .chat-widget-btn:hover {
