@@ -162,36 +162,37 @@ function fetchUserProfile(uid) {
                 initReferral(); // Call the generator function immediately
             }
 
-            // --- AUTO FILL CHECKOUT HERE ---
-            autoFillCheckout();
+            // REMOVED undefined call: autoFillCheckout();
 
-            // Auto-fill Checkout Fields
-            const nameInput = document.getElementById('cust-name'); // <--- NEW
+            // Auto-fill Checkout Fields (Safe Check)
+            const nameInput = document.getElementById('cust-name');
             const phoneInput = document.getElementById('cust-phone');
-            const emailInput = document.getElementById('cust-email'); // <--- NEW
+            const emailInput = document.getElementById('cust-email');
+            const streetInput = document.getElementById('cust-addr-street');
+            const cityInput = document.getElementById('cust-addr-city');
+            const pinInput = document.getElementById('cust-addr-pin');
 
             if (nameInput) {
-                // Use Profile Name -> Auth Name -> Empty
                 nameInput.value = userProfile.name || (currentUser.displayName || "");
             }
 
             if (phoneInput && !phoneInput.value && userProfile.phone) {
-                phoneInput.value = userProfile.phone.replace('+91', '');
+                // Strip +91 if present
+                phoneInput.value = userProfile.phone.toString().replace('+91', '');
             }
-            // Auto-fill Email (Priority: Profile Data > Auth Data)
+
             if (emailInput && !emailInput.value) {
                 emailInput.value = userProfile.email || (currentUser.email || "");
             }
 
-            // --- NEW AUTO-FILL LOGIC ---
+            // --- AUTO-FILL ADDRESS (Safe) ---
             if (userProfile.addressDetails) {
-                // If we have new structured data, use it
-                document.getElementById('cust-addr-street').value = userProfile.addressDetails.street || '';
-                document.getElementById('cust-addr-city').value = userProfile.addressDetails.city || 'Indore';
-                document.getElementById('cust-addr-pin').value = userProfile.addressDetails.pin || '';
+                if (streetInput) streetInput.value = userProfile.addressDetails.street || '';
+                if (cityInput) cityInput.value = userProfile.addressDetails.city || 'Indore';
+                if (pinInput) pinInput.value = userProfile.addressDetails.pin || '';
             } else if (userProfile.address) {
-                // Fallback for old data: Put everything in Street field
-                document.getElementById('cust-addr-street').value = userProfile.address;
+                // Fallback
+                if (streetInput) streetInput.value = userProfile.address;
             }
 
             const data = doc.data();
@@ -4998,4 +4999,16 @@ function loginWithGoogle() {
 function loginWithPhone() {
     showToast("Phone Login Coming Soon", "neutral");
     // Placeholder - usually involves reCAPTCHA and OTP input
+}
+
+function triggerExitPopup() {
+    // Only show if not already shown
+    if (sessionStorage.getItem('namoExitShown')) return;
+
+    // Check if exit popup modal exists
+    const modal = document.getElementById('exit-popup-modal');
+    if (modal) {
+        modal.style.display = 'flex';
+        sessionStorage.setItem('namoExitShown', 'true');
+    }
 }
