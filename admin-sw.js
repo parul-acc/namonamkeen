@@ -23,7 +23,7 @@ messaging.onBackgroundMessage(function (payload) {
   self.registration.showNotification(notificationTitle, notificationOptions);
 });
 
-const CACHE_NAME = 'namo-admin-v41';
+const CACHE_NAME = 'namo-admin-v50'; // Major Version Update
 const urlsToCache = [
   '/admin.html',
   '/admin.css',
@@ -52,8 +52,18 @@ self.addEventListener('activate', event => {
 });
 
 self.addEventListener('fetch', event => {
+  const req = event.request;
+
+  // Network First for Admin Files (Always Fresh)
   event.respondWith(
-    fetch(event.request).catch(() => caches.match(event.request))
+    fetch(req).then(networkRes => {
+      return caches.open(CACHE_NAME).then(cache => {
+        cache.put(req, networkRes.clone());
+        return networkRes;
+      });
+    }).catch(() => {
+      return caches.match(req);
+    })
   );
 });
 

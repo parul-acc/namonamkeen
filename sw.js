@@ -55,7 +55,7 @@ self.addEventListener('notificationclick', function (event) {
   );
 });
 
-const CACHE_NAME = 'namo-v41'; // Increment Version
+const CACHE_NAME = 'namo-v50'; // Major Version Update for Freshness
 const urlsToCache = [
   '/',
   '/index.html',
@@ -69,11 +69,9 @@ const urlsToCache = [
   'blog.html',
   'story.html',
   'faq.html',
-  // Cache FontAwesome (Critical for icons)
   'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css'
 ];
 
-// 2. Install
 self.addEventListener('install', event => {
   self.skipWaiting();
   event.waitUntil(
@@ -81,7 +79,6 @@ self.addEventListener('install', event => {
   );
 });
 
-// 3. Activate
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys().then(cacheNames => {
@@ -95,17 +92,47 @@ self.addEventListener('activate', event => {
   return self.clients.claim();
 });
 
-// 4. Fetch
+// 4. Fetch Strategy: Network First for Core Files, Cache First for Assets
 self.addEventListener('fetch', event => {
-  // IGNORE Firestore/Google API requests to prevent connection errors
+  // IGNORE Firestore/Google API requests
   if (event.request.url.includes('firestore.googleapis.com') ||
     event.request.url.includes('googleapis.com')) {
     return;
   }
 
-  event.respondWith(
-    caches.match(event.request).then(response => {
-      return response || fetch(event.request);
-    })
-  );
+  const req = event.request;
+  const url = new URL(req.url);
+
+  // NETWORK FIRST: HTML, JS, CSS, JSON (Ensure users see latest code/content)
+  if (req.mode === 'navigate' ||
+    url.pathname.endsWith('.html') ||
+    url.pathname.endsWith('.js') ||
+    url.pathname.endsWith('.css') ||
+    url.pathname.endsWith('.json')) {
+
+    event.respondWith(
+      fetch(req).then(networkRes => {
+        // Update cache with new version
+        return caches.open(CACHE_NAME).then(cache => {
+          cache.put(req, networkRes.clone());
+          return networkRes;
+        });
+      }).catch(() => {
+        // Fallback to cache if offline
+        return caches.match(req);
+      })
+    );
+  } else {
+    // CACHE FIRST: Images, Fonts, etc. (Performance)
+    event.respondWith(
+      caches.match(req).then(cachedRes => {
+        return cachedRes || fetch(req).then(networkRes => {
+          return caches.open(CACHE_NAME).then(cache => {
+            cache.put(req, networkRes.clone());
+            return networkRes;
+          });
+        });
+      })
+    );
+  }
 });
