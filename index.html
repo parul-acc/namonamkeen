@@ -954,10 +954,137 @@
         </div>
     </div>
 
+    <!-- --- INJECTED UI COMPONENTS --- -->
+
+    <!-- CART SIDEBAR -->
+    <div class="cart-overlay" onclick="toggleCart()"></div>
+    <div id="cart-sidebar" class="cart-sidebar">
+        <div class="cart-header">
+            <h3>Your Cart</h3>
+            <button class="close-cart" onclick="toggleCart()">&times;</button>
+        </div>
+        <div id="cart-items-container" class="cart-items">
+            <!-- Items go here -->
+        </div>
+        <div class="cart-footer">
+            <div class="cart-total-row"
+                style="display:flex; justify-content:space-between; margin-bottom:15px; font-weight:bold;">
+                <span>Total:</span>
+                <span id="cart-total">₹0</span>
+            </div>
+            <button id="btn-main-checkout" class="btn-primary full-width" onclick="handleCheckout()">Proceed to
+                Checkout</button>
+            <button class="btn-secondary full-width" onclick="clearCart()" style="margin-top:10px;">Clear Cart</button>
+        </div>
+    </div>
+
+    <!-- EXPRESS CHECKOUT MODAL -->
+    <div id="express-checkout-modal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>⚡ Express Checkout</h3>
+                <button class="close-modal" onclick="closeModal('express-checkout-modal')">&times;</button>
+            </div>
+            <div class="express-body">
+                <div class="express-product" style="display:flex; gap:10px; margin-bottom:15px;">
+                    <img id="express-img" src="" alt="Product"
+                        style="width:60px; height:60px; object-fit:cover; border-radius:8px;">
+                    <div>
+                        <h4 id="express-name" style="margin:0;">Product Name</h4>
+                        <small id="express-variant" style="color:#666;">Variant</small>
+                    </div>
+                </div>
+
+                <div class="express-details"
+                    style="margin:15px 0; padding:10px; background:#f9f9f9; border-radius:8px;">
+                    <p style="margin:0;"><strong>Delivering to:</strong> <br><span id="express-address"
+                            style="font-size:0.9rem;">Fetching address...</span></p>
+                </div>
+
+                <div class="express-summary" style="border-top:1px solid #eee; padding-top:10px;">
+                    <div class="summary-row" style="display:flex; justify-content:space-between;">
+                        <span>Subtotal</span><span id="exp-subtotal">₹0</span></div>
+                    <div class="summary-row" style="display:flex; justify-content:space-between;">
+                        <span>Shipping</span><span id="exp-shipping">Free</span></div>
+                    <div class="summary-row total"
+                        style="display:flex; justify-content:space-between; font-weight:bold; margin-top:5px;">
+                        <span>Total</span><span id="exp-total">₹0</span></div>
+                </div>
+
+                <div class="express-payment" style="margin-top:15px;">
+                    <label style="display:block; margin-bottom:5px;">Payment Method</label>
+                    <div class="radio-group" style="display:flex; gap:10px;">
+                        <label class="radio-card selected"
+                            style="flex:1; padding:8px; border:1px solid var(--primary); border-radius:4px;">
+                            <input type="radio" name="expressPaymentMethod" value="Online" checked
+                                onchange="toggleExpressPayUI()">
+                            <span>Online</span>
+                        </label>
+                        <label class="radio-card"
+                            style="flex:1; padding:8px; border:1px solid #ccc; border-radius:4px;">
+                            <input type="radio" name="expressPaymentMethod" value="COD" onchange="toggleExpressPayUI()">
+                            <span>COD</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer" style="margin-top:20px;">
+                <button id="btn-express-pay" class="btn-primary full-width" onclick="processExpressPay()">Pay
+                    Securely</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- OTHER MODALS -->
+    <div id="login-choice-modal" class="modal-overlay">
+        <div class="modal-content text-center">
+            <h3>Login to Namo</h3>
+            <button class="btn-primary full-width" onclick="loginWithGoogle()" style="margin-bottom:10px;">Login with
+                Google</button>
+            <button class="btn-secondary full-width" onclick="loginWithPhone()" style="margin-bottom:10px;">Login with
+                Phone</button>
+            <button class="close-text-btn" onclick="closeModal('login-choice-modal')">Cancel</button>
+        </div>
+    </div>
+
+    <div id="history-modal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header" style="display:flex; justify-content:space-between; align-items:center;">
+                <h3>Order History</h3>
+                <button onclick="closeHistory()"
+                    style="background:none; border:none; font-size:1.5rem;">&times;</button>
+            </div>
+            <div id="history-content" style="max-height:60vh; overflow-y:auto; margin-top:10px;"></div>
+        </div>
+    </div>
+
+    <div id="wallet-modal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header" style="display:flex; justify-content:space-between;">
+                <h3>My Wallet</h3>
+                <button onclick="closeModal('wallet-modal')">&times;</button>
+            </div>
+            <p style="padding:20px; text-align:center;">Balance: <strong>₹0</strong></p>
+        </div>
+    </div>
+
+    <div id="success-modal" class="modal-overlay">
+        <div class="modal-content text-center">
+            <div class="success-icon" style="font-size:3rem; color:green; margin-bottom:10px;"><i
+                    class="fas fa-check-circle"></i></div>
+            <h3>Order Placed!</h3>
+            <p id="success-msg">Your order has been confirmed.</p>
+            <button class="btn-primary" onclick="closeSuccessModal()">Continue Shopping</button>
+        </div>
+    </div>
+
+    <div id="fomo-popup" class="fomo-popup"></div>
+
     <script src="https://checkout.razorpay.com/v1/checkout.js" defer></script>
 
     <!-- MAIN MODULE (Firebase Loaded internally via Imports) -->
-    <script type="module" src="js/main.js"></script>
+    <!-- MAIN MODULE (Firebase Loaded internally via Imports) -->
+    <script src="script.js" defer></script>
     <!-- Fallback for older browsers if needed, though most support modules now -->
 
 
