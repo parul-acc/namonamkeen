@@ -1,4 +1,4 @@
-// --- 1. CONFIGURATION ---
+﻿// --- 1. CONFIGURATION ---
 const firebaseConfig = {
     apiKey: "AIzaSyB-Ep3yEAzFBlqOVGOxhjbmjwlSH0Xx5qU",
     authDomain: "namo-namkeen-app.firebaseapp.com",
@@ -1031,7 +1031,11 @@ function updateCartUI() {
 
         // Reset Badge & Totals
         if (document.getElementById('cart-total')) document.getElementById('cart-total').innerText = '₹0';
-        if (document.getElementById('cart-count')) document.getElementById('cart-count').innerText = '0';
+        const badge = document.getElementById('cart-count');
+        if (badge) {
+            badge.innerText = '0';
+            badge.style.display = 'none';
+        }
 
         const bottomBadge = document.getElementById('bottom-cart-count');
         if (bottomBadge) bottomBadge.style.display = 'none';
@@ -1127,7 +1131,10 @@ function updateCartUI() {
     if (totalEl) totalEl.innerText = '₹' + finalTotal.toLocaleString('en-IN');
 
     const countEl = document.getElementById('cart-count');
-    if (countEl) countEl.innerText = count;
+    if (countEl) {
+        countEl.innerText = count;
+        countEl.style.display = count > 0 ? 'flex' : 'none';
+    }
 
     // --- MOBILE BADGE FIX ---
     const bottomBadge = document.getElementById('bottom-cart-count');
@@ -1522,6 +1529,7 @@ function updateUserUI(loggedIn) {
 }
 
 function showOrderHistory() {
+
     ensureModalExists('history-modal'); // <--- Inject if missing
     ensureModalExists('invoice-modal'); // <--- Needed for invoice button inside history
 
@@ -1791,8 +1799,8 @@ function logout() {
     auth.signOut().then(() => location.reload());
 }
 function toggleProfileMenu() { document.getElementById('profile-menu').classList.toggle('active'); }
-function closeSuccessModal() { document.getElementById('success-modal').style.display = 'none'; }
-function toggleCouponList() { const l = document.getElementById('coupon-list'); l.style.display = l.style.display === 'none' ? 'block' : 'none'; }
+// (Duplicate closeSuccessModal removed)
+// (Duplicate toggleCouponList removed)
 function useCoupon(code) { document.getElementById('promo-code').value = code; applyPromo(); document.getElementById('coupon-list').style.display = 'none'; }
 function applyPromo() {
     const input = document.getElementById('promo-code').value.toUpperCase().trim();
@@ -3115,44 +3123,9 @@ function checkDeepLink() {
 }
 
 // 1. ADD THIS FUNCTION to view history
-function openWalletHistory() {
-    if (!currentUser) return;
-    document.getElementById('wallet-modal').style.display = 'flex';
-    const list = document.getElementById('wallet-history-list');
-    list.innerHTML = '<div style="text-align:center; padding:20px;"><i class="fas fa-spinner fa-spin"></i> Loading...</div>';
+// (Removed duplicate openWalletHistory)
 
-    db.collection("users").doc(currentUser.uid).collection("wallet_history")
-        .orderBy("timestamp", "desc").limit(50).get()
-        .then(snap => {
-            if (snap.empty) {
-                list.innerHTML = '<div style="text-align:center; padding:20px; color:#999;">No transactions yet.</div>';
-                return;
-            }
-
-            let html = '';
-            snap.forEach(doc => {
-                const t = doc.data();
-                const date = t.timestamp ? t.timestamp.toDate().toLocaleDateString() : '-';
-                const color = t.type === 'credit' ? 'green' : 'red';
-                const sign = t.type === 'credit' ? '+' : '-';
-
-                html += `
-              <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 0; border-bottom:1px solid #eee;">
-                  <div>
-                      <div style="font-weight:600; color:#333;">${t.description}</div>
-                      <div style="font-size:0.8rem; color:#888;">${date}</div>
-                  </div>
-                  <div style="font-weight:bold; color:${color}; font-size:1.1rem;">
-                      ${sign} ${t.amount}
-                  </div>
-              </div>`;
-            });
-            list.innerHTML = html;
-        }).catch(err => {
-            console.error("Error loading wallet history:", err);
-            list.innerHTML = '<div style="text-align:center; padding:20px; color:red;">Error loading wallet history</div>';
-        });
-}
+// (Duplicate wallet logic removed)
 
 // 1. Call this inside fetchUserProfile() or when opening profile modal
 async function initReferral() {
@@ -4923,52 +4896,10 @@ function clearCart() {
 }
 
 // 10. OPEN RECENT ORDERS
-function showOrderHistory() {
-    ensureModalExists('history-modal');
-    document.getElementById('history-modal').style.display = 'block'; // It's an overlay
-    document.getElementById('history-content').innerHTML = '<p style="padding:20px; text-align:center;">Loading...</p>';
+// (Removed duplicate showOrderHistory stub)
 
-    if (!currentUser) {
-        document.getElementById('history-content').innerHTML = '<p style="padding:20px; text-align:center;">Please login to view history.</p>';
-        return;
-    }
 
-    db.collection("orders")
-        .where("userId", "==", currentUser.uid)
-        .orderBy("timestamp", "desc")
-        .limit(10)
-        .get()
-        .then(snap => {
-            const list = document.getElementById('history-content');
-            list.innerHTML = '';
-            if (snap.empty) {
-                list.innerHTML = '<p style="padding:20px; text-align:center;">No past orders found.</p>';
-                return;
-            }
-            snap.forEach(doc => {
-                const d = doc.data();
-                const date = d.timestamp ? d.timestamp.toDate().toLocaleDateString() : 'N/A';
-                list.innerHTML += `
-                <div class="cart-item">
-                    <div>
-                        <strong>Order #${d.id}</strong>
-                        <div style="font-size:0.8rem; color:#666;">${date} • ₹${d.total}</div>
-                        <div style="font-size:0.8rem; color:${d.status === 'Delivered' ? 'green' : 'orange'};">${d.status}</div>
-                    </div>
-                    <button class="btn-primary" style="padding:5px 10px; font-size:0.8rem;" onclick="repeatOrder('${d.id}')">Repeat</button>
-                </div>
-              `;
-            });
-        })
-        .catch(e => {
-            console.error(e);
-            document.getElementById('history-content').innerHTML = '<p style="padding:20px; text-align:center;">Error loading history.</p>';
-        });
-}
 
-function closeHistory() {
-    document.getElementById('history-modal').style.display = 'none';
-}
 
 function repeatOrder(oid) {
     // Basic repeat logic stub
@@ -4979,7 +4910,64 @@ function repeatOrder(oid) {
 // 11. OPEN WALLET
 function openWalletHistory() {
     ensureModalExists('wallet-modal');
-    document.getElementById('wallet-modal').style.display = 'flex';
+    const modal = document.getElementById('wallet-modal');
+    modal.style.display = 'flex';
+
+    // Inject Structure if missing (ensure list container exists)
+    // We overwrite innerHTML to ensure clean state and correct structure
+    modal.querySelector('.modal-content').innerHTML = `
+        <div class="modal-header" style="display:flex; justify-content:space-between; align-items:center;">
+            <h3>My Wallet</h3>
+            <button onclick="closeModal('wallet-modal')" style="background:none; border:none; font-size:1.5rem;">&times;</button>
+        </div>
+        <div style="background: #f9f9f9; padding: 15px; border-radius: 8px; margin-bottom: 15px; text-align: center;">
+             <div style="font-size: 0.9rem; color: #666;">Current Balance</div>
+             <div style="font-size: 1.8rem; font-weight: bold; color: var(--primary);">
+                 ₹${(userProfile && userProfile.walletBalance) ? userProfile.walletBalance : 0}
+             </div>
+        </div>
+        <h4 style="margin-bottom: 10px; padding-bottom: 5px; border-bottom: 1px solid #eee;">Transaction History</h4>
+        <div id="wallet-history-list" style="max-height: 300px; overflow-y: auto;">
+            <div style="text-align:center; padding:20px;"><i class="fas fa-spinner fa-spin"></i> Loading...</div>
+        </div>
+    `;
+
+    if (!currentUser) {
+        document.getElementById('wallet-history-list').innerHTML = '<p style="text-align:center;">Please login.</p>';
+        return;
+    }
+
+    db.collection("users").doc(currentUser.uid).collection("wallet_history")
+        .orderBy("timestamp", "desc").limit(20).get()
+        .then(snap => {
+            const list = document.getElementById('wallet-history-list');
+            if (snap.empty) {
+                list.innerHTML = '<p style="text-align:center; color:#888; padding:20px;">No transactions yet.</p>';
+                return;
+            }
+            let html = '';
+            snap.forEach(doc => {
+                const t = doc.data();
+                const date = t.timestamp ? t.timestamp.toDate().toLocaleDateString() : '-';
+                const color = t.type === 'credit' ? 'green' : 'red';
+                const sign = t.type === 'credit' ? '+' : '-';
+                html += `
+                <div style="display:flex; justify-content:space-between; padding: 10px 0; border-bottom: 1px solid #eee;">
+                    <div>
+                        <div style="font-weight:600; font-size:0.9rem;">${t.description || 'Transaction'}</div>
+                        <div style="font-size:0.75rem; color:#888;">${date}</div>
+                    </div>
+                    <div style="font-weight:bold; color:${color};">
+                        ${sign} ₹${t.amount}
+                    </div>
+                </div>`;
+            });
+            list.innerHTML = html;
+        })
+        .catch(err => {
+            console.error(err);
+            document.getElementById('wallet-history-list').innerHTML = '<p style="text-align:center; color:red;">Failed to load history.</p>';
+        });
 }
 
 // 12. LOGOUT
@@ -4990,14 +4978,8 @@ function logout() {
     });
 }
 // --- HELPER FOR MODALS ---
-function ensureModalExists(modalId) {
-    const el = document.getElementById(modalId);
-    if (!el) {
-        console.error("Modal not found:", modalId);
-        showToast("Error: Modal missing " + modalId, "error");
-    }
-    return el;
-}
+// (Duplicate ensureModalExists removed - using version at line 1840)
+
 
 // --- MISSING AUTH FUNCTIONS ---
 function loginWithGoogle() {
