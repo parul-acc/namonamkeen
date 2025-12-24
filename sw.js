@@ -55,7 +55,7 @@ self.addEventListener('notificationclick', function (event) {
   );
 });
 
-const CACHE_NAME = 'namo-v40'; // Increment Version
+const CACHE_NAME = 'namo-v41'; // Increment Version
 const urlsToCache = [
   '/',
   '/index.html',

@@ -5414,3 +5414,31 @@ body {
     padding-right: 5px;
     margin-bottom: 15px;
 }
+
+/* --- NEW: Surprise Text Animation --- */
+.surprise-text {
+    color: var(--primary);
+    font-weight: bold;
+    font-size: 0.95rem;
+    margin-bottom: 20px;
+    background: #FFF3CD;
+    display: inline-block;
+    padding: 8px 15px;
+    border-radius: 30px;
+    border: 1px dashed var(--primary);
+    animation: pulseText 2s infinite;
+}
+
+@keyframes pulseText {
+    0% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.05);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}

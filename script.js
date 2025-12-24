@@ -675,7 +675,10 @@ function updateHamperUI() {
 function addHamperToCart() {
     if (selectedHamperItems.length !== 3) return;
     const price = shopConfig.hamperPrice || 250;
-    const names = selectedHamperItems.map(p => p.name).join(' + ');
+
+    // MODIFIED: Append the Surprise Gift to list of names
+    const names = selectedHamperItems.map(p => p.name).join(' + ') + " + Surprise Pack 🎁";
+
     cart.push({
         cartId: 'hamper-' + Date.now(),
         productId: 'HAMPER',
@@ -4444,8 +4447,8 @@ function buyNow(id) {
     };
 
     // 4. Check Address
-    if (!userProfile || !userProfile.address) {
-        // No address? Fallback to standard flow but with item added
+    if (!userProfile || (!userProfile.address && !userProfile.addressDetails)) {
+        // No address (legacy or new)? Fallback to standard flow
         addToCart(p, v, 1);
         showToast("Please save an address first", "neutral");
         openProfileModal(); // Ask to fill details
@@ -4555,7 +4558,7 @@ async function saveExpressOrder(method, status, txnId, items, total) {
         userId: currentUser.uid,
         userName: userProfile.name,
         userPhone: userProfile.phone,
-        userAddress: userProfile.address,
+        userAddress: userProfile.addressDetails ? (userProfile.addressDetails.full || userProfile.addressDetails.street + ", " + userProfile.addressDetails.city) : userProfile.address,
         items: items,
         total: total,
         paymentMethod: method,
@@ -4807,4 +4810,182 @@ function openSecureRazorpay(orderId, keyId, amount, userPhone) {
         toggleBtnLoading('btn-main-checkout', false);
     });
     rzp1.open();
+}
+
+// --- MISSING HELPER FUNCTIONS FIXED ---
+
+function toggleBodyScroll(lock) {
+    if (lock) {
+        document.body.style.overflow = 'hidden';
+    } else {
+        document.body.style.overflow = '';
+    }
+}
+
+function autoFillCheckout() {
+    if (!userProfile) return;
+
+    const nameInput = document.getElementById('cust-name');
+    const phoneInput = document.getElementById('cust-phone');
+    const emailInput = document.getElementById('cust-email');
+
+    if (nameInput && !nameInput.value) {
+        nameInput.value = userProfile.name || (currentUser ? currentUser.displayName : "") || "";
+    }
+
+    if (phoneInput && !phoneInput.value && userProfile.phone) {
+        phoneInput.value = userProfile.phone.replace('+91', '');
+    }
+
+    if (emailInput && !emailInput.value) {
+        emailInput.value = userProfile.email || (currentUser ? currentUser.email : "") || "";
+    }
+
+    // Try structured address first
+    if (userProfile.addressDetails) {
+        if (document.getElementById('cust-addr-street'))
+            document.getElementById('cust-addr-street').value = userProfile.addressDetails.street || '';
+
+        if (document.getElementById('cust-addr-city'))
+            document.getElementById('cust-addr-city').value = userProfile.addressDetails.city || 'Indore';
+
+        if (document.getElementById('cust-addr-pin'))
+            document.getElementById('cust-addr-pin').value = userProfile.addressDetails.pin || '';
+    }
+    // Fallback to legacy address field
+    else if (userProfile.address) {
+        if (document.getElementById('cust-addr-street'))
+            document.getElementById('cust-addr-street').value = userProfile.address;
+    }
+}
+
+// --- MISSING UI FUNCTIONS FIXED BY AUDIT ---
+
+// 1. FILTER MENU
+function filterMenu(category) {
+    currentCategory = category;
+    renderMenu();
+}
+
+// 2. HIGHLIGHT CATEGORY
+function highlightCat(element) {
+    const items = document.querySelectorAll('.cat-item');
+    items.forEach(item => item.classList.remove('active'));
+    element.classList.add('active');
+}
+
+// 3. CHAT WIDGET
+function toggleChatWidget() {
+    const chat = document.getElementById('chat-window');
+    if (chat) chat.classList.toggle('active');
+}
+
+// 4. MOBILE MENU
+function toggleMobileMenu() {
+    const nav = document.getElementById('mobile-nav');
+    if (nav) nav.classList.toggle('active');
+
+    // Animate hamburger
+    const burger = document.querySelector('.hamburger');
+    if (burger) burger.classList.toggle('active');
+}
+
+// 5. LOGIN MODAL
+function openLoginChoiceModal() {
+    ensureModalExists('login-choice-modal');
+    document.getElementById('login-choice-modal').style.display = 'flex';
+}
+
+// 6. COUPON LIST
+function toggleCouponList() {
+    const list = document.getElementById('coupon-list');
+    if (list) list.style.display = (list.style.display === 'none' || list.style.display === '') ? 'block' : 'none';
+}
+
+// 7. CLOSE SUCCESS MODAL
+function closeSuccessModal() {
+    closeModal('success-modal');
+    window.location.reload(); // Refresh to reset state
+}
+
+// 8. CLOSE ANNOUNCEMENT
+function closeAnnouncement() {
+    document.getElementById('announcement-bar').style.display = 'none';
+}
+
+// 9. CLEAR CART
+function clearCart() {
+    cart = [];
+    updateCartUI();
+    saveCartLocal();
+    toggleCart(); // Close sidebar
+    showToast("Cart cleared", "neutral");
+}
+
+// 10. OPEN RECENT ORDERS
+function showOrderHistory() {
+    ensureModalExists('history-modal');
+    document.getElementById('history-modal').style.display = 'block'; // It's an overlay
+    document.getElementById('history-content').innerHTML = '<p style="padding:20px; text-align:center;">Loading...</p>';
+
+    if (!currentUser) {
+        document.getElementById('history-content').innerHTML = '<p style="padding:20px; text-align:center;">Please login to view history.</p>';
+        return;
+    }
+
+    db.collection("orders")
+        .where("userId", "==", currentUser.uid)
+        .orderBy("timestamp", "desc")
+        .limit(10)
+        .get()
+        .then(snap => {
+            const list = document.getElementById('history-content');
+            list.innerHTML = '';
+            if (snap.empty) {
+                list.innerHTML = '<p style="padding:20px; text-align:center;">No past orders found.</p>';
+                return;
+            }
+            snap.forEach(doc => {
+                const d = doc.data();
+                const date = d.timestamp ? d.timestamp.toDate().toLocaleDateString() : 'N/A';
+                list.innerHTML += `
+                <div class="cart-item">
+                    <div>
+                        <strong>Order #${d.id}</strong>
+                        <div style="font-size:0.8rem; color:#666;">${date} • ₹${d.total}</div>
+                        <div style="font-size:0.8rem; color:${d.status === 'Delivered' ? 'green' : 'orange'};">${d.status}</div>
+                    </div>
+                    <button class="btn-primary" style="padding:5px 10px; font-size:0.8rem;" onclick="repeatOrder('${d.id}')">Repeat</button>
+                </div>
+              `;
+            });
+        })
+        .catch(e => {
+            console.error(e);
+            document.getElementById('history-content').innerHTML = '<p style="padding:20px; text-align:center;">Error loading history.</p>';
+        });
+}
+
+function closeHistory() {
+    document.getElementById('history-modal').style.display = 'none';
+}
+
+function repeatOrder(oid) {
+    // Basic repeat logic stub
+    showToast("Feature coming soon!", "neutral");
+}
+
+
+// 11. OPEN WALLET
+function openWalletHistory() {
+    ensureModalExists('wallet-modal');
+    document.getElementById('wallet-modal').style.display = 'flex';
+}
+
+// 12. LOGOUT
+function logout() {
+    auth.signOut().then(() => {
+        showToast("Logged out successfully", "success");
+        window.location.reload();
+    });
 }
