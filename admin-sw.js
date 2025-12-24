@@ -23,7 +23,7 @@ messaging.onBackgroundMessage(function (payload) {
   self.registration.showNotification(notificationTitle, notificationOptions);
 });
 
-const CACHE_NAME = 'namo-admin-v51'; // Major Version Update
+const CACHE_NAME = 'namo-admin-v52'; // Major Version Update
 const urlsToCache = [
   '/admin.html',
   '/admin.css',

@@ -4002,6 +4002,29 @@ button {
 
 @keyframes chatPop {
     from {
+        transform: scale(0);
+        opacity: 0;
+    }
+
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+/* Mobile Responsive Chat */
+@media (max-width: 480px) {
+    .chat-window {
+        width: 90%;
+        height: 70vh;
+        right: 5%;
+        bottom: 80px;
+        /* Above Bottom Nav */
+    }
+}
+
+@keyframes chatPop {
+    from {
         opacity: 0;
         transform: scale(0.8);
     }

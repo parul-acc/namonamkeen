@@ -641,11 +641,9 @@ function toggleHamperItem(p, el) {
         el.classList.remove('selected');
     } else {
         if (selectedHamperItems.length < 3) {
-            const currentTotal = selectedHamperItems.reduce((sum, item) => sum + item.price, 0);
-            if (currentTotal + p.price > shopConfig.hamperPrice) {
-                showToast("Total value too high! Try a cheaper item.", "error");
-                return;
-            }
+            // REMOVED: Total value check that blocked discounts.
+            // Cost control is handled by 'hamperMaxItemPrice' filter in renderHamperOptions.
+
             selectedHamperItems.push(p);
             el.classList.add('selected');
         } else {
@@ -1961,6 +1959,13 @@ function ensureModalExists(modalId) {
 }
 
 function openProfileModal() {
+    // Redirect to Login if not authenticated
+    if (!currentUser) {
+        showToast("Please login first", "neutral");
+        openLoginChoiceModal();
+        return;
+    }
+
     const modal = document.getElementById('profile-modal');
     if (!modal) return;
     pushModalState();
