@@ -976,30 +976,7 @@ function addToCartFromModal(id) {
 
 function closeProductModal() { document.getElementById('product-modal').style.display = 'none'; }
 
-function addToCart(p, v, qtyToAdd = 1) {
-    const cartId = `${p.id}-${v.weight.replace(/\s/g, '')}`;
-    const ex = cart.find(i => i.cartId === cartId);
-
-    if (ex) {
-        ex.qty += qtyToAdd; // Add specific amount
-        showToast(`Updated ${p.name} quantity (+${qtyToAdd})`, "success");
-    } else {
-        cart.push({
-            cartId: cartId,
-            productId: p.id,
-            name: p.name,
-            image: p.image,
-            weight: v.weight,
-            price: v.price,
-            qty: qtyToAdd // Set initial amount
-        });
-        showToast(`${p.name} added to cart! 🛒`, "success");
-    }
-
-    updateCartUI();
-    saveCartLocal();
-    vibrate(50);
-}
+// REMOVED: Duplicate addToCart function (see line ~583 for the canonical version)
 
 // --- UPDATED CART UI (Fixes Syntax Error & Mobile Badge) ---
 function updateCartUI() {
@@ -2065,11 +2042,11 @@ function renderBadges(unlockedIds) {
 }
 
 async function validateCartIntegrity() {
-    const productIds = cart.map(i => i.productId);
-    // Fetch all products in cart
-    // Note: Firestore 'in' query limit is 10. For simplicity, we loop gets or assume cart is small.
-    // Better approach:
-    const promises = cart.map(i => db.collection('products').doc(String(i.productId)).get());
+    // Filter out custom Hamper items - they use synthetic IDs
+    const regularItems = cart.filter(i => i.productId !== 'HAMPER');
+
+    // Fetch all regular products in cart
+    const promises = regularItems.map(i => db.collection('products').doc(String(i.productId)).get());
     const docs = await Promise.all(promises);
 
     for (let doc of docs) {
@@ -2234,8 +2211,35 @@ function registerServiceWorker() {
     // Only register if supported AND running on http/https (not file://)
     if ('serviceWorker' in navigator && (window.location.protocol === 'http:' || window.location.protocol === 'https:')) {
         navigator.serviceWorker.register('sw.js')
-            .then(reg => dbg("Service Worker Registered"))
+            .then(reg => {
+                dbg("Service Worker Registered");
+
+                // Force check for updates every time page loads
+                reg.update();
+
+                // Listen for new service worker waiting
+                reg.onupdatefound = () => {
+                    const newWorker = reg.installing;
+                    newWorker.onstatechange = () => {
+                        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                            // New version available - notify user or auto-reload
+                            dbg("New version available. Reloading...");
+                            showToast("Updating to latest version...", "neutral");
+                            setTimeout(() => window.location.reload(), 1000);
+                        }
+                    };
+                };
+            })
             .catch(err => dbg("SW Registration Failed:", err));
+
+        // Auto-reload when new SW takes control
+        let refreshing = false;
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+            if (!refreshing) {
+                refreshing = true;
+                window.location.reload();
+            }
+        });
     }
 }
 
@@ -4887,10 +4891,7 @@ function closeSuccessModal() {
     window.location.reload(); // Refresh to reset state
 }
 
-// 8. CLOSE ANNOUNCEMENT
-function closeAnnouncement() {
-    document.getElementById('announcement-bar').style.display = 'none';
-}
+// REMOVED: Duplicate closeAnnouncement (see line ~2138)
 
 // 9. CLEAR CART
 function clearCart() {
