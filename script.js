@@ -1249,16 +1249,6 @@ function removeFromCart(id) {
     saveCartLocal();
 }
 
-async function clearCart() {
-    // FIX: Wait for confirmation
-    if (await showConfirm("Clear your cart?")) {
-        cart = [];
-        appliedDiscount = { type: 'none', value: 0, code: null }; // Also clear coupons
-        updateCartUI();
-        saveCartLocal();
-    }
-}
-
 // --- TOGGLE CART (Updated to Auto-Fill) ---
 function toggleCart() {
     const sidebar = document.getElementById('cart-sidebar');
@@ -2165,14 +2155,7 @@ function searchMenu() {
     renderMenu();
 }
 function toggleLanguage() { currentLang = currentLang === 'en' ? 'hi' : 'en'; renderMenu(); updateCartUI(); }
-function toggleMobileMenu() {
-    const nav = document.getElementById('mobile-nav');
-    const hamburger = document.querySelector('.hamburger');
 
-    // Toggle classes on both
-    nav.classList.toggle('active');
-    hamburger.classList.toggle('active');
-}
 
 // Close menu when clicking outside (Optional but good UX)
 document.addEventListener('click', (e) => {
@@ -4867,12 +4850,6 @@ function highlightCat(element) {
     const items = document.querySelectorAll('.cat-item');
     items.forEach(item => item.classList.remove('active'));
     element.classList.add('active');
-}
-
-// 3. CHAT WIDGET
-function toggleChatWidget() {
-    const chat = document.getElementById('chat-window');
-    if (chat) chat.classList.toggle('active');
 }
 
 // 4. MOBILE MENU

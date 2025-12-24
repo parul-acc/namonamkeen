@@ -55,7 +55,7 @@ self.addEventListener('notificationclick', function (event) {
   );
 });
 
-const CACHE_NAME = 'namo-v54'; // Major Version Update for Freshness
+const CACHE_NAME = 'namo-v55'; // Major Version Update for Freshness
 const urlsToCache = [
   '/',
   '/index.html',
