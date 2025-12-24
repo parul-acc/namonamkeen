@@ -3189,6 +3189,11 @@ function listenToAdminNotifications() {
             } else {
                 badge.style.display = 'none';
             }
+        }, error => {
+            // Handle permission errors gracefully
+            console.warn('Admin notifications listener error:', error.message);
+            const list = document.getElementById('admin-notif-list');
+            if (list) list.innerHTML = '<p style="padding:20px; text-align:center; color:#999;">Notifications unavailable</p>';
         });
 }
 
@@ -3678,4 +3683,163 @@ function loadProductPerformance() {
             console.error(err);
             tbody.innerHTML = `<tr><td colspan="6" style="color:red; text-align:center;">Error: ${err.message}</td></tr>`;
         });
+}
+
+// ==========================================
+// 📦 BULK PRICE ADJUSTMENT FEATURE
+// ==========================================
+
+async function openBulkPriceModal() {
+    document.getElementById('bulk-price-modal').style.display = 'flex';
+    document.getElementById('bulk-price-amount').value = '';
+    document.getElementById('bulk-price-preview').style.display = 'none';
+
+    // Load unique weight options
+    const select = document.getElementById('bulk-weight-select');
+    select.innerHTML = '<option value="">-- Loading... --</option>';
+
+    try {
+        const snapshot = await db.collection('products').get();
+        const weights = new Set();
+
+        snapshot.forEach(doc => {
+            const p = doc.data();
+            if (p.variants && Array.isArray(p.variants)) {
+                p.variants.forEach(v => {
+                    if (v.weight) weights.add(v.weight);
+                });
+            }
+        });
+
+        // Sort weights
+        const sortedWeights = Array.from(weights).sort((a, b) => {
+            // Try to sort numerically by extracting numbers
+            const numA = parseFloat(a.replace(/[^\d.]/g, '')) || 0;
+            const numB = parseFloat(b.replace(/[^\d.]/g, '')) || 0;
+            return numA - numB;
+        });
+
+        select.innerHTML = '<option value="">-- Select Weight --</option>';
+        sortedWeights.forEach(w => {
+            select.innerHTML += `<option value="${w}">${w}</option>`;
+        });
+
+    } catch (error) {
+        console.error('Error loading weights:', error);
+        select.innerHTML = '<option value="">Error loading</option>';
+    }
+}
+
+async function previewBulkPriceChange() {
+    const weight = document.getElementById('bulk-weight-select').value;
+    const amount = parseFloat(document.getElementById('bulk-price-amount').value) || 0;
+    const previewDiv = document.getElementById('bulk-price-preview');
+
+    if (!weight) {
+        previewDiv.style.display = 'none';
+        return;
+    }
+
+    try {
+        const snapshot = await db.collection('products').get();
+        let affectedCount = 0;
+        let samples = [];
+
+        snapshot.forEach(doc => {
+            const p = doc.data();
+            if (p.variants && Array.isArray(p.variants)) {
+                const hasWeight = p.variants.some(v => v.weight === weight);
+                if (hasWeight) {
+                    affectedCount++;
+                    if (samples.length < 3) {
+                        const v = p.variants.find(v => v.weight === weight);
+                        samples.push({
+                            name: p.name,
+                            oldPrice: v.price,
+                            newPrice: v.price + amount
+                        });
+                    }
+                }
+            }
+        });
+
+        document.getElementById('bulk-affected-count').textContent = affectedCount;
+
+        if (amount !== 0 && samples.length > 0) {
+            const sampleHTML = samples.map(s =>
+                `${s.name}: ₹${s.oldPrice} → ₹${s.newPrice}`
+            ).join('<br>');
+            document.getElementById('bulk-price-sample').innerHTML = sampleHTML;
+        } else {
+            document.getElementById('bulk-price-sample').innerHTML = '';
+        }
+
+        previewDiv.style.display = 'block';
+
+    } catch (error) {
+        console.error('Error previewing:', error);
+    }
+}
+
+async function applyBulkPriceChange() {
+    const weight = document.getElementById('bulk-weight-select').value;
+    const amount = parseFloat(document.getElementById('bulk-price-amount').value) || 0;
+
+    if (!weight) {
+        showToast('Please select a weight type', 'error');
+        return;
+    }
+
+    if (amount === 0) {
+        showToast('Please enter a non-zero adjustment amount', 'error');
+        return;
+    }
+
+    const btn = document.getElementById('btn-apply-bulk');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Applying...';
+
+    try {
+        const snapshot = await db.collection('products').get();
+        const batch = db.batch();
+        let updateCount = 0;
+
+        snapshot.forEach(doc => {
+            const p = doc.data();
+            if (p.variants && Array.isArray(p.variants)) {
+                const hasWeight = p.variants.some(v => v.weight === weight);
+                if (hasWeight) {
+                    // Update variants with new prices
+                    const updatedVariants = p.variants.map(v => {
+                        if (v.weight === weight) {
+                            return { ...v, price: Math.max(0, v.price + amount) }; // Don't allow negative prices
+                        }
+                        return v;
+                    });
+
+                    // Also update base price if it matches the first variant
+                    const updateData = { variants: updatedVariants };
+                    if (p.variants[0] && p.variants[0].weight === weight) {
+                        updateData.price = Math.max(0, p.price + amount);
+                    }
+
+                    batch.update(doc.ref, updateData);
+                    updateCount++;
+                }
+            }
+        });
+
+        await batch.commit();
+
+        showToast(`Updated prices for ${updateCount} products!`, 'success');
+        closeModal('bulk-price-modal');
+        loadInventory(); // Refresh the inventory list
+
+    } catch (error) {
+        console.error('Error applying bulk price change:', error);
+        showToast('Error: ' + error.message, 'error');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-check"></i> Apply Changes';
+    }
 }

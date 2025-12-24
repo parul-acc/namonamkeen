@@ -251,6 +251,8 @@
                             title="Upload CSV"><i class="fas fa-file-upload"></i> Upload</button>
                         <button class="btn btn-blue" onclick="importFromSheet()"
                             title="Import from Google Sheet">Sheet</button>
+                        <button class="btn btn-green" onclick="openBulkPriceModal()" title="Bulk Price Adjustment"><i
+                                class="fas fa-tags"></i> Bulk Price</button>
                         <button class="btn btn-primary" onclick="openProductModal()">+ Add</button>
                     </div>
                 </div>
@@ -757,6 +759,46 @@
                             <tbody id="rep-tbody"></tbody>
                         </table>
                     </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bulk Price Adjustment Modal -->
+        <div id="bulk-price-modal" class="modal">
+            <div class="modal-content" style="max-width: 450px;">
+                <div class="modal-header">
+                    <h3><i class="fas fa-tags"></i> Bulk Price Adjustment</h3>
+                    <button onclick="closeModal('bulk-price-modal')" class="close-btn">&times;</button>
+                </div>
+                <p style="color:#666; font-size:0.9rem; margin-bottom:15px;">
+                    Increase or decrease prices for all products with a specific weight/quantity variant.
+                </p>
+
+                <label>Select Weight/Quantity:</label>
+                <select id="bulk-weight-select" class="form-control" onchange="previewBulkPriceChange()">
+                    <option value="">-- Select Weight --</option>
+                </select>
+
+                <label style="margin-top:15px;">Price Adjustment (₹):</label>
+                <div style="display:flex; gap:10px; align-items:center;">
+                    <input type="number" id="bulk-price-amount" class="form-control" placeholder="e.g., 10 or -5"
+                        style="flex:1;" onchange="previewBulkPriceChange()">
+                    <span style="color:#666; font-size:0.85rem;">+ to increase, - to decrease</span>
+                </div>
+
+                <div id="bulk-price-preview"
+                    style="margin-top:15px; padding:12px; background:#f8f9fa; border-radius:8px; display:none;">
+                    <strong id="bulk-affected-count">0</strong> products will be affected.
+                    <div id="bulk-price-sample" style="font-size:0.85rem; color:#666; margin-top:5px;"></div>
+                </div>
+
+                <div style="display:flex; gap:10px; margin-top:20px;">
+                    <button class="btn btn-outline" onclick="closeModal('bulk-price-modal')"
+                        style="flex:1;">Cancel</button>
+                    <button class="btn btn-primary" onclick="applyBulkPriceChange()" style="flex:1;"
+                        id="btn-apply-bulk">
+                        <i class="fas fa-check"></i> Apply Changes
+                    </button>
                 </div>
             </div>
         </div>

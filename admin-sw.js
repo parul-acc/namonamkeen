@@ -23,7 +23,7 @@ messaging.onBackgroundMessage(function (payload) {
   self.registration.showNotification(notificationTitle, notificationOptions);
 });
 
-const CACHE_NAME = 'namo-admin-v55'; // Major Version Update
+const CACHE_NAME = 'namo-admin-v56'; // Major Version Update
 const urlsToCache = [
   '/admin.html',
   '/admin.css',
@@ -53,6 +53,12 @@ self.addEventListener('activate', event => {
 
 self.addEventListener('fetch', event => {
   const req = event.request;
+
+  // Skip non-GET requests (POST, PUT, etc. cannot be cached)
+  if (req.method !== 'GET') {
+    event.respondWith(fetch(req));
+    return;
+  }
 
   // Network First for Admin Files (Always Fresh)
   event.respondWith(
