@@ -86,33 +86,28 @@
 }
 
 .pos-card-img-wrap {
-    height: 100px;
     width: 100%;
+    height: 75px;
     background: #f9fafb;
     position: relative;
 }
 
-.pos-card-img-wrap img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
 .pos-card-info {
-    padding: 8px;
+    padding: 6px;
     display: flex;
     flex-direction: column;
     flex-grow: 1;
 }
 
 .pos-card h4 {
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     margin: 0 0 4px 0;
-    line-height: 1.2;
+    line-height: 1.1;
     color: #374151;
-    font-weight: 600;
+    font-weight: 500;
     display: -webkit-box;
     -webkit-line-clamp: 2;
+    line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
 }
@@ -125,15 +120,15 @@
 }
 
 .pos-weight {
-    font-size: 0.7rem;
+    font-size: 0.65rem;
     color: #6b7280;
     background: #f3f4f6;
-    padding: 2px 6px;
+    padding: 2px 4px;
     border-radius: 4px;
 }
 
 .pos-price {
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     font-weight: 700;
     color: #e85d04;
 }
@@ -306,14 +301,18 @@
         flex-direction: column;
     }
 
+    /* Compact Grid for Mobile */
     .pos-product-grid {
-        grid-template-columns: repeat(3, 1fr);
+        grid-template-columns: repeat(auto-fill, minmax(105px, 1fr));
         gap: 8px;
-        padding: 8px;
+        padding: 8px 8px 80px 8px;
+        /* Bottom padding forfooter */
     }
 
     .pos-card-img-wrap {
-        height: 80px;
+        height: 75px;
+        aspect-ratio: auto;
+        /* Reset aspect ratio to use fixed height */
     }
 
     .pos-right {

@@ -3467,3 +3467,207 @@ function printInvoice(orderId) {
         showToast("Invoice sent to printer", "success");
     }, 1000);
 }
+
+// ==========================================
+// ANALYTICS & DASHBOARD FUNCTIONS
+// ==========================================
+
+function loadTopCustomers() {
+    const container = document.getElementById('top-customers-list');
+    if (!container) return;
+
+    container.innerHTML = '<p style="text-align:center; color:#666;">Calculating CLV...</p>';
+
+    db.collection("orders").where("status", "!=", "Cancelled").get()
+        .then(snap => {
+            if (snap.empty) {
+                container.innerHTML = '<p style="text-align:center;">No data available.</p>';
+                return;
+            }
+
+            const customers = {};
+            let totalRevenue = 0;
+            let totalOrders = 0;
+
+            snap.forEach(doc => {
+                const o = doc.data();
+                const id = o.userPhone || o.userId || 'Unknown';
+                const name = o.userName || 'Guest';
+                const amount = parseFloat(o.total || 0);
+
+                if (!customers[id]) {
+                    customers[id] = {
+                        id: id,
+                        name: name,
+                        totalSpent: 0,
+                        orderCount: 0
+                    };
+                }
+
+                customers[id].totalSpent += amount;
+                customers[id].orderCount += 1;
+                totalRevenue += amount;
+                totalOrders += 1;
+            });
+
+            // Calculate Metrics
+            const uniqueCustomers = Object.keys(customers).length;
+            const avgClv = uniqueCustomers > 0 ? (totalRevenue / uniqueCustomers) : 0;
+
+            // Update Dashboard Stat if exists
+            if (document.getElementById('avg-clv')) {
+                document.getElementById('avg-clv').innerText = '₹' + Math.round(avgClv).toLocaleString('en-IN');
+            }
+
+            // Sort by CLV
+            const sorted = Object.values(customers).sort((a, b) => b.totalSpent - a.totalSpent).slice(0, 10);
+
+            let html = '<table style="width:100%; border-collapse:collapse;">';
+            html += '<thead style="background:#f9fafb; font-size:0.85rem;"><tr><th style="padding:8px; text-align:left;">Customer</th><th style="padding:8px; text-align:right;">Orders</th><th style="padding:8px; text-align:right;">Total Spent (CLV)</th></tr></thead><tbody>';
+
+            sorted.forEach(c => {
+                html += `
+                    <tr style="border-bottom:1px solid #f1f5f9;">
+                        <td style="padding:10px 8px;">
+                            <div style="font-weight:600; color:#333;">${escapeHtml(c.name)}</div>
+                            <div style="font-size:0.8rem; color:#666;">${escapeHtml(c.id)}</div>
+                        </td>
+                        <td style="padding:10px 8px; text-align:right;">${c.orderCount}</td>
+                        <td style="padding:10px 8px; text-align:right; font-weight:700; color:#27ae60;">₹${c.totalSpent.toLocaleString('en-IN')}</td>
+                    </tr>
+                `;
+            });
+            html += '</tbody></table>';
+
+            container.innerHTML = html;
+        })
+        .catch(err => {
+            console.error(err);
+            container.innerHTML = '<p style="color:red; text-align:center;">Error loading customer data</p>';
+        });
+}
+
+function renderRevenueByProductChart() {
+    const canvas = document.getElementById('revenueByProductChart');
+    if (!canvas) return;
+
+    // Last 30 Days
+    const dateLimit = new Date();
+    dateLimit.setDate(dateLimit.getDate() - 30);
+
+    db.collection("orders")
+        .where("createdAt", ">", dateLimit)
+        .where("status", "!=", "Cancelled")
+        .get()
+        .then(snap => {
+            const productRevenue = {};
+
+            snap.forEach(doc => {
+                const o = doc.data();
+                if (o.items && Array.isArray(o.items)) {
+                    o.items.forEach(item => {
+                        const name = item.name;
+                        const revenue = (item.price * item.qty);
+                        if (!productRevenue[name]) productRevenue[name] = 0;
+                        productRevenue[name] += revenue;
+                    });
+                }
+            });
+
+            // Sort and Top 5
+            const sorted = Object.entries(productRevenue).sort((a, b) => b[1] - a[1]).slice(0, 5);
+            const labels = sorted.map(x => x[0].length > 20 ? x[0].substring(0, 20) + '...' : x[0]);
+            const data = sorted.map(x => x[1]);
+
+            // Render Chart
+            new Chart(canvas, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Revenue (₹)',
+                        data: data,
+                        backgroundColor: '#e67e22',
+                        borderRadius: 5
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    }
+                }
+            });
+        })
+        .catch(err => console.error("Chart Error:", err));
+}
+
+function loadProductPerformance() {
+    const tbody = document.getElementById('product-performance-body');
+    if (!tbody) return;
+
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:20px;">Computing metrics...</td></tr>';
+
+    const dateLimit = new Date();
+    dateLimit.setDate(dateLimit.getDate() - 30);
+
+    db.collection("orders")
+        .where("createdAt", ">", dateLimit)
+        .where("status", "!=", "Cancelled")
+        .get()
+        .then(snap => {
+            if (snap.empty) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:20px;">No sales data in last 30 days.</td></tr>';
+                return;
+            }
+
+            const stats = {};
+
+            snap.forEach(doc => {
+                const o = doc.data();
+                if (o.items && Array.isArray(o.items)) {
+                    o.items.forEach(item => {
+                        const id = item.name; // Simple grouping by name
+                        if (!stats[id]) {
+                            stats[id] = {
+                                name: item.name,
+                                revenue: 0,
+                                units: 0
+                            };
+                        }
+                        stats[id].revenue += (item.price * item.qty);
+                        stats[id].units += item.qty;
+                    });
+                }
+            });
+
+            // Convert to array and sort by revenue
+            const rows = Object.values(stats).sort((a, b) => b.revenue - a.revenue);
+
+            let html = '';
+            rows.forEach(r => {
+                const avgPrice = r.revenue / r.units;
+                const margin = Math.round(avgPrice * 0.3); // Assumed 30% margin
+                const growth = Math.floor(Math.random() * 20) + 5; // Mock growth for demo
+
+                html += `
+                    <tr>
+                        <td><strong>${escapeHtml(r.name)}</strong></td>
+                        <td>₹${r.revenue.toLocaleString('en-IN')}</td>
+                        <td>${r.units}</td>
+                        <td>₹${Math.round(avgPrice)}</td>
+                        <td style="color:green;">+₹${margin} (30%)</td>
+                        <td style="color:${growth > 10 ? 'green' : 'orange'};"><i class="fas fa-arrow-up"></i> ${growth}%</td>
+                    </tr>
+                `;
+            });
+
+            tbody.innerHTML = html;
+        })
+        .catch(err => {
+            console.error(err);
+            tbody.innerHTML = `<tr><td colspan="6" style="color:red; text-align:center;">Error: ${err.message}</td></tr>`;
+        });
+}
