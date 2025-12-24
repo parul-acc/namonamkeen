@@ -5115,7 +5115,10 @@ button {
     bottom: 70px;
     /* Above bottom nav */
     left: 5%;
-    width: 90%;
+    width: 75%;
+    /* Reduced width to not overlap chat button */
+    right: auto;
+    /* Ensure it stays on left */
     background: var(--text-dark);
     color: white;
     padding: 12px 20px;
