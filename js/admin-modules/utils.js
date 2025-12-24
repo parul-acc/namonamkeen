@@ -66,7 +66,8 @@ export function safeCSV(str) {
 export function formatDate(timestamp) {
     if (!timestamp) return '-';
     // Handle Firestore Timestamp or standard Date
-    return date.toLocaleString('en-IN', {
+    const d = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+    return d.toLocaleString('en-IN', {
         day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
     });
 }

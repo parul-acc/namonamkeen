@@ -450,34 +450,44 @@ function loadReviews() {
             }
 
             snap.forEach(doc => {
-                const r = doc.data();
-                const date = r.timestamp ? r.timestamp.toDate().toLocaleDateString() : '-';
+                try {
+                    const r = doc.data();
+                    // Safe date handling
+                    const date = (r.timestamp && r.timestamp.toDate) ? r.timestamp.toDate().toLocaleDateString() :
+                        (r.timestamp ? new Date(r.timestamp).toLocaleDateString() : '-');
 
-                // Get Product Name (from Inventory state for speed)
-                const product = state.inventory.data.find(p => p.id === r.productId);
-                const pName = product ? product.name : `ID: ${r.productId}`;
-                const pImg = product ? product.image : 'logo.jpg';
+                    // Get Product Name (Safe access)
+                    let pName = `ID: ${r.productId}`;
+                    let pImg = 'logo.jpg';
 
-                // Star Visuals
-                let stars = '';
-                for (let i = 0; i < 5; i++) {
-                    stars += `<i class="fas fa-star" style="color: ${i < r.rating ? '#ffc107' : '#ddd'}; font-size:0.8rem;"></i>`;
-                }
+                    if (state.inventory && state.inventory.data) {
+                        const product = state.inventory.data.find(p => p.id === r.productId);
+                        if (product) {
+                            pName = product.name;
+                            pImg = product.image || product.imageUrl || product.img || 'logo.jpg';
+                        }
+                    }
 
-                // Check for image
-                let reviewImageHtml = '';
-                if (r.imageUrl) {
-                    const safeReviewImg = sanitizeUrl(r.imageUrl);
-                    reviewImageHtml = `<br><img src="${safeReviewImg}" style="width:50px; height:50px; object-fit:cover; border-radius:4px; margin-top:5px; cursor:pointer;" onclick="window.open(this.src)">`;
-                }
+                    // Star Visuals
+                    let stars = '';
+                    for (let i = 0; i < 5; i++) {
+                        stars += `<i class="fas fa-star" style="color: ${i < r.rating ? '#ffc107' : '#ddd'}; font-size:0.8rem;"></i>`;
+                    }
 
-                // In loadReviews loop:
-                const isPending = r.status === 'pending';
-                const actionBtn = isPending
-                    ? `<button class="btn btn-success btn-sm" onclick="approveReview('${doc.id}')">Approve</button>`
-                    : `<button class="icon-btn btn-danger" onclick="deleteReview('${doc.id}', '${r.productId}', ${r.rating})"><i class="fas fa-trash"></i></button>`;
+                    // Check for image
+                    let reviewImageHtml = '';
+                    if (r.imageUrl) {
+                        const safeReviewImg = sanitizeUrl(r.imageUrl);
+                        reviewImageHtml = `<br><img src="${safeReviewImg}" style="width:50px; height:50px; object-fit:cover; border-radius:4px; margin-top:5px; cursor:pointer;" onclick="window.open(this.src)">`;
+                    }
 
-                tbody.innerHTML += `
+                    // In loadReviews loop:
+                    const isPending = r.status === 'pending';
+                    const actionBtn = isPending
+                        ? `<button class="btn btn-success btn-sm" onclick="approveReview('${doc.id}')">Approve</button>`
+                        : `<button class="icon-btn btn-danger" onclick="deleteReview('${doc.id}', '${r.productId}', ${r.rating})"><i class="fas fa-trash"></i></button>`;
+
+                    tbody.innerHTML += `
             <tr>
                 <td><small>${date}</small></td>
                 <td>
@@ -492,6 +502,9 @@ function loadReviews() {
                 ${reviewImageHtml} </td></td>
                 <td>${actionBtn}</td>
             </tr>`;
+                } catch (e) {
+                    console.error("Review Render Error:", e);
+                }
             });
         }, error => {
             console.error("Error loading reviews:", error);
@@ -1067,26 +1080,40 @@ function loadCoupons() {
         if (!tbody) return;
         tbody.innerHTML = '';
         snap.forEach(doc => {
-            const c = doc.data();
-            const expiry = c.expiryDate.toDate();
-            const isExpired = expiry < new Date();
-            const statusClass = (c.isActive && !isExpired) ? 'status-active' : 'status-expired';
-            const statusText = isExpired ? 'Expired' : (c.isActive ? 'Active' : 'Inactive');
-            const displayValue = c.type === 'percent' ? `${c.value}%` : `₹${c.value}`;
+            try {
+                const c = doc.data();
+                let expiry;
+                if (c.expiryDate && c.expiryDate.toDate) {
+                    expiry = c.expiryDate.toDate();
+                } else if (c.expiryDate && c.expiryDate instanceof Date) {
+                    expiry = c.expiryDate;
+                } else {
+                    // Fallback for missing/invalid date
+                    expiry = new Date();
+                    expiry.setFullYear(expiry.getFullYear() + 1); // Default to future
+                }
 
-            tbody.innerHTML += `
-                <tr>
-                    <td><strong>${c.code}</strong></td>
-                    <td>${displayValue} OFF</td>
-                    <td>${expiry.toLocaleDateString()}</td>
-                    <td class="${statusClass}">${statusText}</td>
-                    <td>
-                        <button class="icon-btn btn-danger" onclick="deleteCoupon('${doc.id}')"><i class="fas fa-trash"></i></button>
-                        <button class="icon-btn ${c.isActive ? 'btn-blue' : 'btn-green'}" onclick="toggleCoupon('${doc.id}', ${!c.isActive})">
-                            <i class="fas ${c.isActive ? 'fa-ban' : 'fa-check'}"></i>
-                        </button>
-                    </td>
-                </tr>`;
+                const isExpired = expiry < new Date();
+                const statusClass = (c.isActive && !isExpired) ? 'status-active' : 'status-expired';
+                const statusText = isExpired ? 'Expired' : (c.isActive ? 'Active' : 'Inactive');
+                const displayValue = c.type === 'percent' ? `${c.value}%` : `₹${c.value}`;
+
+                tbody.innerHTML += `
+                        <tr>
+                            <td><strong>${c.code}</strong></td>
+                            <td>${displayValue} OFF</td>
+                            <td>${expiry.toLocaleDateString()}</td>
+                            <td class="${statusClass}">${statusText}</td>
+                            <td>
+                                <button class="icon-btn btn-danger" onclick="deleteCoupon('${doc.id}')"><i class="fas fa-trash"></i></button>
+                                <button class="icon-btn ${c.isActive ? 'btn-blue' : 'btn-green'}" onclick="toggleCoupon('${doc.id}', ${!c.isActive})">
+                                    <i class="fas ${c.isActive ? 'fa-ban' : 'fa-check'}"></i>
+                                </button>
+                            </td>
+                        </tr>`;
+            } catch (err) {
+                console.error("Error rendering coupon:", doc.id, err);
+            }
         });
     }, error => {
         console.error("Error loading coupons:", error);
@@ -1116,8 +1143,9 @@ function saveCoupon() {
     db.collection("coupons").add({
         code,
         type,
-        value: parseFloat(value), // FIX: Changed from parseInt to parseFloat
+        value: parseFloat(value),
         expiryDate,
+        createdAt: new Date(), // Add creation time
         isActive: true,
         minOrder: minOrder
     })
@@ -1341,18 +1369,21 @@ function loadAbandonedCarts() {
     tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:20px;">Loading abandoned carts...</td></tr>';
 
     // Criteria: Cart updated between 7 days ago and 1 hour ago
-    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+    // Criteria: Cart updated in the last 7 days (Show ALL, let UI distinguish Active vs Abandoned)
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const oneHourTerm = 60 * 60 * 1000;
 
-    db.collection("users")
-        .where("lastCartUpdate", "<", oneHourAgo)
+    // Use a simple query first to avoid complex index requirements if possible, 
+    // or just require the single index on lastCartUpdate.
+    const query = db.collection("users")
         .where("lastCartUpdate", ">", sevenDaysAgo)
         .orderBy("lastCartUpdate", "desc")
-        .limit(50)
-        .get()
+        .limit(50);
+
+    query.get()
         .then(snap => {
             if (snap.empty) {
-                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:20px;">No abandoned carts found in the last 7 days.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:20px;">No carts found in the last 7 days.</td></tr>';
                 return;
             }
 
@@ -1360,32 +1391,45 @@ function loadAbandonedCarts() {
             let count = 0;
 
             snap.forEach(doc => {
-                const u = doc.data();
-                // Filter out empty carts or carts with 0 items
-                if (u.cart && u.cart.length > 0) {
-                    count++;
-                    const cartTotal = u.cart.reduce((acc, item) => acc + (item.price * item.qty), 0);
+                try {
+                    const u = doc.data();
+                    // Filter out empty carts or carts with 0 items
+                    if (u.cart && u.cart.length > 0) {
+                        count++;
+                        const cartTotal = u.cart.reduce((acc, item) => acc + (item.price * item.qty), 0);
 
-                    // Create a summary of items (e.g., "2x Sev, 1x Chips...")
-                    const itemsSummary = u.cart.map(i => `${i.qty}x ${i.name}`).join(', ');
+                        // Create a summary of items
+                        const itemsSummary = u.cart.map(i => `${i.qty}x ${i.name}`).join(', ');
 
-                    // WhatsApp Reminder Link
-                    const cleanPhone = u.phone ? u.phone.replace(/\D/g, '') : '';
-                    let actionBtn = '<span class="text-muted" style="font-size:0.8rem;">No Phone</span>';
+                        // Time logic
+                        let lastActiveDate = new Date();
+                        if (u.lastCartUpdate && u.lastCartUpdate.toDate) lastActiveDate = u.lastCartUpdate.toDate();
+                        else if (u.lastCartUpdate) lastActiveDate = new Date(u.lastCartUpdate);
 
-                    if (cleanPhone.length >= 10) {
-                        const msg = `Hi ${u.name || 'there'}! 👋 We noticed you left some items in your cart at Namo Namkeen. Complete your order now before stock runs out! 🛒 https://namonamkeen.shop`;
-                        const waLink = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}`;
-                        actionBtn = `<a href="${waLink}" target="_blank" class="btn btn-green btn-sm" style="text-decoration:none;"><i class="fab fa-whatsapp"></i> Remind</a>`;
-                    }
+                        const timeDiff = Date.now() - lastActiveDate.getTime();
+                        const isAbandoned = timeDiff > oneHourTerm;
+                        const statusBadge = isAbandoned
+                            ? '<span class="badge badge-danger">Abandoned</span>'
+                            : '<span class="badge badge-success">Active Now</span>';
 
-                    const lastActive = u.lastCartUpdate ? u.lastCartUpdate.toDate().toLocaleString('en-IN') : '-';
+                        // WhatsApp Reminder Link
+                        const cleanPhone = u.phone ? u.phone.replace(/\D/g, '') : '';
+                        let actionBtn = '<span class="text-muted" style="font-size:0.8rem;">No Phone</span>';
 
-                    html += `
+                        if (cleanPhone.length >= 10) {
+                            const msg = `Hi ${u.name || 'there'}! 👋 We noticed you left some items in your cart at Namo Namkeen. Complete your order now before stock runs out! 🛒 https://namonamkeen.shop`;
+                            const waLink = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}`;
+                            actionBtn = `<a href="${waLink}" target="_blank" class="btn btn-green btn-sm" style="text-decoration:none;"><i class="fab fa-whatsapp"></i> Remind</a>`;
+                        }
+
+                        const lastActiveStr = lastActiveDate.toLocaleString('en-IN');
+
+                        html += `
                         <tr>
                             <td>
                                 <strong>${escapeHtml(u.name || 'Guest')}</strong><br>
-                                <small style="color:#888;">Last Active: ${lastActive}</small>
+                                <small style="color:#888;">${lastActiveStr}</small>
+                                <div style="margin-top:2px;">${statusBadge}</div>
                             </td>
                             <td>${escapeHtml(u.phone || '-')}</td>
                             <td>
@@ -1398,7 +1442,8 @@ function loadAbandonedCarts() {
                             <td>${actionBtn}</td>
                         </tr>
                     `;
-                }
+                    }
+                } catch (e) { console.error("Cart Render Error", e); }
             });
 
             if (count === 0) {
@@ -2341,7 +2386,7 @@ function renderPosProducts() {
     }
 
     filtered.forEach(p => {
-        const img = p.image || 'logo.jpg';
+        const img = p.image || p.imageUrl || p.img || 'logo.jpg';
         let variantControl = '';
         let priceDisplay = `₹${p.price}`;
         let weightDisplay = 'Std';
@@ -2658,6 +2703,49 @@ async function deleteBlog(id) {
     }
 }
 
+
+// --- MISSING FUNCTION IMPLEMENTATION ---
+function loadBlogCMS() {
+    const container = document.getElementById('blog-list');
+    if (!container) return;
+
+    container.innerHTML = '<p style="padding:20px; color:#666;">Loading posts...</p>';
+
+    db.collection("blogs").orderBy("date", "desc").get().then(snap => {
+        if (snap.empty) {
+            container.innerHTML = '<p style="padding:20px; color:#666; text-align:center;">No blog posts yet.</p>';
+            return;
+        }
+
+        let html = '';
+        snap.forEach(doc => {
+            const b = doc.data();
+            const dateStr = b.date ? (b.date.toDate ? b.date.toDate().toLocaleDateString() : new Date(b.date).toLocaleDateString()) : 'No Date';
+            const imgHtml = b.image ? `<img src="${b.image}" style="width:60px; height:40px; object-fit:cover; border-radius:4px; margin-right:10px;">` : '';
+
+            html += `
+                <div style="display:flex; justify-content:space-between; align-items:center; background:#f9f9f9; padding:10px; margin-bottom:10px; border-radius:5px; border:1px solid #eee;">
+                    <div style="display:flex; align-items:center;">
+                        ${imgHtml}
+                        <div>
+                            <strong style="font-size:1rem; display:block;">${escapeHtml(b.title)}</strong>
+                            <small style="color:#888;">${dateStr}</small>
+                        </div>
+                    </div>
+                    <div>
+                        <button class="btn btn-sm btn-outline" onclick="editBlog('${doc.id}')"><i class="fas fa-edit"></i></button>
+                        <button class="btn btn-sm btn-outline text-red" onclick="deleteBlog('${doc.id}')"><i class="fas fa-trash"></i></button>
+                    </div>
+                </div>
+            `;
+        });
+        container.innerHTML = html;
+    }).catch(err => {
+        console.error("Error loading blogs:", err);
+        container.innerHTML = `<p style="color:red; padding:20px;">Error: ${err.message}</p>`;
+    });
+}
+
 // ===========================
 // FINANCE & EXPENSE LOGIC
 // ===========================
@@ -2671,7 +2759,7 @@ function loadFinance() {
     db.collection("orders").where("status", "!=", "Cancelled").get()
         .then(snap => {
             let revenue = 0;
-            snap.forEach(d => revenue += (d.data().total || 0));
+            snap.forEach(d => revenue += parseFloat(d.data().total || 0));
 
             // Update UI
             const revEl = document.getElementById('fin-revenue');
@@ -3182,6 +3270,7 @@ async function generateReport() {
         setBtnLoading('btn-gen-report', false);
     }
 }
+window.generateReport = generateReport;
 
 async function emailCurrentReport() {
     if (!currentReportData) return showToast("Generate a report first", "error");
