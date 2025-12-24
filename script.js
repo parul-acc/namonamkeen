@@ -4989,3 +4989,31 @@ function logout() {
         window.location.reload();
     });
 }
+// --- HELPER FOR MODALS ---
+function ensureModalExists(modalId) {
+    const el = document.getElementById(modalId);
+    if (!el) {
+        console.error("Modal not found:", modalId);
+        showToast("Error: Modal missing " + modalId, "error");
+    }
+    return el;
+}
+
+// --- MISSING AUTH FUNCTIONS ---
+function loginWithGoogle() {
+    const provider = new firebase.auth.GoogleAuthProvider();
+    auth.signInWithPopup(provider)
+        .then((result) => {
+            showToast("Welcome " + result.user.displayName, "success");
+            closeModal('login-choice-modal');
+        })
+        .catch((error) => {
+            console.error(error);
+            showToast("Login Failed: " + error.message, "error");
+        });
+}
+
+function loginWithPhone() {
+    showToast("Phone Login Coming Soon", "neutral");
+    // Placeholder - usually involves reCAPTCHA and OTP input
+}
