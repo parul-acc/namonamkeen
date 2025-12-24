@@ -3478,7 +3478,8 @@ function loadTopCustomers() {
 
     container.innerHTML = '<p style="text-align:center; color:#666;">Calculating CLV...</p>';
 
-    db.collection("orders").where("status", "!=", "Cancelled").get()
+    // Query ALL orders (filtering in JS to avoid index issues)
+    db.collection("orders").limit(300).get()
         .then(snap => {
             if (snap.empty) {
                 container.innerHTML = '<p style="text-align:center;">No data available.</p>';
@@ -3491,6 +3492,9 @@ function loadTopCustomers() {
 
             snap.forEach(doc => {
                 const o = doc.data();
+                // Client-side Filter for Cancelled Orders
+                if (o.status === 'Cancelled') return;
+
                 const id = o.userPhone || o.userId || 'Unknown';
                 const name = o.userName || 'Guest';
                 const amount = parseFloat(o.total || 0);
@@ -3557,13 +3561,15 @@ function renderRevenueByProductChart() {
 
     db.collection("orders")
         .where("createdAt", ">", dateLimit)
-        .where("status", "!=", "Cancelled")
         .get()
         .then(snap => {
             const productRevenue = {};
 
             snap.forEach(doc => {
                 const o = doc.data();
+                // Client-side Filter
+                if (o.status === 'Cancelled') return;
+
                 if (o.items && Array.isArray(o.items)) {
                     o.items.forEach(item => {
                         const name = item.name;
@@ -3615,7 +3621,6 @@ function loadProductPerformance() {
 
     db.collection("orders")
         .where("createdAt", ">", dateLimit)
-        .where("status", "!=", "Cancelled")
         .get()
         .then(snap => {
             if (snap.empty) {
@@ -3627,6 +3632,9 @@ function loadProductPerformance() {
 
             snap.forEach(doc => {
                 const o = doc.data();
+                // Client-side Filter
+                if (o.status === 'Cancelled') return;
+
                 if (o.items && Array.isArray(o.items)) {
                     o.items.forEach(item => {
                         const id = item.name; // Simple grouping by name
