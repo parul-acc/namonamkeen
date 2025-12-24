@@ -2052,14 +2052,18 @@ async function validateCartIntegrity() {
     for (let doc of docs) {
         if (!doc.exists) throw new Error("Some items in cart are no longer available.");
         const p = doc.data();
-        const cartItem = cart.find(i => i.productId === p.id);
+        const productId = doc.id; // Use document ID, not data's id property
+        const cartItem = cart.find(i => String(i.productId) === String(productId));
+
+        // Skip if cartItem not found (shouldn't happen, but safe guard)
+        if (!cartItem) continue;
 
         // Stock Check
         if (!p.in_stock) throw new Error(`${p.name} is out of stock.`);
 
         // Price Check
         let realPrice = p.price;
-        if (p.variants) {
+        if (p.variants && cartItem.weight) {
             const v = p.variants.find(va => va.weight === cartItem.weight);
             if (v) realPrice = v.price;
         }
@@ -4127,14 +4131,24 @@ function toggleChatWidget() {
     const win = document.getElementById('chat-window');
     const btn = document.getElementById('chat-widget-btn');
 
-    if (win.style.display === 'flex') {
+    // Safety check - elements must exist
+    if (!win || !btn) {
+        console.error("Chat widget elements not found:", { win: !!win, btn: !!btn });
+        return;
+    }
+
+    // Get computed style to check actual visibility
+    const isVisible = win.style.display === 'flex' || getComputedStyle(win).display === 'flex';
+
+    if (isVisible) {
         win.style.display = 'none';
         btn.style.display = 'flex';
     } else {
         win.style.display = 'flex';
         btn.style.display = 'none'; // Hide button when open on mobile
-        // Focus input
-        setTimeout(() => document.getElementById('chat-input').focus(), 100);
+        // Focus input with delay
+        const chatInput = document.getElementById('chat-input');
+        if (chatInput) setTimeout(() => chatInput.focus(), 100);
     }
 }
 

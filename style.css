@@ -4028,11 +4028,15 @@ button {
 /* Mobile Chat Button Positioning */
 @media (max-width: 768px) {
     .chat-widget-btn {
-        bottom: 80px;
+        bottom: 80px !important;
         /* Above 60px bottom nav */
-        right: 15px;
-        z-index: 9995;
-        /* Higher than nav (4999) */
+        right: 15px !important;
+        z-index: 10000 !important;
+        /* Very high to ensure visibility */
+        pointer-events: auto !important;
+        /* Ensure clickable */
+        opacity: 1 !important;
+        display: flex !important;
     }
 }
 
